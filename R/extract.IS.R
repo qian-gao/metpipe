@@ -42,8 +42,8 @@ extract.IS <-
     # colnames.rt <- grep(".Feature.RT", colnames(peaktable.is))
 
     colnames.peak.area <- grep("Peak.area", colnames(peaktable.is))
-    colnames.mz <- grep("Peak.m.z", colnames(peaktable.is))
-    colnames.rt <- grep("Peak.RT", colnames(peaktable.is))
+    colnames.mz <- grep("Feature.m.z", colnames(peaktable.is))
+    colnames.rt <- grep("Feature.RT", colnames(peaktable.is))
 
     all_file <- data.frame()
     for (i in 1:length(colnames.mz)) {
@@ -53,10 +53,11 @@ extract.IS <-
         select( colnames.mz[i],
                 colnames.rt[i],
                 ISTD,
-                colnames.peak.area[i])
+                colnames.peak.area[i]) %>%
+        mutate( ISTD = substr(ISTD, 1, regexpr("\\:[^\\:]*$", ISTD)-1))
 
-      #Sample.name <- gsub( ".mzML.Feature.m.z", "", colnames(sample)[1]) # mzmine3
-      Sample.name <- gsub( ".mzML.Peak.m.z", "", colnames(sample)[1])
+      Sample.name <- gsub( ".mzML.Feature.m.z", "", colnames(sample)[1]) # mzmine3
+      #Sample.name <- gsub( ".mzML.Peak.m.z", "", colnames(sample)[1])
 
       sample <-
         sample %>%

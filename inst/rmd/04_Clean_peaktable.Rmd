@@ -1,0 +1,366 @@
+---
+title: "Clean peaktable"
+author: "Qian Gao, qian.gao@sund.ku.dk"
+date: "`r base::Sys.Date()`"
+
+knit: ( function(inputFile, encoding) { 
+          rmarkdown::render( inputFile, 
+                             encoding = encoding, 
+                             output_file = paste0( substr(inputFile,1,nchar(inputFile)-4), '_', Sys.Date(),'.html')) 
+          })
+
+output:
+  html_document:
+    toc: yes
+    toc_depth: '4'
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_depth: '4'
+    df_print: paged
+---
+
+```{r setup environment, include = FALSE}
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
+```
+
+```{r general setup, include = FALSE, eval = !params$run.pipeline }
+
+source( "01_Input_general.R")
+source( paste0( path.utils, "utils_preprocessing.R" ))
+
+```
+
+
+```{r optional setup, include = FALSE, eval = !params$run.pipeline }
+
+### Peaktable
+
+path.peaktable.pos <- NULL
+path.peaktable.neg <- NULL
+
+peaktable.sep <- ";"
+peaktable.sample.pattern <- ".mzML.Peak.area"
+
+mz_col_nr <- 2
+rt_col_nr <- 3
+identity_col_nr <- 4
+sample_col_nr <- 5
+
+
+### Peak cleaning setup
+
+# Feature filtering
+bl.thres <- c( 3, "PO100", ">", "BL")            # 3, mean in PO should be > 3 times BL
+rsd.po.thres <- c( "PO100", "<", 50)        # 50, RSD in PO should be < 50%
+rt.range <- c(0, 30)         # c(0, 30), only keep peaks in 0 - 30 min
+mean.thres <- list( c( "PO100", ">", 1, "PO25"),
+                    c( "PO25", ">", 1, "PO12.5")
+              )
+
+# Filter based on missings
+filter_by_missing_feature_pct <- 50
+
+# Missing imputation
+missing.impute.method <- "HF"  # "LoD", "HF", "median", "min", "mean"
+
+```
+
+
+```{r set path, include = FALSE}
+
+path.output <-
+  paste0(params$path.result, "04_Clean_peaktable/")
+
+if (!dir.exists(path.output)) dir.create(path.output)
+
+if (is.null(params$path.peaktable.pos) | is.null(params$path.peaktable.neg)){
+
+  mz_col_nr <- 2
+  rt_col_nr <- 3
+  identity_col_nr <- 4
+  sample_col_nr <- 5
+  
+}
+
+if (is.null(params$path.peaktable.pos)){
+  
+  params$path.peaktable.pos <- paste0(params$path.result, "03_03_Preprocessing/peaktable_targeted_pos.csv")
+  
+}
+
+if (is.null(params$path.peaktable.neg)){
+  
+  params$path.peaktable.neg <- paste0(params$path.result, "03_03_Preprocessing/peaktable_targeted_neg.csv")
+  
+}
+
+```
+
+### POS
+#### 1 Data import
+```{r data import pos, eval = params$run.pos}
+
+if ( grepl(".xlsx", params$path.peaktable.pos) ){
+  
+  peaktable <-
+    readxl::read_excel( params$path.peaktable.pos )
+  
+} else {
+  
+  peaktable <-
+    read.csv( params$path.peaktable.pos, sep = params$peaktable.sep)
+  
+}
+
+print("POS peaktable was imported from the following file:", quote = FALSE)
+print(params$path.peaktable.pos, quote = FALSE)
+
+peaks.names <-
+  paste0(make.names(params$sample.info.pos$Sample.name), params$peaktable.sample.pattern)
+  
+peaks <-
+  cbind(peaktable[, c(mz_col_nr, rt_col_nr, identity_col_nr)], peaktable[, peaks.names])
+
+peaks <-
+  peaks %>%
+  dplyr::rename( mz = 1,
+                 rt = 2,
+                 Identity = 3) %>%
+  mutate( Identity = ifelse( is.na(Identity),
+                             paste0(round(mz, 3), "_", round(rt, 3)),
+                             Identity ),
+          Feature.id = row_number()) %>%
+  group_by(Identity) %>%
+  mutate( n = n(), 
+          Identity = ifelse( n > 1, 
+                             paste0(Identity, "-iso", row_number()),
+                             Identity)) %>%
+  ungroup() %>%
+  arrange(Feature.id) %>%
+  select( -c(n, Feature.id) )
+
+
+```
+
+
+#### 2 Feature filtering
+```{r filtering, eval = params$run.pos}
+
+mzrt.filtered <-
+  filter_peaks( peaktable = peaks,
+                sample.type = params$sample.info.pos$Sample.type,
+                bl.thres = params$bl.thres,
+                rsd.po.thres = params$rsd.po.thres,
+                rt.range = params$rt.range,
+                mean.thres = params$mean.thres)
+
+peaks.filtered <- 
+  mzrt.filtered$peaktable
+
+
+features <- 
+  cbind( peaks.filtered[, c("mz", "rt", "Identity")], mzrt.filtered$summary[, -1])
+
+data <- 
+  t(peaks.filtered[, !colnames(peaks.filtered) %in% c("mz", "rt", "Identity")]) %>%
+  as.data.frame()
+
+colnames(data) <- features$Identity
+
+```
+
+
+#### 3 Filter based on missings
+```{r filter, eval = params$run.pos}
+
+# By feature
+feature_filter <- 
+  filter_by_missing( data, 
+                     method = 'feature',                        #feature or sample
+                     threshold = params$filter_by_missing_feature_pct  #Percentage
+  )
+
+data <- feature_filter$x
+features <- features[feature_filter$index, ]
+
+```
+
+#### 4 Missing imputation
+```{r impute, eval = params$run.pos}
+
+data.impute <- 
+  impute_various_methods( data,
+                          method = params$missing.impute.method
+  )
+
+data <- data.impute$x
+
+```
+
+```{r export, eval = params$run.pos}
+
+### Prepare feature info
+
+peaktable.cleaned <-
+  cbind( features[, c("mz", "rt", "Identity")], 
+         t(data)) %>%
+  rowwise() %>% 
+  mutate( Identity = strsplit( Identity, "-iso")[[1]][1] ) %>%
+  group_by(Identity) %>%
+  mutate( n = n(), 
+          Identity = ifelse( n > 1, 
+                             paste0(Identity, "-iso", row_number()),
+                             Identity)) %>%
+  ungroup() %>%
+  select( -n )
+
+output.file <- paste0(path.output, "peaktable_targeted_pos_cleaned.xlsx")
+
+wb <- createWorkbook()
+addWorksheet(wb, "peaktable")
+writeData(wb, "peaktable", peaktable.cleaned)
+addWorksheet(wb, "features")
+writeData(wb, "features", features)
+saveWorkbook(wb, file = output.file, overwrite = TRUE)
+
+print( paste0("POS cleaned peaktable was saved as: ", output.file ), quote = FALSE)
+
+```
+
+### NEG
+#### 1 Data import
+```{r data import neg, eval = params$run.neg}
+
+if ( grepl(".xlsx", params$path.peaktable.neg) ){
+  
+  peaktable <-
+    readxl::read_excel( params$path.peaktable.neg )
+  
+} else {
+  
+  peaktable <-
+    read.csv( params$path.peaktable.neg, sep = params$peaktable.sep)
+  
+}
+
+print("NEG peaktable was imported from the following file:", quote = FALSE)
+print(params$path.peaktable.neg, quote = FALSE)
+
+peaks.names <-
+  paste0(make.names(params$sample.info.neg$Sample.name), params$peaktable.sample.pattern)
+  
+peaks <-
+  cbind(peaktable[, c(mz_col_nr, rt_col_nr, identity_col_nr)], peaktable[, peaks.names])
+
+peaks <-
+  peaks %>%
+  dplyr::rename( mz = 1,
+                 rt = 2,
+                 Identity = 3) %>%
+  mutate( Identity = ifelse( is.na(Identity),
+                             paste0(round(mz, 3), "_", round(rt, 3)),
+                             Identity ),
+          Feature.id = row_number()) %>%
+  group_by(Identity) %>%
+  mutate( n = n(), 
+          Identity = ifelse( n > 1, 
+                             paste0(Identity, "-iso", row_number()),
+                             Identity)) %>%
+  ungroup() %>%
+  arrange(Feature.id) %>%
+  select( -c(n, Feature.id) )
+
+```
+
+
+#### 2 Feature filtering
+```{r filtering neg, eval = params$run.neg}
+
+mzrt.filtered <-
+  filter_peaks( peaktable = peaks,
+                sample.type = params$sample.info.neg$Sample.type,
+                bl.thres = params$bl.thres,
+                rsd.po.thres = params$rsd.po.thres,
+                rt.range = params$rt.range,
+                mean.thres = params$mean.thres)
+
+peaks.filtered <- 
+  mzrt.filtered$peaktable
+
+
+features <- 
+  cbind( peaks.filtered[, c("mz", "rt", "Identity")], mzrt.filtered$summary[, -1])
+
+data <- 
+  t(peaks.filtered[, !colnames(peaks.filtered) %in% c("mz", "rt", "Identity")]) %>%
+  as.data.frame()
+
+colnames(data) <- features$Identity
+
+```
+
+
+#### 3 Filter based on missings
+```{r filter neg, eval = params$run.neg}
+
+# By feature
+feature_filter <- 
+  filter_by_missing( data, 
+                     method = 'feature',                        #feature or sample
+                     threshold = params$filter_by_missing_feature_pct  #Percentage
+  )
+
+data <- feature_filter$x
+features <- features[feature_filter$index, ]
+
+```
+
+#### 4 Missing imputation
+```{r impute neg, eval = params$run.neg}
+
+data.impute <- 
+  impute_various_methods( data,
+                          method = params$missing.impute.method
+  )
+
+data <- data.impute$x
+
+```
+
+```{r export neg, eval = params$run.neg}
+
+### Prepare feature info
+
+peaktable.cleaned <-
+  cbind( features[, c("mz", "rt", "Identity")], 
+         t(data)) %>%
+  rowwise() %>% 
+  mutate( Identity = strsplit( Identity, "-iso")[[1]][1] ) %>%
+  group_by(Identity) %>%
+  mutate( n = n(), 
+          Identity = ifelse( n > 1, 
+                             paste0(Identity, "-iso", row_number()),
+                             Identity)) %>%
+  ungroup() %>%
+  select( -n )
+
+
+output.file <- paste0(path.output, "peaktable_targeted_neg_cleaned.xlsx")
+  
+wb <- createWorkbook()
+addWorksheet(wb, "peaktable")
+writeData(wb, "peaktable", peaktable.cleaned)
+addWorksheet(wb, "features")
+writeData(wb, "features", features)
+saveWorkbook(wb, file = output.file, overwrite = TRUE)
+
+print( paste0("NEG cleaned peaktable was saved as: ", output.file ), quote = FALSE)
+```
