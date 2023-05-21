@@ -1,0 +1,282 @@
+---
+title: "Preprocessing"
+author: "Qian Gao, qian.gao@sund.ku.dk"
+date: "`r base::Sys.Date()`"
+
+knit: ( function(inputFile, encoding) { 
+          rmarkdown::render( inputFile, 
+                             encoding = encoding, 
+                             output_file = paste0( substr(inputFile,1,nchar(inputFile)-4), '_', Sys.Date(),'.html')) 
+          })
+          
+output:
+  html_document:
+    toc: yes
+    toc_depth: '4'
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_depth: '4'
+    df_print: paged
+---
+
+```{r setup environment, include = FALSE}
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
+```
+
+```{r general setup, include = FALSE, eval = !params$run.pipeline }
+
+source( "01_Input_general.R")
+source( paste0( path.utils, "utils_preprocessing.R" ))
+
+```
+
+```{r optional setup, include = FALSE, eval = !params$run.pipeline }
+
+### Precursor
+
+params$precursor.include <- TRUE  # TRUE, FALSE
+
+params$mzmine.mz.tol.pos <- params$mz_tolerance
+params$mzmine.rt.tol.pos <- params$rt_tolerance
+params$mzmine.min.peaks.in.row.pos <- 5
+params$mzmine.min.peaks.in.row.pos.percent <- 0.2
+
+params$mzmine.mz.tol.neg <- params$mzmine.mz.tol.pos
+params$mzmine.rt.tol.neg <- params$mzmine.rt.tol.pos
+params$mzmine.min.peaks.in.row.neg <- params$mzmine.min.peaks.in.row.pos
+params$mzmine.min.peaks.in.row.pos.percent <- params$mzmine.min.peaks.in.row.pos.percent
+
+```
+
+```{r set environment variables}
+
+path.output <-
+  paste0(params$path.result, "03_03_Preprocessing/")
+
+if (!dir.exists(path.output)) dir.create(path.output)
+
+path_lib_pos = paste0(path.output, "library_MS1_", params$method, "_pos.csv")
+path_lib_neg = paste0(path.output, "library_MS1_", params$method, "_neg.csv")
+
+path_mzML_pos = params$path.mzml.pos
+path_mzML_neg = params$path.mzml.neg
+
+mzmine_mz_tol_pos = params$mzmine.mz.tol.pos
+mzmine_mz_tol_bigger_pos = params$mzmine.mz.tol.pos+0.006
+mzmine_rt_tol_pos = params$mzmine.rt.tol.pos
+mzmine_rt_tol_bigger_pos = params$mzmine.rt.tol.pos+0.2
+mzmine_min_peaks_in_row_pos = params$mzmine.min.peaks.in.row.pos
+mzmine_min_peaks_in_row_pos_percent = params$mzmine.min.peaks.in.row.pos.percent
+
+mzmine_mz_tol_neg = params$mzmine.mz.tol.neg
+mzmine_mz_tol_bigger_neg = params$mzmine.mz.tol.neg+0.006
+mzmine_rt_tol_neg = params$mzmine.rt.tol.neg
+mzmine_rt_tol_bigger_neg = params$mzmine.rt.tol.neg+0.2
+mzmine_min_peaks_in_row_neg = params$mzmine.min.peaks.in.row.neg
+mzmine_min_peaks_in_row_neg_percent = params$mzmine.min.peaks.in.row.neg.percent
+
+```
+
+### Preprocessing using MZmine
+#### POS
+```{r generate library pos, eval = params$run.pos}
+
+precursor.file <- paste0(params$path.result, "02_Extract_precursor/precursor_annotation_pos.rds")
+
+if ( params$precursor.include & file.exists(precursor.file) ){
+
+  prec.lib <-
+    readRDS( precursor.file) %>%
+    filter( is.na(Library.rt) ) %>%
+    mutate( Library.rt = rt,
+            Library.mz = mz ) %>%
+    select( Library.mz, Library.rt, Library.name)
+
+  print( paste0("POS: Precursors were used for preprocessing, ", gsub(".rds", ".xlsx", precursor.file)) )
+  
+} else {
+  
+  prec.lib <- 
+    data.frame()
+  
+}
+
+
+lib.to.use <-
+    bind_rows(params$lib[[params$method]]$pos, 
+              prec.lib,
+              params$lib.is[[params$method]]$pos %>%
+                select( Library.mz, Library.rt, Library.name)) %>%
+    select( Library.mz, Library.rt, Library.name) %>%
+    dplyr::rename( mz = Library.mz,
+                   rt = Library.rt,
+                   name = Library.name)
+
+output.file <- paste0(path.output, "peaktable_targeted_pos.csv")
+library.file <- paste0(path.output, "library_MS1_", params$method, "_pos.csv")
+
+write.table( lib.to.use, 
+             sep = ";",
+             row.names = FALSE,
+             file = library.file )
+
+print( paste0("POS peaktable for internal standards was saved as: ", output.file), quote = FALSE)
+print( paste0("Library file: ", library.file), quote = FALSE)
+print( "MZmine parameters used in positive mode:")
+
+print( paste0("mzmine_mz_tol_pos = ", mzmine_mz_tol_pos), quote = FALSE)
+print( paste0("mzmine_mz_tol_bigger_pos = ", mzmine_mz_tol_bigger_pos), quote = FALSE)
+print( paste0("mzmine_rt_tol_pos = ", mzmine_rt_tol_pos), quote = FALSE)
+print( paste0("mzmine_rt_tol_bigger_pos = ", mzmine_rt_tol_bigger_pos), quote = FALSE)
+print( paste0("mzmine_min_peaks_in_row_pos = ", mzmine_min_peaks_in_row_pos), quote = FALSE)
+print( paste0("mzmine_min_peaks_in_row_pos_percent = ", mzmine_min_peaks_in_row_pos_percent), quote = FALSE)
+
+```
+
+
+```{r generate xml pos, echo = TRUE, eval = params$run.pos}
+
+prepare_mzmine_xml(
+    type = "peak",
+    path_mzML = path_mzML_pos,
+    path_output = path.output,
+    mode = "pos",
+    path_lib = path_lib_pos,
+    mzmine_mz_tol = mzmine_mz_tol_pos,
+    mzmine_mz_tol_bigger = mzmine_mz_tol_bigger_pos,
+    mzmine_rt_tol = mzmine_rt_tol_pos,
+    mzmine_rt_tol_bigger = mzmine_rt_tol_bigger_pos,
+    mzmine_min_peaks_in_row = mzmine_min_peaks_in_row_pos,
+    mzmine_min_peaks_in_row_percent = mzmine_min_peaks_in_row_pos_percent
+  )
+
+```
+
+```{r data preprocessing pos, include = FALSE, eval = params$run.pos}
+
+
+if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
+  
+  system( paste0( 'bash ', path.mzmine, ' ', path.output, 'MZMine_parameters_pos.xml') )
+  
+} else if ( !file.exists(output.file)){
+  
+  # system("cmd.exe", input = paste0( params$path.mzmine,
+  #                                   ' "', paste0(path.output, "MZMine_parameters_pos.xml"), '"'))
+  
+  system("cmd.exe", input = paste0( params$path.mzmine,
+                                    ' -batch "', paste0(path.output, "MZMine_parameters_pos.xml"), '"' ))
+  
+}
+
+```
+
+#### NEG
+```{r generate library neg, eval = params$run.neg}
+
+precursor.file <- paste0(params$path.result, "02_Extract_precursor/precursor_annotation_neg.rds")
+
+if ( params$precursor.include & file.exists(precursor.file) ){
+
+  prec.lib <-
+    readRDS( precursor.file) %>%
+    filter( is.na(Library.rt) ) %>%
+    mutate( Library.rt = rt,
+            Library.mz = mz ) %>%
+    select( Library.mz, Library.rt, Library.name)
+
+  print( paste0("NEG: Precursors were used for preprocessing, ", gsub(".rds", ".xlsx", precursor.file)) )
+  
+} else {
+  
+  prec.lib <- 
+    data.frame()
+  
+}
+
+
+lib.to.use <-
+    bind_rows(params$lib[[params$method]]$neg, 
+              prec.lib,
+              params$lib.is[[params$method]]$neg %>%
+                select( Library.mz, Library.rt, Library.name)) %>%
+    select( Library.mz, Library.rt, Library.name) %>%
+    dplyr::rename( mz = Library.mz,
+                   rt = Library.rt,
+                   name = Library.name)
+
+output.file <- paste0(path.output, "peaktable_targeted_neg.csv")
+library.file <- paste0(path.output, "library_MS1_", params$method, "_neg.csv")
+
+write.table( lib.to.use, 
+             sep = ";",
+             row.names = FALSE,
+             file = library.file )
+
+print( paste0("NEG peaktable for internal standards was saved as: ", output.file), quote = FALSE)
+print( paste0("Library file: ", library.file), quote = FALSE)
+print( "MZmine parameters used in negative mode:")
+
+print( paste0("mzmine_mz_tol_neg = ", mzmine_mz_tol_neg), quote = FALSE)
+print( paste0("mzmine_mz_tol_bigger_neg = ", mzmine_mz_tol_bigger_neg), quote = FALSE)
+print( paste0("mzmine_rt_tol_neg = ", mzmine_rt_tol_neg), quote = FALSE)
+print( paste0("mzmine_rt_tol_bigger_neg = ", mzmine_rt_tol_bigger_neg), quote = FALSE)
+print( paste0("mzmine_min_peaks_in_row_neg = ", mzmine_min_peaks_in_row_neg), quote = FALSE)
+print( paste0("mzmine_min_peaks_in_row_neg_percent = ", mzmine_min_peaks_in_row_neg_percent), quote = FALSE)
+
+```
+
+
+```{r generate xml neg, echo = TRUE, eval = params$run.neg}
+
+prepare_mzmine_xml(
+    type = "peak",
+    path_mzML = path_mzML_neg,
+    path_output = path.output,
+    mode = "neg",
+    path_lib = path_lib_neg,
+    mzmine_mz_tol = mzmine_mz_tol_neg,
+    mzmine_mz_tol_bigger = mzmine_mz_tol_bigger_neg,
+    mzmine_rt_tol = mzmine_rt_tol_neg,
+    mzmine_rt_tol_bigger = mzmine_rt_tol_bigger_neg,
+    mzmine_min_peaks_in_row = mzmine_min_peaks_in_row_neg,
+    mzmine_min_peaks_in_row_percent = mzmine_min_peaks_in_row_neg_percent
+  )
+
+```
+
+```{r data preprocessing neg, include = FALSE, eval = params$run.neg}
+
+output.file <- paste0(path.output, "peaktable_targeted_neg.csv")
+
+if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
+  
+  system( paste0( 'bash ', path.mzmine, ' ', path.output, 'MZMine_parameters_neg.xml') )
+  
+} else if ( !file.exists(output.file)){
+  
+  # system("cmd.exe", input = paste0( params$path.mzmine,
+  #                                   ' "', paste0(path.output, "MZMine_parameters_neg.xml"), '"'))
+  
+  system("cmd.exe", input = paste0( params$path.mzmine,
+                                    ' -batch "', paste0(path.output, "MZMine_parameters_neg.xml"), '"' ))
+  
+}
+
+```
+
+```{r SessionInfo, include = FALSE}
+
+# Session info
+
+utils::sessionInfo()
+
+```

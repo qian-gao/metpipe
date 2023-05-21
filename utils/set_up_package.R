@@ -9,6 +9,12 @@ library(usethis)  # Automate Package and Project Setup
 ### generate help file in man and new NAMESPACE file
 devtools::document()
 
+### intall
+devtools::install_github("https://github.com/qian-gao/metpipe",
+                         auth_token = "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")
+
+### function description
+
 #' @title overview_tab
 #'
 #' @description Provides an overview table for the time and scope conditions of
@@ -24,5 +30,5 @@ devtools::document()
 #' data(toydata)
 #' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
 #' @export
-#' @importFrom dplyr "%>%"
-#'
+#' @importFrom dplyr "%>%" mutate left_join arrange select
+

@@ -1,32 +1,53 @@
-#' @title extract_sample_info
-#'
-#' @description Extract sample information from the standardized sample names
-#'
-#' @param path Path to files
-#' @param files File names
-#' @param sample.pattern Sample file format, e.g. ".mzML"
-#' @param standard.name If standardized sample names are used
-#' @param path.meta Metadata file, which should have a key column to match with
-#'    sample names
-#' @param meta.match.col Column used as key column for matching
-#' @param group.var The name of the variable indicating groups of samples
-#' @param qc.sample.type QC sample types
-#' @param calibration.sample.type Calibration sample types
-#' @param export.rds rds name to export
-#' @param export.xlsx xlsx name to export
-#'
-#'
-#' @return A data frame object that contains sample names and related information
-#'
-#' @examples
-#'
-#'
-#' @export
-#' @importFrom dplyr "%>%" mutate left_join arrange select
-#'
-extract_sample_info <-
+prepare_sample_info <-
   function( path = NULL,
             files = NULL,
+            path.meta = NULL,
+            meta.match.col = NULL,
+            group.var = NULL,
+            sample.pattern = NULL,
+            standard.name = NULL,
+            #po.sample.type = NULL,
+            qc.sample.type = NULL,
+            calibration.sample.type = NULL,
+            mode = NULL,
+            path.result = NULL,
+            prefix = ""
+  ){
+
+    if ( !file.exists(paste0(path.result, "sample_info_", mode, ".rds")) ){
+
+      sample.info <-
+        extract_sample_info( path = path,
+                             files = files,
+                             sample.pattern = sample.pattern,
+                             standard.name = standard.name,
+                             path.meta = path.meta,
+                             meta.match.col = meta.match.col,
+                             group.var = group.var,
+                             #po.sample.type = po.sample.type,
+                             qc.sample.type = qc.sample.type,
+                             calibration.sample.type = calibration.sample.type
+        ) %>%
+        mutate( Sample.name = gsub( "[.]", "-", Sample.name))
+
+      saveRDS( sample.info,
+               file = paste0(path.result, prefix, "sample_info_", mode, ".rds") )
+
+      openxlsx::write.xlsx( sample.info,
+                            file = paste0(path.result, prefix, "sample_info_", mode, ".xlsx") )
+
+    } else {
+
+      sample.info <- readRDS( paste0(path.result, "sample_info_", mode, ".rds") )
+
+    }
+
+    return(sample.info)
+
+  }
+
+extract_sample_info <-
+  function( path.file = NULL,
             sample.pattern = NULL,
             standard.name = TRUE,
             path.meta = NULL,
@@ -35,37 +56,27 @@ extract_sample_info <-
             #po.sample.type = c("PO"),
             qc.sample.type = c("sol", "BL", "CP", "BP", "NIST", "CAL"),
             calibration.sample.type = c("CA00", "CA01", "CA02","CA03", "CA04",
-                                        "CA05", "CA06", "CA07", "CA08", "CA09"),
-            export.rds = NULL,
-            export.xlsx = NULL
+                                        "CA05", "CA06", "CA07", "CA08", "CA09")
   ){
 
     # sample.pattern <- ".mzML"
     # path.file <- 'Test_files/pos'
 
-    if ( is.null(files) & !is.null(path) ){
+    `%>%` <- magrittr::`%>%`
 
-      files <-
-        list.files( path = path,
-                    pattern = sample.pattern,
-                    recursive = T,
-                    full.names = T )
-
-    }
-
-    if ( !is.null(files)){
+    if ( !is.null(path.file)){
       if (!is.null(sample.pattern)){
 
         file.path <-
-          files[
+          path.file[
             grepl(
-              x = files,
+              x = path.file,
               pattern = sample.pattern
             ) ]
 
       } else {
 
-        file.path <- files
+        file.path <- path.file
 
       }
 
@@ -118,6 +129,10 @@ extract_sample_info <-
           c("File.path", "File.name", "File.batch", "Sample.name",
             "Project", "Method", "Date", "Run.order", "Sample", "Extract.rep", "Tech.rep" )
 
+        sample.info <-
+          sample.info %>%
+          arrange(Run.order)
+
       } else {
 
         sample.info <-
@@ -134,19 +149,9 @@ extract_sample_info <-
 
       if (!is.null(path.meta)){
 
-        if (is.data.frame(path.meta)){
-
-          sample.info.other <-
-            path.meta %>%
-            mutate(across(where(is.character), stringr::str_trim))
-
-        } else {
-
-          sample.info.other <-
-            openxlsx::read.xlsx( path.meta ) %>%
-            mutate(across(where(is.character), stringr::str_trim))
-
-        }
+        sample.info.other <-
+          openxlsx::read.xlsx( path.meta ) %>%
+          dplyr::mutate(across(where(is.character), stringr::str_trim))
 
         if ("Sample" %in% colnames(sample.info.other)){
 
@@ -158,8 +163,8 @@ extract_sample_info <-
 
         sample.info <-
           sample.info %>%
-          mutate( Sample.name = gsub( "[.]", "-", Sample.name)) %>%
-          left_join( sample.info.other, by = meta.match.col )
+          dplyr::mutate( Sample.name = gsub( "[.]", "-", Sample.name)) %>%
+          dplyr::left_join( sample.info.other, by = meta.match.col )
 
         if (!is.null(group.var)){
 
@@ -175,7 +180,7 @@ extract_sample_info <-
 
       sample.info <-
         openxlsx::read.xlsx( path.meta ) %>%
-        mutate(across(where(is.character), stringr::str_trim)) %>%
+        dplyr::mutate(across(where(is.character), stringr::str_trim)) %>%
         mutate( Sample = Sample.name)
 
     } else {
@@ -213,17 +218,17 @@ extract_sample_info <-
     if (!"Sample.type" %in% colnames(sample.info)){
       sample.info <-
         sample.info %>%
-        arrange( Batch, Run.order) %>%
-        mutate(
+        dplyr::arrange( Batch, Run.order) %>%
+        dplyr::mutate(
           Sample.temp = stringr::str_split_fixed(
-                                          string = Sample,
-                                          pattern = "-",
-                                          n = Inf)[, 1],
+            string = Sample,
+            pattern = "-",
+            n = Inf)[, 1],
           Sample.type = dplyr::case_when( #Sample.temp %in% po.sample.type           ~ "PO",
-                                          Sample.temp %in% qc.sample.type           ~ Sample.temp,
-                                          Sample.temp %in% calibration.sample.type  ~ "CA",
-                                          TRUE                                      ~ "Sample")) %>%
-        select( -Sample.temp )
+            Sample.temp %in% qc.sample.type           ~ Sample.temp,
+            Sample.temp %in% calibration.sample.type  ~ "CA",
+            TRUE                                      ~ "Sample")) %>%
+        dplyr::select( -Sample.temp )
 
     }
 
@@ -249,23 +254,6 @@ extract_sample_info <-
               Sample.unique = ifelse( Sample.type == "Sample",
                                       paste( sep = "_", Project, Sample),
                                       paste( sep = "_", Project, Sample, substr(Method, 1, 3), Extract.rep,	Tech.rep) ))
-
-
-    ### export
-
-    if (!is.null(export.rds)){
-
-      saveRDS( sample.info,
-               file = paste0(export.rds, ".rds") )
-
-    }
-
-    if (!is.null(export.xlsx)){
-
-      openxlsx::write.xlsx( sample.info,
-                            file = paste0(export.xlsx, ".xlsx") )
-
-    }
 
     return(sample.info)
 

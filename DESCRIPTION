@@ -1,4 +1,4 @@
-Package: metpip
+Package: metpipe
 Type: Package
 Title: Metabolomics data preprocessing pipeline
 Version: 0.1.0
