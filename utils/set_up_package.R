@@ -7,6 +7,7 @@ library(usethis)  # Automate Package and Project Setup
 # available::available("metpipe", browse = FALSE)
 
 ### generate help file in man and new NAMESPACE file
+setwd("H:/Documents/CBMR_workflow/packages/metpipe")
 devtools::document()
 
 ### intall
