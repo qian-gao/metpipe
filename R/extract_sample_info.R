@@ -20,6 +20,7 @@
 #'
 #' @examples
 #'
+#'
 #' @export
 #' @importFrom dplyr "%>%" mutate left_join arrange select
 #'
@@ -56,7 +57,7 @@ extract_sample_info <-
       if (!is.null(sample.pattern)){
 
         file.path <-
-          path.file[
+          files[
             grepl(
               x = files,
               pattern = sample.pattern
