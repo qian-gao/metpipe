@@ -150,7 +150,7 @@ prepare_mzmine_xml <-
 
       template.use <- template$is
 
-      metpipe::generate_mzmine3_xml(
+      generate_mzmine3_xml(
         template = template.use,
         params = params_mzmine,
         output_file = paste0(path_output, "MZMine_parameters_IS_", mode, ".xml") )
@@ -159,7 +159,7 @@ prepare_mzmine_xml <-
 
       template.use <- template$peak
 
-      metpipe::generate_mzmine3_xml(
+      generate_mzmine3_xml(
         template = template.use,
         params = params_mzmine,
         output_file = paste0(path_output, "MZMine_parameters_", mode, ".xml") )

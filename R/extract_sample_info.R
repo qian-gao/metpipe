@@ -20,7 +20,6 @@
 #'
 #' @examples
 #'
-#'
 #' @export
 #' @importFrom dplyr "%>%" mutate left_join arrange select
 #'

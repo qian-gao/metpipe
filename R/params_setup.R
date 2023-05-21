@@ -33,7 +33,6 @@
 #'
 #' @examples
 #' @export
-#' @importFrom metpipe extract_sample_info
 
 params_setup <-
   function(
