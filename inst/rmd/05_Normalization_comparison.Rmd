@@ -1,0 +1,818 @@
+---
+title: "Normalization comparison"
+author: "Qian Gao, qian.gao@sund.ku.dk"
+date: "`r base::Sys.Date()`"
+
+knit: ( function(inputFile, encoding) { 
+          rmarkdown::render( inputFile, 
+                             encoding = encoding, 
+                             output_file = paste0( substr(inputFile,1,nchar(inputFile)-4), '_', Sys.Date(),'.html')) 
+          })
+          
+output:
+  html_document:
+    toc: yes
+    toc_depth: '4'
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_depth: '4'
+    df_print: paged
+---
+
+```{r setup environment, include = FALSE}
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
+```
+
+```{r general setup, include = FALSE, eval = !params$run.pipelin }
+
+source( "01_Input_general.R")
+source( paste0( path.utils, "utils_normalization.R" ))
+
+```
+
+```{r optional setup, include = FALSE, eval = !params$run.pipelin }
+
+### Peaktable
+
+params$path.peaktable.pos <- NULL
+params$path.peaktable.neg <- NULL
+
+params$peaktable.sep <- ";"
+params$peaktable.sample.pattern <- ".mzML.Peak.area"
+
+params$mz_col_nr <- 1
+params$rt_col_nr <- 2
+params$identity_col_nr <- 3
+params$sample_col_nr <- 4
+
+### Processing parameters
+# Filter based on missings
+
+params$missing.sample.thres <- 30
+params$missing.feature.thres <- 30
+
+# Misssing imputation
+# "LoD", "HF", "median", "min", "mean"
+
+params$missing.impute.method.sample <- "LoD"  
+params$missing.impute.method.is <- "LoD"
+
+# Outlier removal
+
+params$outliers.sample <- NULL
+params$outliers.feature <- NULL
+params$outliers.is <- NULL
+
+# Sample types to remove from datatable
+params$type.to.remove <- c("Met", "CA", "IQ", "sol", "BL", "CP", "NIST")
+
+# Normalization method
+#c("bestis", "low_cv", "pqn", "nomis", "qspline", "loess", "sum", "median", "combat", "limma")
+
+params$norm.method <- c("bestis", "low_cv", "sum", "median")
+
+```
+
+```{r set path}
+
+path.output <- paste0(params$path.result, "05_Normalization_comparison/")
+
+if (!dir.exists(path.output)) dir.create(path.output)
+
+```
+
+### POS
+#### 1 Data import
+```{r data import pos, eval = params$run.pos}
+
+if (is.null(params$path.peaktable.pos)){
+  
+  params$path.peaktable.pos <- paste0(params$path.result, "04_Clean_peaktable/peaktable_targeted_pos_cleaned.xlsx")
+  
+}
+
+print("POS peaktables were imported from the following files:", quote = FALSE)
+print(params$path.peaktable.pos, quote = FALSE)
+print( paste0("POS normalized peaktables were saved in: ", path.output ), quote = FALSE)
+
+if ( grepl(".xlsx", params$path.peaktable.pos) ){
+  
+  peaktable <-
+    readxl::read_excel( params$path.peaktable.pos ) 
+  
+} else {
+  
+  peaktable <-
+    read.csv( params$path.peaktable.pos, sep = params$peaktable.sep)
+  
+}
+
+if (!is.null(params$peaktable.sample.pattern)){
+  
+  f.names <- colnames(peaktable)[grepl(params$peaktable.sample.pattern, colnames(peaktable))]
+  
+} else {
+  
+  f.names <- sample_col_nr:ncol(peaktable)
+  
+}
+
+f.info <- 
+  peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)]
+
+colnames(f.info) <- c("mz", "rt", "identity")
+
+peaks <-
+  cbind(f.info, peaktable[, f.names])
+
+peaks.temp <-
+  peaks %>%
+  mutate( peaks.type = ifelse( substr(identity, 3, 3) == ".", "IS", ""),
+          identity = if_else( grepl(": 0.", identity, fixed = TRUE),
+                               substr(identity, 1, regexpr("\\:[^\\:]*$", identity)-1),
+                               identity))
+
+peaks <-
+  peaks.temp %>%
+  filter(peaks.type != "IS") %>%
+  select(-peaks.type)
+
+peaks.IS <-
+  peaks.temp %>%
+  filter(peaks.type == "IS") %>%
+  select(-peaks.type)
+
+datalist <-
+  prepare_datalist( peaktable = peaks,
+                    peaktable.IS = peaks.IS,
+                    sample.info = params$sample.info.pos,
+                    sample.pattern = ".mzML.Peak.area",
+                    type.to.remove = params$type.to.remove )
+
+```
+
+#### 2 Filter based on missings
+```{r filter pos, eval = params$run.pos}
+
+datalist <-
+  filter_sample_feature( datalist = datalist,
+                         missing.sample.thres = params$missing.sample.thres,
+                         missing.feature.thres = params$missing.feature.thres)
+
+```
+
+#### 3 Missing imputation
+```{r impute pos, eval = params$run.pos}
+
+datalist <-
+  missing_impute( datalist = datalist,
+                  missing.impute.method.sample = params$missing.impute.method.sample,
+                  missing.impute.method.is = params$missing.impute.method.is)
+    
+
+```
+
+#### 4 Outlier removal
+```{r check data with PCA pos, eval = params$run.pos}
+
+p.pca.raw <- 
+  plot_PCA(
+    datalist$data,
+    group = as.factor(datalist$sample.info$Sample.type),
+    alpha = 0.25,
+    plotly.text = datalist$sample.info$Sample.id
+  )
+
+ggplotly(p.pca.raw)
+
+```
+
+```{r remove outliers pos, eval = params$run.pos}
+
+datalist <-
+  filter_sample_feature( datalist = datalist,
+                         filter.sample.remove = params$outliers.sample,
+                         filter.feature.remove = params$outliers.feature,
+                         filter.is.remove = params$outliers.is)
+
+
+```
+
+
+#### 5 Check the intensities of internal standards {.tabset}
+```{r explore internal standard pos, include = FALSE, eval = params$run.pos}
+
+plt.is.rsd <-
+  plot_istd_rsd(datalist = datalist)
+
+
+```
+
+##### RSD bar plot
+```{r rsd.bar.plot pos, eval = params$run.pos}
+
+ggplotly(plt.is.rsd$plt.rsd, width = 8)
+
+```
+
+##### IS intensities in samples
+```{r rsd.sample pos, eval = params$run.pos}
+
+plt.is.rsd$plt.int
+
+```
+
+
+#### 6 Normalization comparison
+```{r normalization setup pos, include = FALSE, eval = params$run.pos}
+
+process.list <-
+  compute_normalization( 
+    datalist = datalist,
+    norm.method = params$norm.method,
+    path.result = path.output,
+    prefix = "pos_",
+    batch.wise = FALSE,
+    po.sample.to.use = params$po.sample.to.use)
+
+```
+
+```{r evaluate normalization pos, include = FALSE, eval = params$run.pos}
+
+pca.plot <- 
+  plot_list_pca(
+    x = process.list,
+    group = datalist$sample.info$Batch,
+    group.label = "Batch",
+    plotly.text = datalist$sample.info$Sample.id)
+
+pca.plot.type <- 
+  plot_list_pca(
+    x = process.list,
+    group = datalist$sample.info$Sample.type,
+    group.label = "Sample type",
+    plotly.text = datalist$sample.info$Sample.id)
+
+plt.eval <-
+  plot_eval( x = process.list,
+             type = datalist$sample.info$Sample.type)
+
+```
+
+##### PCA {.tabset}
+
+###### Raw Data
+
+```{r PCA-Loaded pos, fig.height = 4, fig.width = 8, eval = params$run.pos}
+
+a <- ggplotly(pca.plot$raw.data, session="knitr", showlegend = T)
+b <- ggplotly(pca.plot.type$raw.data, session="knitr", showlegend = T)
+
+subplot(a, b)
+```
+
+###### Best IS
+
+```{r PCA-Bestid pos, fig.height = 4, fig.width = 8, eval = params$run.pos}
+
+if (!is.null(pca.plot$bestis)){
+
+  a <- ggplotly(pca.plot$bestis, session="knitr")
+  b <- ggplotly(pca.plot.type$bestis, session="knitr")
+  
+  subplot(a, b)
+}
+
+```
+
+###### Lowest CV
+
+```{r PCA-Lowest CV pos, fig.height = 4, fig.width = 8, eval = params$run.pos}
+
+if (!is.null(pca.plot$low_cv)){
+
+  a <- ggplotly(pca.plot$low_cv, session="knitr")
+  b <- ggplotly(pca.plot.type$low_cv, session="knitr")
+  
+  subplot(a, b)
+}
+
+```
+
+###### NOMIS
+
+```{r PCA-Normalized_by_NOMIS pos, fig.height = 4, fig.width = 8, eval = params$run.pos}
+
+if (!is.null(pca.plot$nomis)){
+
+  a <- ggplotly(pca.plot$nomis, session="knitr")
+  b <- ggplotly(pca.plot.type$nomis, session="knitr")
+  
+  subplot(a, b)
+}
+```
+
+###### Cubic splines
+
+```{r PCA-Normalized_by_qspline pos, fig.height = 4, fig.width = 8, eval = params$run.pos}
+
+if (!is.null(pca.plot$qspline)){
+
+  a <- ggplotly(pca.plot$qspline, session="knitr")
+  b <- ggplotly(pca.plot.type$qspline, session="knitr")
+  
+  subplot(a, b)
+}
+
+```
+
+###### Loess
+
+```{r PCA-Normalized_by_loess pos, fig.height = 4, fig.width = 8, eval = params$run.pos}
+
+if (!is.null(pca.plot$loess)){
+  a <- ggplotly(pca.plot$loess, session="knitr")
+  b <- ggplotly(pca.plot.type$loess, session="knitr")
+  
+  subplot(a, b)
+}
+```
+
+###### Combat
+
+```{r PCA-Normalized_by_combat pos, fig.height = 4, fig.width = 8, eval = params$run.pos}
+
+if (!is.null(pca.plot$combat)){
+
+  a <- ggplotly(pca.plot$combat, session="knitr")
+  b <- ggplotly(pca.plot.type$combat, session="knitr")
+  
+  subplot(a, b)
+}
+
+```
+
+###### limma
+
+```{r PCA-Normalized_by_limma pos, fig.height = 4, fig.width = 8, eval = params$run.pos}
+
+if (!is.null(pca.plot$limma)){
+
+  a <- ggplotly(pca.plot$limma, session="knitr")
+  b <- ggplotly(pca.plot.type$limma, session="knitr")
+  
+  subplot(a, b)
+}
+
+```
+
+###### Sum
+
+```{r PCA-Normalized_by_sum pos, fig.height = 4, fig.width = 8, eval = params$run.pos}
+
+if (!is.null(pca.plot$sum)){
+
+  a <- ggplotly(pca.plot$sum, session="knitr")
+  b <- ggplotly(pca.plot.type$sum, session="knitr")
+  
+  subplot(a, b)
+}
+```
+
+###### Median
+
+```{r PCA-Normalized_by_median pos, fig.height = 4, fig.width = 8, eval = params$run.pos}
+
+if (!is.null(pca.plot$median)){
+
+  a <- ggplotly(pca.plot$median, session="knitr")
+  b <- ggplotly(pca.plot.type$median, session="knitr")
+  
+  subplot(a, b)
+}
+```
+
+###### PQN
+
+```{r PCA-Normalized_by_PQN pos, fig.height = 4, fig.width = 8, eval = params$run.pos}
+
+if (!is.null(pca.plot$pqn)){
+
+  a <- ggplotly(pca.plot$pqn, session="knitr")
+  b <- ggplotly(pca.plot.type$pqn, session="knitr")
+  
+  subplot(a, b)
+}
+```
+
+##### RSD for all features in QC samples {.tabset}
+
+###### RSD
+```{r RSD pos, echo = FALSE, warning = FALSE, fig.height = 4, fig.width = 8, eval = params$run.pos}
+
+plotly::ggplotly(plt.eval$plt.rsd, session="knitr") %>%
+  layout(boxmode = "group")
+
+plotly::ggplotly(plt.eval$plt.rsd.mean, session="knitr") %>%
+  layout(boxmode = "group")
+
+```
+
+###### MAD
+```{r MAD pos, echo = FALSE, warning = FALSE, fig.height = 4, fig.width = 8, eval = params$run.pos}
+
+plotly::ggplotly(plt.eval$plt.mad, session="knitr") %>%
+  layout(boxmode = "group")
+
+plotly::ggplotly(plt.eval$plt.mad.mean, session="knitr") %>%
+  layout(boxmode = "group")
+
+```
+
+###### Variance
+```{r VAR pos, echo = FALSE, warning = FALSE, fig.height = 4, fig.width = 8, eval = params$run.pos}
+
+plotly::ggplotly(plt.eval$plt.var, session="knitr") %>%
+  layout(boxmode = "group")
+
+plotly::ggplotly(plt.eval$plt.var.sum, session="knitr") %>%
+  layout(boxmode = "group")
+
+```
+
+
+### NEG
+#### 1 Data import
+```{r data import neg, eval = params$run.neg}
+
+if (is.null(params$path.peaktable.neg)){
+  
+  params$path.peaktable.neg <- paste0(params$path.result, "04_Clean_peaktable/peaktable_targeted_neg_cleaned.xlsx")
+  
+}
+
+print("NEG peaktables were imported from the following files:", quote = FALSE)
+print(params$path.peaktable.neg, quote = FALSE)
+print( paste0("POS normalized peaktables were saved in: ", path.output ), quote = FALSE)
+
+if ( grepl(".xlsx", params$path.peaktable.neg) ){
+  
+  peaktable <-
+    openxlsx::read.xlsx( params$path.peaktable.neg ) 
+  
+} else {
+  
+  peaktable <-
+    read.csv( params$path.peaktable.neg, sep = params$peaktable.sep)
+  
+}
+
+if (!is.null(params$peaktable.sample.pattern)){
+  
+  f.names <- colnames(peaktable)[grepl(params$peaktable.sample.pattern, colnames(peaktable))]
+  
+} else {
+  
+  f.names <- sample_col_nr:ncol(peaktable)
+  
+}
+
+f.info <- 
+  peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)]
+
+colnames(f.info) <- c("mz", "rt", "identity")
+
+peaks <-
+  cbind(f.info, peaktable[, f.names])
+
+peaks.temp <-
+  peaks %>%
+  mutate( peaks.type = ifelse( substr(identity, 3, 3) == ".", "IS", ""),
+          identity = if_else( grepl(": 0.", identity, fixed = TRUE),
+                               substr(identity, 1, regexpr("\\:[^\\:]*$", identity)-1),
+                               identity))
+
+peaks <-
+  peaks.temp %>%
+  filter(peaks.type != "IS") %>%
+  select(-peaks.type)
+
+peaks.IS <-
+  peaks.temp %>%
+  filter(peaks.type == "IS") %>%
+  select(-peaks.type)
+
+
+datalist <-
+  prepare_datalist( peaktable = peaks,
+                    peaktable.IS = peaks.IS,
+                    sample.info = params$sample.info.neg,
+                    sample.pattern = ".mzML.Peak.area",
+                    type.to.remove = params$type.to.remove )
+
+```
+
+#### 2 Filter based on missings
+```{r filter neg, eval = params$run.neg}
+
+datalist <-
+  filter_sample_feature( datalist = datalist,
+                         missing.sample.thres = params$missing.sample.thres,
+                         missing.feature.thres = params$missing.feature.thres)
+
+```
+
+#### 3 Missing imputation
+```{r impute neg, eval = params$run.neg}
+
+datalist <-
+  missing_impute( datalist = datalist,
+                  missing.impute.method.sample = params$missing.impute.method.sample,
+                  missing.impute.method.is = params$missing.impute.method.is)
+    
+
+```
+
+#### 4 Outlier removal
+```{r check data with PCA neg, eval = params$run.neg}
+
+p.pca.raw <- 
+  plot_PCA(
+    datalist$data,
+    group = as.factor(datalist$sample.info$Sample.type),
+    alpha = 0.25,
+    plotly.text = datalist$sample.info$Sample.id
+  )
+
+ggplotly(p.pca.raw)
+
+```
+
+```{r remove outliers neg, eval = params$run.neg}
+
+datalist <-
+  filter_sample_feature( datalist = datalist,
+                         filter.sample.remove = params$outliers.sample,
+                         filter.feature.remove = params$outliers.feature,
+                         filter.is.remove = params$outliers.is)
+
+
+```
+
+
+#### 5 Check the intensities of internal standards {.tabset}
+```{r explore internal standard neg, include = FALSE, eval = params$run.neg}
+
+plt.is.rsd <-
+  plot_istd_rsd(datalist = datalist)
+
+
+```
+
+##### RSD bar plot
+```{r rsd.bar.plot neg, eval = params$run.neg}
+
+ggplotly(plt.is.rsd$plt.rsd, width = 8)
+
+```
+
+##### IS intensities in samples
+```{r rsd.sample neg, eval = params$run.neg}
+
+plt.is.rsd$plt.int
+
+```
+
+
+#### 6 Normalization comparison
+```{r normalization setup neg, include = FALSE, eval = params$run.neg}
+
+process.list <-
+  compute_normalization( 
+    datalist = datalist,
+    norm.method = params$norm.method,
+    path.result = path.output,
+    prefix = "neg_",
+    batch.wise = FALSE,
+    po.sample.to.use = params$po.sample.to.use)
+
+```
+
+```{r evaluate normalization neg, include = FALSE, eval = params$run.neg}
+
+pca.plot <- 
+  plot_list_pca(
+    x = process.list,
+    group = datalist$sample.info$Batch,
+    group.label = "Batch",
+    plotly.text = datalist$sample.info$Sample.id)
+
+pca.plot.type <- 
+  plot_list_pca(
+    x = process.list,
+    group = datalist$sample.info$Sample.type,
+    group.label = "Sample type",
+    plotly.text = datalist$sample.info$Sample.id)
+
+plt.eval <-
+  plot_eval( x = process.list,
+             type = datalist$sample.info$Sample.type)
+
+```
+
+##### PCA {.tabset}
+
+###### Raw Data
+
+```{r PCA-Loaded neg, fig.height = 4, fig.width = 8, eval = params$run.neg}
+
+a <- ggplotly(pca.plot$raw.data, session="knitr", showlegend = T)
+b <- ggplotly(pca.plot.type$raw.data, session="knitr", showlegend = T)
+
+subplot(a, b)
+```
+
+###### Best IS
+
+```{r PCA-Bestid neg, fig.height = 4, fig.width = 8, eval = params$run.neg}
+
+if (!is.null(pca.plot$bestis)){
+
+  a <- ggplotly(pca.plot$bestis, session="knitr")
+  b <- ggplotly(pca.plot.type$bestis, session="knitr")
+  
+  subplot(a, b)
+}
+
+```
+
+###### Lowest CV
+
+```{r PCA-Lowest CV neg, fig.height = 4, fig.width = 8, eval = params$run.neg}
+
+if (!is.null(pca.plot$low_cv)){
+
+  a <- ggplotly(pca.plot$low_cv, session="knitr")
+  b <- ggplotly(pca.plot.type$low_cv, session="knitr")
+  
+  subplot(a, b)
+}
+
+```
+
+###### NOMIS
+
+```{r PCA-Normalized_by_NOMIS neg, fig.height = 4, fig.width = 8, eval = params$run.neg}
+
+if (!is.null(pca.plot$nomis)){
+
+  a <- ggplotly(pca.plot$nomis, session="knitr")
+  b <- ggplotly(pca.plot.type$nomis, session="knitr")
+  
+  subplot(a, b)
+}
+```
+
+###### Cubic splines
+
+```{r PCA-Normalized_by_qspline neg, fig.height = 4, fig.width = 8, eval = params$run.neg}
+
+if (!is.null(pca.plot$qspline)){
+
+  a <- ggplotly(pca.plot$qspline, session="knitr")
+  b <- ggplotly(pca.plot.type$qspline, session="knitr")
+  
+  subplot(a, b)
+}
+
+```
+
+###### Loess
+
+```{r PCA-Normalized_by_loess neg, fig.height = 4, fig.width = 8, eval = params$run.neg}
+
+if (!is.null(pca.plot$loess)){
+  a <- ggplotly(pca.plot$loess, session="knitr")
+  b <- ggplotly(pca.plot.type$loess, session="knitr")
+  
+  subplot(a, b)
+}
+```
+
+###### Combat
+
+```{r PCA-Normalized_by_combat neg, fig.height = 4, fig.width = 8, eval = params$run.neg}
+
+if (!is.null(pca.plot$combat)){
+
+  a <- ggplotly(pca.plot$combat, session="knitr")
+  b <- ggplotly(pca.plot.type$combat, session="knitr")
+  
+  subplot(a, b)
+}
+
+```
+
+###### limma
+
+```{r PCA-Normalized_by_limma neg, fig.height = 4, fig.width = 8, eval = params$run.neg}
+
+if (!is.null(pca.plot$limma)){
+
+  a <- ggplotly(pca.plot$limma, session="knitr")
+  b <- ggplotly(pca.plot.type$limma, session="knitr")
+  
+  subplot(a, b)
+}
+
+```
+
+###### Sum
+
+```{r PCA-Normalized_by_sum neg, fig.height = 4, fig.width = 8, eval = params$run.neg}
+
+if (!is.null(pca.plot$sum)){
+
+  a <- ggplotly(pca.plot$sum, session="knitr")
+  b <- ggplotly(pca.plot.type$sum, session="knitr")
+  
+  subplot(a, b)
+}
+```
+
+###### Median
+
+```{r PCA-Normalized_by_median neg, fig.height = 4, fig.width = 8, eval = params$run.neg}
+
+if (!is.null(pca.plot$median)){
+
+  a <- ggplotly(pca.plot$median, session="knitr")
+  b <- ggplotly(pca.plot.type$median, session="knitr")
+  
+  subplot(a, b)
+}
+```
+
+###### PQN
+
+```{r PCA-Normalized_by_PQN neg, fig.height = 4, fig.width = 8, eval = params$run.neg}
+
+if (!is.null(pca.plot$pqn)){
+
+  a <- ggplotly(pca.plot$pqn, session="knitr")
+  b <- ggplotly(pca.plot.type$pqn, session="knitr")
+  
+  subplot(a, b)
+}
+```
+
+##### RSD for all features in QC samples {.tabset}
+
+###### RSD
+```{r RSD neg, echo = FALSE, warning = FALSE, fig.height = 4, fig.width = 8, eval = params$run.neg}
+
+plotly::ggplotly(plt.eval$plt.rsd, session="knitr") %>%
+  layout(boxmode = "group")
+
+plotly::ggplotly(plt.eval$plt.rsd.mean, session="knitr") %>%
+  layout(boxmode = "group")
+
+```
+
+###### MAD
+```{r MAD neg, echo = FALSE, warning = FALSE, fig.height = 4, fig.width = 8, eval = params$run.neg}
+
+plotly::ggplotly(plt.eval$plt.mad, session="knitr") %>%
+  layout(boxmode = "group")
+
+plotly::ggplotly(plt.eval$plt.mad.mean, session="knitr") %>%
+  layout(boxmode = "group")
+
+```
+
+###### Variance
+```{r VAR neg, echo = FALSE, warning = FALSE, fig.height = 4, fig.width = 8, eval = params$run.neg}
+
+plotly::ggplotly(plt.eval$plt.var, session="knitr") %>%
+  layout(boxmode = "group")
+
+plotly::ggplotly(plt.eval$plt.var.sum, session="knitr") %>%
+  layout(boxmode = "group")
+
+```
+
+```{r SessionInfo, include = FALSE}
+
+# SessionInfo
+
+utils::sessionInfo()
+
+```

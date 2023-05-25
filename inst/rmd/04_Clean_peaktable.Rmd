@@ -134,7 +134,10 @@ peaks <-
   dplyr::rename( mz = 1,
                  rt = 2,
                  Identity = 3) %>%
-  mutate( Identity = ifelse( is.na(Identity),
+  mutate(  Identity = if_else( grepl(": 0.", Identity, fixed = TRUE),
+                               substr(Identity, 1, regexpr("\\:[^\\:]*$", Identity)-1),
+                               Identity),
+           Identity = ifelse( is.na(Identity),
                              paste0(round(mz, 3), "_", round(rt, 3)),
                              Identity ),
           Feature.id = row_number()) %>%
@@ -265,7 +268,10 @@ peaks <-
   dplyr::rename( mz = 1,
                  rt = 2,
                  Identity = 3) %>%
-  mutate( Identity = ifelse( is.na(Identity),
+  mutate( Identity = if_else( grepl(": 0.", Identity, fixed = TRUE),
+                               substr(Identity, 1, regexpr("\\:[^\\:]*$", Identity)-1),
+                               Identity),
+          Identity = ifelse( is.na(Identity),
                              paste0(round(mz, 3), "_", round(rt, 3)),
                              Identity ),
           Feature.id = row_number()) %>%

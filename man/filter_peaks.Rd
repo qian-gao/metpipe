@@ -15,29 +15,29 @@ filter_peaks(
 )
 }
 \arguments{
-\item{XCMSnExp}{= NULL,}
+\item{XCMSnExp}{A XCMSnExp object. If null, peaktable should be mandatory}
 
-\item{peaktable}{= NULL,}
+\item{peaktable}{A dataframe of peaktable, feature x sample. If null, XCMSnExp
+should be mandatory}
 
-\item{sample.type}{= NULL,}
+\item{sample.type}{A vector indicating sample types}
 
-\item{bl.thres}{= NULL,}
+\item{bl.thres}{Threshold for keeping features based on their values in one
+type of sample compared to blanks. e.g. c( 3, "BL", "<", "PO")}
 
-\item{rsd.po.thres}{= NULL,}
+\item{rsd.po.thres}{Threshold for keeping features based on their rsd in pools.
+e.g. c( "PO", "<", 40)}
 
-\item{rt.range}{= NULL,}
+\item{rt.range}{Retention time range for keeping features}
 
-\item{mean.thres}{= NULL}
+\item{mean.thres}{Threshold for keeping features based on their mean values in
+certain types. e.g. list( c( "PO100", ">", 1, "PO25"),
+                          c( "PO25", ">", 1, "PO12.5") )}
 }
 \value{
-A data frame object that contains a summary of a sample that
-    can later be converted to a TeX output using \code{overview_print}
+A data frame object that contains filtered peaktable and summary statistics
 }
 \description{
 Provides an overview table for the time and scope conditions of
     a data set
-}
-\examples{
-data(toydata)
-output_table <- overview_tab(dat = toydata, id = ccode, time = year)
 }

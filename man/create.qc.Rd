@@ -7,13 +7,13 @@
 create.qc(sampled_data = NULL, figure_height = NULL)
 }
 \arguments{
-\item{sampled_data}{= NULL,}
+\item{sampled_data}{A dataframe containing IS in samples}
 
-\item{figure_height}{= NULL}
+\item{figure_height}{Figure height for plot}
 }
 \value{
-A list of summaries for all types of samples
+A list qc figures
 }
 \description{
-Calculate summary for subsets of dataset
+Create qc plots for internal standards
 }

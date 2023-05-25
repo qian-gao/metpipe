@@ -3,13 +3,11 @@
 #' @description Provides an overview table for the time and scope conditions of
 #'     a data set
 #'
-#' @param x Input data frame
-#' @param method,    #feature or sample
-#' @param threshold Threshold for remove missings
-#' @param verbose
+#' @param x Input data frame with missing values
+#' @param method Filter based on sample or feature, c("sample", "feature")
+#' @param threshold Threshold for remove missings, percentage, e.g. 80
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#' @return A list containing a filtered dataframe and method used
 #' @examples
 #'
 #' @export
@@ -17,17 +15,8 @@
 filter_by_missing <-
   function(x,
            method,    #feature or sample
-           threshold, #Percentage
-           verbose = FALSE
+           threshold  #Percentage
   ) {
-
-    if ( verbose ) {
-
-      print( "filter_by_missing was created by Qian Gao" )
-      print( "qian.gao@sund.ku.dk" )
-      print( "2021-06-03" )
-
-    }
 
     if ( method == "feature" ) {
 

@@ -4,20 +4,17 @@
 \alias{filter_by_missing}
 \title{filter_by_missing}
 \usage{
-filter_by_missing(x, method, threshold, verbose = FALSE)
+filter_by_missing(x, method, threshold)
 }
 \arguments{
-\item{x}{Input data frame}
+\item{x}{Input data frame with missing values}
 
-\item{method, }{#feature or sample}
+\item{method}{Filter based on sample or feature, c("sample", "feature")}
 
-\item{threshold}{Threshold for remove missings}
-
-\item{verbose}{}
+\item{threshold}{Threshold for remove missings, percentage, e.g. 80}
 }
 \value{
-A data frame object that contains a summary of a sample that
-    can later be converted to a TeX output using \code{overview_print}
+A list containing a filtered dataframe and method used
 }
 \description{
 Provides an overview table for the time and scope conditions of

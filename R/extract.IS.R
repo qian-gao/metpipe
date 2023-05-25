@@ -1,12 +1,12 @@
 #' @title extract.IS
 #'
-#' @description Calculate summary for subsets of dataset
+#' @description Extract internal standard measurements from MZmine3 output
 #'
-#' @param sample.info = NULL,
-#' @param reference.type = NULL,
-#' @param lib.istd = NULL,
-#' @param path.peaktable.IS = NULL,
-#' @param path.result = NULL
+#' @param sample.info A dataframe containing sample info
+#' @param reference.type mz and RT to compare to, choose from c("reference", "median")
+#' @param lib.istd A dataframe of library for internal standards
+#' @param path.peaktable.IS Path to peaktable for internal standards in samples
+#' @param path.result Path to output files
 #'
 #' @return A list of summaries for all types of samples
 #'

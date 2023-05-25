@@ -1,0 +1,257 @@
+---
+title: "Merge and map names"
+author: "Qian Gao, qian.gao@sund.ku.dk"
+date: "`r base::Sys.Date()`"
+
+knit: ( function(inputFile, encoding) { 
+          rmarkdown::render( inputFile, 
+                             encoding = encoding, 
+                             output_file = paste0( substr(inputFile,1,nchar(inputFile)-4), '_', Sys.Date(),'.html')) 
+          })
+          
+output:
+  html_document:
+    toc: yes
+    toc_depth: '4'
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_depth: '4'
+    df_print: paged
+---
+
+```{r setup environment, include = FALSE}
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
+```
+
+```{r general setup, include = FALSE, eval = !params$run.pipeline }
+
+source( "01_Input_general.R")
+source( paste0( path.utils, "utils_normalization.R" ))
+
+
+```
+
+```{r optional setup, include = FALSE, eval = !params$run.pipeline }
+
+### datatables
+
+path.datatable.pos <- "H:/Documents/CBMR-workflow/Test_result/05_normalized_data/pos_normalised_bestis.xlsx"
+path.datatable.neg <- "H:/Documents/CBMR-workflow/Test_result/05_normalized_data/neg_normalised_bestis.xlsx"
+
+datatable.sep <- ";"
+feature_col_nr <- 2
+
+```
+
+### 1 Data import
+
+```{r set run}
+
+run.pos <- !is.null(params$path.datatable.pos)
+run.neg <- !is.null(params$path.datatable.neg)
+
+path.output <- paste0(params$path.result, "06_Merge_and_map_names/")
+
+if (!dir.exists(path.output)) dir.create(path.output)
+
+```
+
+#### POS
+```{r map features pos, eval = run.pos}
+
+if ( grepl(".xlsx", params$path.datatable.pos) ){
+  
+  datatable.pos <-
+    readxl::read_excel( params$path.datatable.pos) 
+  
+} else {
+  
+  datatable.pos <-
+    read.csv( params$path.datatable.pos, sep = params$datatable.sep)
+  
+}
+
+print("POS datatable was imported from the following file:", quote = FALSE)
+print(params$path.datatable.pos, quote = FALSE)
+
+sample.pos <-
+  params$sample.info.pos[match(datatable.pos$Sample.name, 
+                               params$sample.info.pos$Sample.name), ] %>%
+  arrange(Run.order)
+
+datatable.pos <-
+  datatable.pos[match(sample.pos$Sample.name,
+                      datatable.pos$Sample.name), ]
+  
+rsd.pos <-
+  calculate_add_rsd( data = datatable.pos[, -1], 
+                     type = sample.pos$Sample.type)
+
+feature.info.pos <-
+  rsd.pos %>%
+  rowwise() %>%
+  mutate( Identity = strsplit( Identity, "-iso")[[1]][1]) %>%
+  ungroup() %>%
+  left_join(params$lib[[params$method]]$pos, by = c("Identity" = "Library.name")) %>%
+  mutate( Compound.name = ifelse( is.na(Compound.name),
+                                  Identity,
+                                  Compound.name),
+          Identifier = paste0("pos_", Identity))
+
+data.pos <-
+  cbind(sample.pos[, c("Sample.type", "Sample")], datatable.pos) %>%
+  filter(Sample.type == "Sample") %>%
+  select(-c(Sample.type, Sample.name))
+
+colnames(data.pos)[2:ncol(data.pos)] <- paste0("pos_", colnames(data.pos)[2:ncol(data.pos)])
+```
+
+#### NEG
+```{r map features neg, eval = run.neg}
+
+if ( grepl(".xlsx", params$path.datatable.neg) ){
+  
+  datatable.neg <-
+    readxl::read_excel( params$path.datatable.neg) 
+  
+} else {
+  
+  datatable.neg <-
+    read.csv( params$path.datatable.neg, sep = params$datatable.sep)
+  
+}
+
+
+print("NEG datatable was imported from the following file:", quote = FALSE)
+print(params$path.datatable.neg, quote = FALSE)
+
+sample.neg <-
+  params$sample.info.neg[match(datatable.neg$Sample.name, 
+                               params$sample.info.neg$Sample.name), ] %>%
+  arrange(Run.order)
+
+datatable.neg <-
+  datatable.neg[match(sample.neg$Sample.name,
+                      datatable.neg$Sample.name), ]
+
+rsd.neg <-
+  calculate_add_rsd( data = datatable.neg[, -1], 
+                     type = sample.neg$Sample.type)
+
+feature.info.neg <-
+  rsd.neg %>%
+  rowwise() %>%
+  mutate( Identity = strsplit( Identity, "-iso")[[1]][1]) %>%
+  ungroup() %>%
+  left_join(params$lib[[params$method]]$neg, by = c("Identity" = "Library.name")) %>%
+  mutate( Compound.name = ifelse( is.na(Compound.name),
+                                  Identity,
+                                  Compound.name),
+          Identifier = paste0("neg_", Identity))
+
+data.neg <-
+  cbind(sample.neg[, c("Sample.type", "Sample")], datatable.neg) %>%
+  filter(Sample.type == "Sample") %>%
+  select(-c(Sample.type, Sample.name))
+
+colnames(data.neg)[2:ncol(data.neg)] <- paste0("neg_", colnames(data.neg)[2:ncol(data.neg)])
+
+```
+
+### 2 Merge data tables and map feature names
+```{r merge}
+
+if ( run.pos & run.neg){
+  
+  feature.info <-
+    rbind(feature.info.pos,
+          feature.info.neg)
+  
+  datatable <-
+    data.pos %>%
+    inner_join(data.neg, by = "Sample")
+  
+  sample.info <-
+    sample.pos[match(datatable$Sample, sample.pos$Sample), ] %>%
+    select(-c("File.path", "File.name", "File.batch", "Sample.name")) 
+  
+} else if (run.pos){
+  
+  feature.info <- 
+    feature.info.pos
+  
+  datatable <- datatable.pos
+  
+  sample.info <-
+    sample.pos %>%
+    select(-c("File.path", "File.name", "File.batch", "Sample.name")) 
+  
+} else if (run.neg){
+  
+  feature.info <-
+    feature.info.neg
+  
+  datatable <- datatable.neg
+
+  sample.info <-
+    sample.neg %>%
+    select(-c("File.path", "File.name", "File.batch", "Sample.name")) 
+  
+}
+
+```
+
+```{r remove feature}
+
+feature.info.keep <-
+  feature.info %>%
+  mutate(Compound.name = trimws(Compound.name)) %>%
+  group_by(Compound.name) %>%
+  mutate( po.max.flag = get(paste0("mean.", params$po.sample.to.use)) == max(get(paste0("mean.", params$po.sample.to.use))),
+          rsd.min.flag = get(paste0("rsd.", params$po.sample.to.use)) == min(get(paste0("rsd.", params$po.sample.to.use)))) %>%
+  filter(po.max.flag & row_number() == 1) %>%
+  ungroup()
+
+map.names <- feature.info.keep$Compound.name
+names(map.names) <- feature.info.keep$Identifier
+
+datatable.keep <-
+  datatable[, colnames(datatable) %in% c("Sample", feature.info.keep$Identifier)]
+
+colnames(datatable.keep)[-1] <- map.names[colnames(datatable.keep)[-1]]
+
+print(paste0("For repeating features, the one with higher mean intensity in ", params$po.sample.to.use, " was kept."), quote = FALSE)
+print(paste0(nrow(feature.info) - nrow(feature.info.keep), " features have been removed"), quote = FALSE)
+
+
+```
+
+### 3 Export
+```{r export}
+
+out.table <-
+  sample.info %>%
+  left_join(datatable.keep, by = "Sample") 
+
+wb <- createWorkbook()
+addWorksheet(wb, "datatable")
+writeData(wb, "datatable", out.table)
+addWorksheet(wb, "feature.info")
+writeData(wb, "feature.info", feature.info)
+saveWorkbook(wb, paste0(path.output, "datatable_", params$method, ".xlsx"), overwrite = TRUE)
+
+print(paste0("Datatable was saved as ", path.output, "datatable_", params$method, ".xlsx"), quote = FALSE)
+
+write.xlsx( sample.info, file = paste0(params$path.result, "metadata.xlsx"))
+
+print(paste0("Metadata was saved as ", params$path.result, "metadata.xlsx"), quote = FALSE)
+
+```

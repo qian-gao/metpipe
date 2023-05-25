@@ -1,11 +1,11 @@
 #' @title create.qc
 #'
-#' @description Calculate summary for subsets of dataset
+#' @description Create qc plots for internal standards
 #'
-#' @param sampled_data = NULL,
-#' @param figure_height = NULL
+#' @param sampled_data A dataframe containing IS in samples
+#' @param figure_height Figure height for plot
 #'
-#' @return A list of summaries for all types of samples
+#' @return A list qc figures
 #'
 #' @examples
 #'

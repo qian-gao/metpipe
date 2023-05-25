@@ -1,3 +1,19 @@
+#' @title generate_mzmine3_xml
+#'
+#' @description Provides an overview table for the time and scope conditions of
+#'     a data set
+#'
+#' @param template = NULL,
+#' @param params = NULL,
+#' @param output_file = NULL
+#'
+#' @return A data frame object that contains a summary of a sample that
+#'     can later be converted to a TeX output using \code{overview_print}
+#' @examples
+#'
+#' @export
+#' @importFrom dplyr "%>%" filter
+#'
 generate_mzmine3_xml <-
   function(
     template = NULL,

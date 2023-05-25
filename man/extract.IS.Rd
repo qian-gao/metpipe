@@ -4,7 +4,7 @@
 \alias{extract.IS}
 \title{extract.IS}
 \usage{
-extract.IS(
+\method{extract}{IS}(
   sample.info = NULL,
   reference.type = NULL,
   lib.istd = NULL,
@@ -13,19 +13,19 @@ extract.IS(
 )
 }
 \arguments{
-\item{sample.info}{= NULL,}
+\item{sample.info}{A dataframe containing sample info}
 
-\item{reference.type}{= NULL,}
+\item{reference.type}{mz and RT to compare to, choose from c("reference", "median")}
 
-\item{lib.istd}{= NULL,}
+\item{lib.istd}{A dataframe of library for internal standards}
 
-\item{path.peaktable.IS}{= NULL,}
+\item{path.peaktable.IS}{Path to peaktable for internal standards in samples}
 
-\item{path.result}{= NULL}
+\item{path.result}{Path to output files}
 }
 \value{
 A list of summaries for all types of samples
 }
 \description{
-Calculate summary for subsets of dataset
+Extract internal standard measurements from MZmine3 output
 }
