@@ -88,13 +88,13 @@ if (is.null(params$sample.info.neg.qc)){
 
 # Extract theoretical and actual internal standard
 combined_file <-
-  metpipe::extract.IS( sample.info = params$sample.info.pos.qc,
+  extract.is( sample.info = params$sample.info.pos.qc,
               reference.type = params$reference.type,
               lib.istd = params$lib.is[[params$method]]$pos,
               path.peaktable.IS = params$path.peaktable.IS.pos,
               path.result = params$path.result)
 
-plt <- metpipe::create.qc(sampled_data = combined_file,
+plt <- create.qc(sampled_data = combined_file,
                  figure_height = params$figure_height)
 
 summary <- 
@@ -162,7 +162,7 @@ subplot(plt[[5]], plt[[6]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TR
 
 # Extract theoretical and actual internal standard
 combined_file <-
-  metpipe::extract.IS( sample.info = params$sample.info.neg.qc,
+  extract.is( sample.info = params$sample.info.neg.qc,
               reference.type = params$reference.type,
               lib.istd = params$lib.is[[params$method]]$neg,
               path.peaktable.IS = params$path.peaktable.IS.neg,
