@@ -12,7 +12,7 @@
 #'
 #' @examples
 #'
-#' @export extract.is
+#' @export
 #' @import dplyr
 #'
 extract_is <-
