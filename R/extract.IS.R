@@ -96,7 +96,8 @@ extract.is <-
         median.intensity = median(Intensity, na.rm = TRUE),
         RSD.intensity    = sd(Intensity, na.rm = TRUE) / mean(Intensity, na.rm = TRUE)*100,
         Order = as.numeric(Sample.id)) %>%
-      ungroup()
+      ungroup() %>%
+      arrange(Sample.name, ISTD)
 
     if (reference.type == "reference") {
 

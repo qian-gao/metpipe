@@ -4,7 +4,7 @@
 \alias{extract.is}
 \title{extract.is}
 \usage{
-\method{extract}{is}(
+extract.is(
   sample.info = NULL,
   reference.type = NULL,
   lib.istd = NULL,

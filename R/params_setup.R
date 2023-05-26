@@ -199,6 +199,7 @@ params_setup <-
     params$run.pos <- exists("sample.info.pos")
     params$run.neg <- exists("sample.info.neg")
 
+    # Import library
     if ( grepl(".xlsx", path.lib) ){
 
       lib <- list()
@@ -227,6 +228,133 @@ params_setup <-
 
     params$lib <- lib
     params$lib.is <- lib.is
+
+    # Set input parameters
+
+    params$Preprocessing_IS <-
+      c("run.pipeline",
+        "path.result",
+        "method",
+        "path.mzml.pos",
+        "path.mzml.neg",
+        "run.pos",
+        "run.neg",
+        "lib.is",
+        "path.mzmine",
+
+        "mzmine.mz.tol.pos",
+        "mzmine.rt.tol.pos",
+        "mzmine.mz.tol.neg",
+        "mzmine.rt.tol.neg",
+        "mzmine.min.peaks.in.row.pos",
+        "mzmine.min.peaks.in.row.pos.percent",
+        "mzmine.min.peaks.in.row.neg",
+        "mzmine.min.peaks.in.row.neg.percent"
+    )
+
+    params$QC_IS <-
+      c("run.pipeline",
+        "path.result",
+        "method",
+        "run.pos",
+        "run.neg",
+        "lib.is",
+
+        "path.peaktable.IS.pos",
+        "path.peaktable.IS.neg",
+        "sample.info.pos.qc",
+        "sample.info.neg.qc",
+        "sample.info.pos",
+        "sample.info.neg",
+        "figure_height",
+        "reference.type"
+      )
+
+    params$Preprocessing <-
+      c("run.pipeline",
+        "path.result",
+        "method",
+        "path.mzml.pos",
+        "path.mzml.neg",
+        "run.pos",
+        "run.neg",
+        "lib.is",
+        "lib",
+        "path.mzmine",
+
+        "precursor.include",
+        "mzmine.mz.tol.pos",
+        "mzmine.rt.tol.pos",
+        "mzmine.mz.tol.neg",
+        "mzmine.rt.tol.neg",
+        "mzmine.min.peaks.in.row.pos",
+        "mzmine.min.peaks.in.row.pos.percent",
+        "mzmine.min.peaks.in.row.neg",
+        "mzmine.min.peaks.in.row.neg.percent"
+      )
+
+    params$Clean_peaktable <-
+      c("run.pipeline",
+        "path.result",
+        "run.pos",
+        "run.neg",
+
+        "path.peaktable.pos",
+        "path.peaktable.neg",
+        "peaktable.sep",
+        "peaktable.sample.pattern",
+        "mz_col_nr",
+        "rt_col_nr",
+        "identity_col_nr",
+        "bl.thres",
+        "rsd.po.thres",
+        "rt.range",
+        "mean.thres",
+        "filter_by_missing_feature_pct",
+        "missing.impute.method"
+      )
+
+    params$Normalization_comparison <-
+      c("run.pipeline",
+        "path.result",
+        "run.pos",
+        "run.neg",
+        "po.sample.to.use",
+
+        "path.peaktable.pos",
+        "path.peaktable.neg",
+        "peaktable.sep",
+        "peaktable.sample.pattern",
+        "mz_col_nr",
+        "rt_col_nr",
+        "identity_col_nr",
+        "sample_col_nr",
+        "sample.info.pos",
+        "sample.info.neg",
+        "type.to.remove",
+        "missing.sample.thres",
+        "missing.feature.thres",
+        "missing.impute.method.sample",
+        "missing.impute.method.is",
+        "outliers.sample",
+        "outliers.feature",
+        "outliers.is",
+        "norm.method"
+      )
+
+    params$Merge_and_map_names <-
+      c("run.pipeline",
+        "path.result",
+        "method",
+        "run.pos",
+        "run.neg",
+        "lib",
+
+        "path.datatable.pos",
+        "path.datatable.neg",
+        "datatable.sep",
+        "feature_col_nr"
+      )
 
     return(params)
   }

@@ -31,14 +31,14 @@ knitr::opts_chunk$set(
 
 ```
 
-```{r general setup, include = FALSE, eval = !params$run.pipelin }
+```{r general setup, include = FALSE, eval = !params$run.pipeline }
 
 source( "01_Input_general.R")
 source( paste0( path.utils, "utils_normalization.R" ))
 
 ```
 
-```{r optional setup, include = FALSE, eval = !params$run.pipelin }
+```{r optional setup, include = FALSE, eval = !params$run.pipeline }
 
 ### Peaktable
 
@@ -121,7 +121,7 @@ if (!is.null(params$peaktable.sample.pattern)){
   
 } else {
   
-  f.names <- sample_col_nr:ncol(peaktable)
+  f.names <- params$sample_col_nr:ncol(peaktable)
   
 }
 
@@ -463,7 +463,7 @@ if (!is.null(params$peaktable.sample.pattern)){
   
 } else {
   
-  f.names <- sample_col_nr:ncol(peaktable)
+  f.names <- params$sample_col_nr:ncol(peaktable)
   
 }
 

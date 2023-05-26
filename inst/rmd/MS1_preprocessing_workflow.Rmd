@@ -1,0 +1,334 @@
+---
+title: "Data preprocessing workflow"
+author: "Qian Gao, qian.gao@sund.ku.dk"
+date: "`r base::Sys.Date()`"
+
+# knit: ( function(inputFile, encoding) { 
+#           rmarkdown::render( inputFile, 
+#                              encoding = encoding, 
+#                              output_file = paste0( substr(inputFile,1,nchar(inputFile)-4), '_', Sys.Date(),'.html')) 
+#           })
+          
+output:
+  html_document:
+    toc: yes
+    toc_depth: '3'
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_depth: '3'
+    df_print: paged
+---
+
+```{r setup overall environment, include = FALSE}
+
+wd <- dirname(rstudioapi::getSourceEditorContext()$path)
+setwd(wd)
+library(metpipe)
+library(ggplot2)
+library(openxlsx)
+# path.root <- "H:/Documents/CBMR_workflow/Script/"
+# source( "utils_normalization.R" )
+# library(tidyverse)
+# library(plotly)
+# library(openxlsx)
+
+# path.root <- "H:/Documents/CBMR_workflow/packages/metpipe/R/"
+
+# source( paste0( path.root, "pipeline/params_setup.R"))
+# source( paste0( path.root, "pipeline/render_rmarkdown.R"))
+# source( paste0( path.root, "preprocessing/extract_sample_info.R"))
+# source( paste0( path.root, "preprocessing/generate_mzmine3_xml.R"))
+# source( paste0( path.root, "preprocessing/prepare_mzmine_xml.R"))
+# source( paste0( path.root, "pipeline/utils_qc.R"))
+
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = FALSE,
+  eval = TRUE
+)
+
+```
+
+#### Data preprocessing general input
+```{r 01_input_general, include = TRUE, echo = TRUE}
+
+params <-
+  params_setup( 
+    
+    run.pipeline = TRUE,
+    path.mzml = "J:/CBMR/SUN-CBMR-Metabolomics/Projects/AMP_test_project/mzML/PL_LIP_MS1/",
+    
+    standard.name = TRUE,  # TRUE, FALSE
+    
+    # Metadata
+    path.meta.pos = "J:/CBMR/SUN-CBMR-Metabolomics/Projects/AMP_test_project/files/AMP_meta.xlsx",
+    path.meta.neg = NULL,
+    
+    meta.match.col = "Sample", # "Sample" for standard.name = TRUE, "Sample.name" for 
+    
+    # Library match
+    rt_tolerance = 0.3,
+    mz_tolerance = 0.01,
+    
+    # Pool samples to use for evaluation
+    type.use.to.optimize = "PO",  # For optimizing XCMS parameters
+    po.sample.to.use = "PO",      # For evaluate normalization
+    
+    
+    ### Only modify if not standard workflow
+    method = NULL,
+    path.result = "J:/CBMR/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/PL_LIP_MS1_test2/",
+    sample.pattern = ".mzML",
+    
+    # Sample path
+    # Put "No_data" if not preprocessing the mode
+    path.mzml.pos = NULL,
+    path.mzml.neg = NULL,
+    
+    # Library path
+    path.lib = "H:/Documents/CBMR_workflow/Script/library/library.MS1.RData",
+    path.lib.is = "H:/Documents/CBMR_workflow/Script/library/library.MS1.IS.RData"
+
+)
+```
+
+```{r load utilities}
+# params <-
+#   params_setup( run.pipeline = run.pipeline,
+#                 path.mzml = path.mzml,
+#                 standard.name = standard.name,
+#                 path.meta.pos = path.meta.pos,
+#                 path.meta.neg = path.meta.pos,
+#                 meta.match.col = meta.match.col, 
+#                 rt_tolerance = rt_tolerance,
+#                 mz_tolerance = mz_tolerance,
+#                 type.use.to.optimize = type.use.to.optimize,  
+#                 po.sample.to.use = po.sample.to.use,
+#                 sample.pattern = sample.pattern,
+#                 path.lib = path.lib,
+#                 path.lib.is = path.lib.is)
+
+# source( paste0( path.utils, "utils_preprocessing.R" ))
+# source( paste0( path.utils, "utils_qc.R" ))
+# source( paste0( path.utils, "utils_normalization.R" ))
+
+```
+
+```{r 02_Extract_precursor, eval = FALSE}
+
+### XCMS setup
+
+optimize.xcms.parameters <- FALSE  # TRUE, FALSE
+
+# If not optimize parameters, the following parameters are used:
+para.pos <-
+  list( # para.peak.picking
+        max_peakwidth = 0.7*60,
+        min_peakwidth = 0.1*60,
+        ppm = 10,
+        snthresh = 10,
+        noise = 500,
+        prefilter = 3,
+        value_of_prefilter = 500, 
+        
+        # para.peak.group
+        bw = 0.2*60,
+        minFraction.1 = 0.5,
+        minFraction.2 = 0.7,
+        binSize = 0.01,
+        
+        # para.adjust.rt
+        span = 0.6,
+        minFraction.ref = 0.8,
+        extraPeaks = 2
+  )
+
+para.neg <-
+  para.pos
+
+rmarkdown::render(paste0( path.utils, '02_Extract_precursor.Rmd'),
+                  output_file = paste0( path.result, '02_Extract_precursor_', Sys.Date(), ".html"))
+```
+
+```{r 03_01_Preprocessing_IS, eval = TRUE}
+
+params$mzmine.mz.tol.pos <- params$mz_tolerance
+params$mzmine.rt.tol.pos <- params$rt_tolerance
+params$mzmine.min.peaks.in.row.pos <- 1
+params$mzmine.min.peaks.in.row.pos.percent <- 0
+
+params$mzmine.mz.tol.neg <- params$mzmine.mz.tol.pos
+params$mzmine.rt.tol.neg <- params$mzmine.rt.tol.pos
+params$mzmine.min.peaks.in.row.neg <- params$mzmine.min.peaks.in.row.pos
+params$mzmine.min.peaks.in.row.neg.percent <- params$mzmine.min.peaks.in.row.pos.percent
+
+render_rmarkdown(
+    file = system.file("rmd", "03_01_Preprocessing_IS.Rmd", package="metpipe"),
+    params = params[params$Preprocessing_IS],
+    output = paste0( params$path.result, '03_01_Preprocessing_IS')
+    
+  )
+
+```
+
+```{r 03_02_QC_IS, eval = TRUE}
+
+params$reference.type <- "reference" # reference or median
+params$figure_height <- 900
+
+params$path.peaktable.IS.pos <- NULL
+params$path.peaktable.IS.neg <- NULL
+
+params$sample.info.pos.qc <- NULL
+params$sample.info.neg.qc <- NULL
+
+render_rmarkdown(
+    file = system.file("rmd", "03_02_QC_IS.Rmd", package="metpipe"),
+    params = params[params$QC_IS],
+    output = paste0( params$path.result, '03_02_QC_IS')
+    
+  )
+
+```
+
+```{r 03_03_Preprocessing, eval = TRUE}
+
+params$precursor.include <- FALSE
+
+params$mzmine.mz.tol.pos <- params$mz_tolerance
+params$mzmine.rt.tol.pos <- params$rt_tolerance
+params$mzmine.min.peaks.in.row.pos <- 1
+params$mzmine.min.peaks.in.row.pos.percent <- 0
+
+params$mzmine.mz.tol.neg <- params$mzmine.mz.tol.pos
+params$mzmine.rt.tol.neg <- params$mzmine.rt.tol.pos
+params$mzmine.min.peaks.in.row.neg <- params$mzmine.min.peaks.in.row.pos
+params$mzmine.min.peaks.in.row.neg.percent <- params$mzmine.min.peaks.in.row.pos.percent
+
+render_rmarkdown(
+    file = system.file("rmd", "03_03_Preprocessing.Rmd", package="metpipe"),
+    params = params[params$Preprocessing],
+    output = paste0( params$path.result, '03_03_Preprocessing')
+  )
+
+
+```
+
+```{r 04_Clean_peaktable, eval = TRUE}
+
+### Peaktable
+
+params$path.peaktable.pos <- NULL
+params$path.peaktable.neg <- NULL
+
+params$peaktable.sep <- ";"
+params$peaktable.sample.pattern <- ".mzML.Peak.area"
+
+params$mz_col_nr <- 2
+params$rt_col_nr <- 3
+params$identity_col_nr <- 4
+
+
+### Peak cleaning setup
+
+# Feature filtering
+params$bl.thres <- c( 3, "BL", "<", "PO")            # 3, mean in PO should be > 3 times BL
+params$rsd.po.thres <- c( "PO", "<", 40)        # 50, RSD in PO should be < 50%
+params$rt.range <- c(0, 30)         # c(0, 30), only keep peaks in 0 - 30 min
+params$mean.thres <- NULL
+
+# Filter based on missings
+params$filter_by_missing_feature_pct <- 50
+
+# Missing imputation
+params$missing.impute.method <- "LoD"  # "LoD", "HF", "median", "min", "mean"
+
+render_rmarkdown(
+    file = system.file("rmd", "04_Clean_peaktable.Rmd", package="metpipe"),
+    #file = "04_Clean_peaktable.Rmd",
+    params = paramsparams[params$Clean_peaktable],
+    output = paste0( params$path.result, '04_Clean_peaktable')
+  )
+
+```
+
+```{r 05_Normalization_comparison, eval = TRUE}
+
+### Peaktable
+
+params$path.peaktable.pos <- NULL
+params$path.peaktable.neg <- NULL
+
+params$peaktable.sep <- ";"
+params$peaktable.sample.pattern <- ".mzML.Peak.area"
+
+params$mz_col_nr <- 1
+params$rt_col_nr <- 2
+params$identity_col_nr <- 3
+params$sample_col_nr <- 4
+
+### Processing parameters
+# Filter based on missings
+
+params$missing.sample.thres <- 30
+params$missing.feature.thres <- 30
+
+# Misssing imputation
+# "LoD", "HF", "median", "min", "mean"
+
+params$missing.impute.method.sample <- "LoD"  
+params$missing.impute.method.is <- "LoD"
+
+# Outlier removal
+
+params$outliers.sample <- NULL
+params$outliers.feature <- NULL
+params$outliers.is <- NULL
+
+# Sample types to remove from datatable
+params$type.to.remove <- c("Met", "CA", "IQ", "sol", "BL")
+
+# Normalization method
+#c("bestis", "low_cv", "pqn", "nomis", "qspline", "loess", "sum", "median", "combat", "limma")
+
+params$norm.method <- c("bestis", "low_cv", "sum", "median")
+
+render_rmarkdown(
+    #file = system.file("rmd", "05_Normalization_comparison.Rmd", package="metpipe"),
+    file = "05_Normalization_comparison.Rmd",
+    params = params[params$Normalization_comparison],
+    output = paste0( params$path.result, '05_Normalization_comparison')
+  )
+
+```
+
+```{r 06_Merge_and_map_names, eval = TRUE}
+
+### datatables
+
+params$path.datatable.pos <- paste0(params$path.result, "05_Normalization_comparison/", "pos_normalised_bestis.xlsx")
+params$path.datatable.neg <- paste0(params$path.result, "05_Normalization_comparison/", "neg_normalised_bestis.xlsx")
+
+params$datatable.sep <- ";"
+params$feature_col_nr <- 2
+
+render_rmarkdown(
+    file = system.file("rmd", "06_Merge_and_map_names.Rmd", package="metpipe"),
+    #file = "06_Merge_and_map_names.Rmd",
+    params = params[params$Merge_and_map_names],
+    output = paste0( params$path.result, '06_Merge_and_map_names')
+  )
+
+```
+
+```{r session info, include = FALSE}
+
+# Session info
+
+utils::sessionInfo()
+
+```

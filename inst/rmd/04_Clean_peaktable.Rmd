@@ -52,7 +52,6 @@ peaktable.sample.pattern <- ".mzML.Peak.area"
 mz_col_nr <- 2
 rt_col_nr <- 3
 identity_col_nr <- 4
-sample_col_nr <- 5
 
 
 ### Peak cleaning setup
@@ -83,10 +82,9 @@ if (!dir.exists(path.output)) dir.create(path.output)
 
 if (is.null(params$path.peaktable.pos) | is.null(params$path.peaktable.neg)){
 
-  mz_col_nr <- 2
-  rt_col_nr <- 3
-  identity_col_nr <- 4
-  sample_col_nr <- 5
+  params$mz_col_nr <- 2
+  params$rt_col_nr <- 3
+  params$identity_col_nr <- 4
   
 }
 
@@ -127,7 +125,7 @@ peaks.names <-
   paste0(make.names(params$sample.info.pos$Sample.name), params$peaktable.sample.pattern)
   
 peaks.all <-
-  cbind(peaktable[, c(mz_col_nr, rt_col_nr, identity_col_nr)], peaktable[, peaks.names])
+  cbind(peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)], peaktable[, peaks.names])
 
 peaks.temp <-
   peaks.all %>%

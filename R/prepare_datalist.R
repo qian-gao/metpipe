@@ -29,12 +29,14 @@ prepare_datalist <-
     peaktable <-
       peaks.temp %>%
       filter(peaks.type != "IS") %>%
-      select(-peaks.type)
+      select(-peaks.type) %>%
+      arrange(identity)
 
     peaktable.IS <-
       peaks.temp %>%
       filter(peaks.type == "IS") %>%
-      select(-peaks.type)
+      select(-peaks.type) %>%
+      arrange(identity)
 
     feature.info <-
       extract_feature_info( files = peaktable,

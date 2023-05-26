@@ -65,7 +65,7 @@ if (!dir.exists(path.output)) dir.create(path.output)
 ```
 
 #### POS
-```{r map features pos, eval = run.pos}
+```{r map features pos, eval = params$run.pos}
 
 if ( grepl(".xlsx", params$path.datatable.pos) ){
   
@@ -115,7 +115,7 @@ colnames(data.pos)[2:ncol(data.pos)] <- paste0("pos_", colnames(data.pos)[2:ncol
 ```
 
 #### NEG
-```{r map features neg, eval = run.neg}
+```{r map features neg, eval = params$run.neg}
 
 if ( grepl(".xlsx", params$path.datatable.neg) ){
   

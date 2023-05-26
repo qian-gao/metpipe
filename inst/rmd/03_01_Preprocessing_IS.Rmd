@@ -43,8 +43,8 @@ source( paste0( path.utils, "utils_preprocessing.R" ))
 
 params$mzmine.mz.tol.pos <- params$mz_tolerance
 params$mzmine.rt.tol.pos <- params$rt_tolerance
-params$mzmine.min.peaks.in.row.pos <- 5
-params$mzmine.min.peaks.in.row.pos.percent <- 0.2
+params$mzmine.min.peaks.in.row.pos <- params$mzmine.min.peaks.in.row.pos
+params$mzmine.min.peaks.in.row.pos.percent <- params$mzmine.min.peaks.in.row.pos.percent
 
 params$mzmine.mz.tol.neg <- params$mzmine.mz.tol.pos
 params$mzmine.rt.tol.neg <- params$mzmine.rt.tol.pos
