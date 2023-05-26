@@ -259,13 +259,13 @@ params_setup <-
         "run.pos",
         "run.neg",
         "lib.is",
+        "sample.info.pos",
+        "sample.info.neg",
 
         "path.peaktable.IS.pos",
         "path.peaktable.IS.neg",
         "sample.info.pos.qc",
         "sample.info.neg.qc",
-        "sample.info.pos",
-        "sample.info.neg",
         "figure_height",
         "reference.type"
       )
@@ -298,6 +298,8 @@ params_setup <-
         "path.result",
         "run.pos",
         "run.neg",
+        "sample.info.pos",
+        "sample.info.neg",
 
         "path.peaktable.pos",
         "path.peaktable.neg",
@@ -320,6 +322,8 @@ params_setup <-
         "run.pos",
         "run.neg",
         "po.sample.to.use",
+        "sample.info.pos",
+        "sample.info.neg",
 
         "path.peaktable.pos",
         "path.peaktable.neg",
@@ -329,8 +333,6 @@ params_setup <-
         "rt_col_nr",
         "identity_col_nr",
         "sample_col_nr",
-        "sample.info.pos",
-        "sample.info.neg",
         "type.to.remove",
         "missing.sample.thres",
         "missing.feature.thres",
@@ -349,6 +351,9 @@ params_setup <-
         "run.pos",
         "run.neg",
         "lib",
+        "sample.info.pos",
+        "sample.info.neg",
+        "po.sample.to.use",
 
         "path.datatable.pos",
         "path.datatable.neg",

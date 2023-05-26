@@ -1,4 +1,4 @@
-#' @title create.qc
+#' @title create_qc
 #'
 #' @description Create qc plots for internal standards
 #'
@@ -13,7 +13,7 @@
 #' @import dplyr
 #' @import plotly
 #'
-create.qc <-
+create_qc <-
   function(sampled_data = NULL,
            figure_height = NULL) {
 

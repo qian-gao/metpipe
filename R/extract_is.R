@@ -1,4 +1,4 @@
-#' @title extract.is
+#' @title extract_is
 #'
 #' @description Extract internal standard measurements from MZmine3 output
 #'
@@ -15,7 +15,7 @@
 #' @export extract.is
 #' @import dplyr
 #'
-extract.is <-
+extract_is <-
   function( sample.info = NULL,
             reference.type = NULL,
             lib.istd = NULL,

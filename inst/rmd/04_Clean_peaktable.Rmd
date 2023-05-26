@@ -123,7 +123,7 @@ print(params$path.peaktable.pos, quote = FALSE)
 
 peaks.names <-
   paste0(make.names(params$sample.info.pos$Sample.name), params$peaktable.sample.pattern)
-  
+ 
 peaks.all <-
   cbind(peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)], peaktable[, peaks.names])
 
@@ -269,7 +269,7 @@ peaks.names <-
   paste0(make.names(params$sample.info.neg$Sample.name), params$peaktable.sample.pattern)
   
 peaks.all <-
-  cbind(peaktable[, c(mz_col_nr, rt_col_nr, identity_col_nr)], peaktable[, peaks.names])
+  cbind(peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)], peaktable[, peaks.names])
 
 peaks.temp <-
   peaks.all %>%

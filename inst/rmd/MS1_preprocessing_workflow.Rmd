@@ -27,9 +27,9 @@ setwd(wd)
 library(metpipe)
 library(ggplot2)
 library(openxlsx)
+library(tidyverse)
 # path.root <- "H:/Documents/CBMR_workflow/Script/"
 # source( "utils_normalization.R" )
-# library(tidyverse)
 # library(plotly)
 # library(openxlsx)
 
@@ -248,9 +248,9 @@ params$filter_by_missing_feature_pct <- 50
 params$missing.impute.method <- "LoD"  # "LoD", "HF", "median", "min", "mean"
 
 render_rmarkdown(
-    file = system.file("rmd", "04_Clean_peaktable.Rmd", package="metpipe"),
-    #file = "04_Clean_peaktable.Rmd",
-    params = paramsparams[params$Clean_peaktable],
+    #file = system.file("rmd", "04_Clean_peaktable.Rmd", package="metpipe"),
+    file = "04_Clean_peaktable.Rmd",
+    params = params[params$Clean_peaktable],
     output = paste0( params$path.result, '04_Clean_peaktable')
   )
 
@@ -298,8 +298,8 @@ params$type.to.remove <- c("Met", "CA", "IQ", "sol", "BL")
 params$norm.method <- c("bestis", "low_cv", "sum", "median")
 
 render_rmarkdown(
-    #file = system.file("rmd", "05_Normalization_comparison.Rmd", package="metpipe"),
-    file = "05_Normalization_comparison.Rmd",
+    file = system.file("rmd", "05_Normalization_comparison.Rmd", package="metpipe"),
+    #file = "05_Normalization_comparison.Rmd",
     params = params[params$Normalization_comparison],
     output = paste0( params$path.result, '05_Normalization_comparison')
   )
