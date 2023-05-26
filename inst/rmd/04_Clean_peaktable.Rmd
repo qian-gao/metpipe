@@ -58,7 +58,7 @@ sample_col_nr <- 5
 ### Peak cleaning setup
 
 # Feature filtering
-bl.thres <- c( 3, "PO100", ">", "BL")            # 3, mean in PO should be > 3 times BL
+bl.thres <- c( 3, "BL", "<", "PO100")            # 3, mean in PO should be > 3 times BL
 rsd.po.thres <- c( "PO100", "<", 50)        # 50, RSD in PO should be < 50%
 rt.range <- c(0, 30)         # c(0, 30), only keep peaks in 0 - 30 min
 mean.thres <- list( c( "PO100", ">", 1, "PO25"),
@@ -126,11 +126,11 @@ print(params$path.peaktable.pos, quote = FALSE)
 peaks.names <-
   paste0(make.names(params$sample.info.pos$Sample.name), params$peaktable.sample.pattern)
   
-peaks <-
+peaks.all <-
   cbind(peaktable[, c(mz_col_nr, rt_col_nr, identity_col_nr)], peaktable[, peaks.names])
 
-peaks <-
-  peaks %>%
+peaks.temp <-
+  peaks.all %>%
   dplyr::rename( mz = 1,
                  rt = 2,
                  Identity = 3) %>%
@@ -150,7 +150,14 @@ peaks <-
   arrange(Feature.id) %>%
   select( -c(n, Feature.id) )
 
+peaks.is <-
+  peaks.temp %>%
+  filter(substr(Identity, 3, 3) == ".")
 
+peaks <-
+  peaks.temp %>%
+  filter(substr(Identity, 3, 3) != ".")
+  
 ```
 
 
@@ -225,6 +232,9 @@ peaktable.cleaned <-
   ungroup() %>%
   select( -n )
 
+peaktable.cleaned <-
+  rbind(peaktable.cleaned, peaks.is)
+        
 output.file <- paste0(path.output, "peaktable_targeted_pos_cleaned.xlsx")
 
 wb <- createWorkbook()
@@ -260,11 +270,11 @@ print(params$path.peaktable.neg, quote = FALSE)
 peaks.names <-
   paste0(make.names(params$sample.info.neg$Sample.name), params$peaktable.sample.pattern)
   
-peaks <-
+peaks.all <-
   cbind(peaktable[, c(mz_col_nr, rt_col_nr, identity_col_nr)], peaktable[, peaks.names])
 
-peaks <-
-  peaks %>%
+peaks.temp <-
+  peaks.all %>%
   dplyr::rename( mz = 1,
                  rt = 2,
                  Identity = 3) %>%
@@ -283,6 +293,14 @@ peaks <-
   ungroup() %>%
   arrange(Feature.id) %>%
   select( -c(n, Feature.id) )
+
+peaks.is <-
+  peaks.temp %>%
+  filter(substr(Identity, 3, 3) == ".")
+
+peaks <-
+  peaks.temp %>%
+  filter(substr(Identity, 3, 3) != ".")
 
 ```
 
@@ -358,6 +376,8 @@ peaktable.cleaned <-
   ungroup() %>%
   select( -n )
 
+peaktable.cleaned <-
+  rbind(peaktable.cleaned, peaks.is)
 
 output.file <- paste0(path.output, "peaktable_targeted_neg_cleaned.xlsx")
   

@@ -14,21 +14,22 @@ filter_sample_feature(
 )
 }
 \arguments{
-\item{datalist}{= NULL,}
+\item{datalist}{A datalist object}
 
-\item{missing.sample.thres}{= NULL,}
+\item{missing.sample.thres}{Threshold for keeping samples. e.g. 30 only keep
+samples with < 30% missings}
 
-\item{missing.feature.thres}{= NULL,}
+\item{missing.feature.thres}{Threshold for keeping features. e.g. 30 only keep
+features with < 30% missings}
 
-\item{filter.sample.remove}{= NULL,}
+\item{filter.sample.remove}{Sample.id to remove}
 
-\item{filter.feature.remove}{= NULL,}
+\item{filter.feature.remove}{Feature.id to remove}
 
-\item{filter.is.remove}{= NULL}
+\item{filter.is.remove}{Feature.id to remove}
 }
 \value{
-A data frame object that contains a summary of a sample that
-    can later be converted to a TeX output using \code{overview_print}
+A filtered datalist
 }
 \description{
 Filter samples or features from peaktable

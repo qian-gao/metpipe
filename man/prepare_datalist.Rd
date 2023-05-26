@@ -5,8 +5,7 @@
 \title{prepare_datalist}
 \usage{
 prepare_datalist(
-  peaktable = NULL,
-  peaktable.IS = NULL,
+  peaks = NULL,
   sample.info = NULL,
   sample.pattern = "",
   type.to.remove = c("Met", "CA")

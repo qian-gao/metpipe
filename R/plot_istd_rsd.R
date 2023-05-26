@@ -30,7 +30,7 @@ plot_istd_rsd <-
 
       p <-
         ggplot(data.istd.plot,
-               aes(x = Run.order, y = get(i), text = Sample.name)) +
+               aes(x = Run.order, y = get(i), text = Sample.id)) +
         geom_col() +
         theme(axis.title.x = element_blank(),
               axis.text.x = element_blank(),

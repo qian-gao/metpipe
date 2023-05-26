@@ -2,15 +2,16 @@
 #'
 #' @description Filter samples or features from peaktable
 #'
-#' @param datalist = NULL,
-#' @param missing.sample.thres = NULL,
-#' @param missing.feature.thres = NULL,
-#' @param filter.sample.remove = NULL,
-#' @param filter.feature.remove = NULL,
-#' @param filter.is.remove = NULL
+#' @param datalist A datalist object
+#' @param missing.sample.thres Threshold for keeping samples. e.g. 30 only keep
+#'    samples with < 30% missings
+#' @param missing.feature.thres Threshold for keeping features. e.g. 30 only keep
+#'    features with < 30% missings
+#' @param filter.sample.remove Sample.id to remove
+#' @param filter.feature.remove Feature.id to remove
+#' @param filter.is.remove Feature.id to remove
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#' @return A filtered datalist
 #' @examples
 #'
 #' @export

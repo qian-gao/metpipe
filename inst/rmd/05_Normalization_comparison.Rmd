@@ -133,26 +133,8 @@ colnames(f.info) <- c("mz", "rt", "identity")
 peaks <-
   cbind(f.info, peaktable[, f.names])
 
-peaks.temp <-
-  peaks %>%
-  mutate( peaks.type = ifelse( substr(identity, 3, 3) == ".", "IS", ""),
-          identity = if_else( grepl(": 0.", identity, fixed = TRUE),
-                               substr(identity, 1, regexpr("\\:[^\\:]*$", identity)-1),
-                               identity))
-
-peaks <-
-  peaks.temp %>%
-  filter(peaks.type != "IS") %>%
-  select(-peaks.type)
-
-peaks.IS <-
-  peaks.temp %>%
-  filter(peaks.type == "IS") %>%
-  select(-peaks.type)
-
 datalist <-
-  prepare_datalist( peaktable = peaks,
-                    peaktable.IS = peaks.IS,
+  prepare_datalist( peaks = peaks,
                     sample.info = params$sample.info.pos,
                     sample.pattern = ".mzML.Peak.area",
                     type.to.remove = params$type.to.remove )
@@ -493,27 +475,8 @@ colnames(f.info) <- c("mz", "rt", "identity")
 peaks <-
   cbind(f.info, peaktable[, f.names])
 
-peaks.temp <-
-  peaks %>%
-  mutate( peaks.type = ifelse( substr(identity, 3, 3) == ".", "IS", ""),
-          identity = if_else( grepl(": 0.", identity, fixed = TRUE),
-                               substr(identity, 1, regexpr("\\:[^\\:]*$", identity)-1),
-                               identity))
-
-peaks <-
-  peaks.temp %>%
-  filter(peaks.type != "IS") %>%
-  select(-peaks.type)
-
-peaks.IS <-
-  peaks.temp %>%
-  filter(peaks.type == "IS") %>%
-  select(-peaks.type)
-
-
 datalist <-
-  prepare_datalist( peaktable = peaks,
-                    peaktable.IS = peaks.IS,
+  prepare_datalist( peaks = peaks,
                     sample.info = params$sample.info.neg,
                     sample.pattern = ".mzML.Peak.area",
                     type.to.remove = params$type.to.remove )

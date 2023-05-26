@@ -13,12 +13,28 @@
 #' @export
 #'
 prepare_datalist <-
-  function( peaktable = NULL,
-            peaktable.IS = NULL,
+  function( peaks = NULL,
             sample.info = NULL,
             sample.pattern = "",
             type.to.remove = c("Met", "CA")
   ){
+
+    peaks.temp <-
+      peaks %>%
+      mutate( peaks.type = ifelse( substr(identity, 3, 3) == ".", "IS", ""),
+              identity = if_else( grepl(": 0.", identity, fixed = TRUE),
+                                  substr(identity, 1, regexpr("\\:[^\\:]*$", identity)-1),
+                                  identity))
+
+    peaktable <-
+      peaks.temp %>%
+      filter(peaks.type != "IS") %>%
+      select(-peaks.type)
+
+    peaktable.IS <-
+      peaks.temp %>%
+      filter(peaks.type == "IS") %>%
+      select(-peaks.type)
 
     feature.info <-
       extract_feature_info( files = peaktable,
