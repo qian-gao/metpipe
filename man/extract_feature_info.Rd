@@ -6,6 +6,8 @@
 \usage{
 extract_feature_info(
   files = NULL,
+  lip_names = NULL,
+  met_names = NULL,
   mz_col_nr = 1,
   rt_col_nr = 2,
   identity_col_nr = 3,

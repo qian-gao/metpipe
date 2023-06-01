@@ -100,7 +100,7 @@ rsd.pos <-
 feature.info.pos <-
   rsd.pos %>%
   rowwise() %>%
-  mutate( Identity = strsplit( Identity, "-iso")[[1]][1]) %>%
+  mutate( Identity = strsplit( Identity, "_iso")[[1]][1]) %>%
   ungroup() %>%
   left_join(params$lib[[params$method]]$pos, by = c("Identity" = "Library.name")) %>%
   mutate( Compound.name = ifelse( is.na(Compound.name),
@@ -153,7 +153,7 @@ rsd.neg <-
 feature.info.neg <-
   rsd.neg %>%
   rowwise() %>%
-  mutate( Identity = strsplit( Identity, "-iso")[[1]][1]) %>%
+  mutate( Identity = strsplit( Identity, "_iso")[[1]][1]) %>%
   ungroup() %>%
   left_join(params$lib[[params$method]]$neg, by = c("Identity" = "Library.name")) %>%
   mutate( Compound.name = ifelse( is.na(Compound.name),
