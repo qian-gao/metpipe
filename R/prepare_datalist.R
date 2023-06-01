@@ -47,7 +47,7 @@ prepare_datalist <-
     rownames(feature.info) <- feature.info$m_name
 
     sample.names <-
-      paste0(make.names(sample.info$Sample.name), sample.pattern)
+      paste0(sample.info$Sample.name, sample.pattern)
 
     data <-
       data.frame(t(peaktable[, sample.names]))

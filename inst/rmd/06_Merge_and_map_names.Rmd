@@ -75,7 +75,9 @@ if ( grepl(".xlsx", params$path.datatable.pos) ){
 } else {
   
   datatable.pos <-
-    read.csv( params$path.datatable.pos, sep = params$datatable.sep)
+    read.csv( params$path.datatable.pos, 
+              sep = params$datatable.sep,
+              check.names = FALSE)
   
 }
 
@@ -125,7 +127,9 @@ if ( grepl(".xlsx", params$path.datatable.neg) ){
 } else {
   
   datatable.neg <-
-    read.csv( params$path.datatable.neg, sep = params$datatable.sep)
+    read.csv( params$path.datatable.neg, 
+              sep = params$datatable.sep,
+              check.names = FALSE)
   
 }
 

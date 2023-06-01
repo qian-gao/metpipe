@@ -114,7 +114,9 @@ if ( grepl(".xlsx", params$path.peaktable.pos) ){
 } else {
   
   peaktable <-
-    read.csv( params$path.peaktable.pos, sep = params$peaktable.sep)
+    read.csv( params$path.peaktable.pos, 
+              sep = params$peaktable.sep, 
+              check.names = FALSE)
   
 }
 
@@ -122,7 +124,7 @@ print("POS peaktable was imported from the following file:", quote = FALSE)
 print(params$path.peaktable.pos, quote = FALSE)
 
 peaks.names <-
-  paste0(make.names(params$sample.info.pos$Sample.name), params$peaktable.sample.pattern)
+  paste0(params$sample.info.pos$Sample.name, params$peaktable.sample.pattern)
  
 peaks.all <-
   cbind(peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)], peaktable[, peaks.names])
@@ -258,7 +260,9 @@ if ( grepl(".xlsx", params$path.peaktable.neg) ){
 } else {
   
   peaktable <-
-    read.csv( params$path.peaktable.neg, sep = params$peaktable.sep)
+    read.csv( params$path.peaktable.neg, 
+              sep = params$peaktable.sep, 
+              check.names = FALSE)
   
 }
 
@@ -266,7 +270,7 @@ print("NEG peaktable was imported from the following file:", quote = FALSE)
 print(params$path.peaktable.neg, quote = FALSE)
 
 peaks.names <-
-  paste0(make.names(params$sample.info.neg$Sample.name), params$peaktable.sample.pattern)
+  paste0(params$sample.info.neg$Sample.name, params$peaktable.sample.pattern)
   
 peaks.all <-
   cbind(peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)], peaktable[, peaks.names])

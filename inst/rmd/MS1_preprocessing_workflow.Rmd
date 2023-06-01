@@ -226,7 +226,7 @@ params$path.peaktable.pos <- NULL
 params$path.peaktable.neg <- NULL
 
 params$peaktable.sep <- ";"
-params$peaktable.sample.pattern <- ".mzML.Peak.area"
+params$peaktable.sample.pattern <- ".mzML Peak area"
 
 params$mz_col_nr <- 2
 params$rt_col_nr <- 3
@@ -248,8 +248,8 @@ params$filter_by_missing_feature_pct <- 50
 params$missing.impute.method <- "LoD"  # "LoD", "HF", "median", "min", "mean"
 
 render_rmarkdown(
-    #file = system.file("rmd", "04_Clean_peaktable.Rmd", package="metpipe"),
-    file = "04_Clean_peaktable.Rmd",
+    file = system.file("rmd", "04_Clean_peaktable.Rmd", package="metpipe"),
+    #file = "04_Clean_peaktable.Rmd",
     params = params[params$Clean_peaktable],
     output = paste0( params$path.result, '04_Clean_peaktable')
   )
@@ -264,7 +264,7 @@ params$path.peaktable.pos <- NULL
 params$path.peaktable.neg <- NULL
 
 params$peaktable.sep <- ";"
-params$peaktable.sample.pattern <- ".mzML.Peak.area"
+params$peaktable.sample.pattern <- ".mzML Peak area"
 
 params$mz_col_nr <- 1
 params$rt_col_nr <- 2

@@ -36,7 +36,6 @@ normalize_various_methods <-
   ) {
 
     #library(crmn)
-    #library(affy)
     #library(reshape2)
     #library(tidyr)
     #library(dplyr)
@@ -95,7 +94,7 @@ normalize_various_methods <-
 
       mat <- t(x)
       mat_norm <-
-        affy::normalize.loess( mat, subset = sample(1:(dim(mat)[1]), min(c(5000, nrow(mat)))),
+        affy_normalize_loess( mat, subset = sample(1:(dim(mat)[1]), min(c(5000, nrow(mat)))),
                              epsilon = 10^-2, maxit = 1, log.it = TRUE, verbose = TRUE,
                              span = 2/3, family.loess = "symmetric")
       x_norm <- t(mat_norm)
@@ -106,7 +105,7 @@ normalize_various_methods <-
       # Add the choice of target, samples
       target <- apply(x, 1, function(x) {median(x, na.rm = TRUE)} )
       mat_norm <-
-        affy::normalize.qspline(mat, target = target, samples = sample.rate,
+        affy_normalize_qspline(mat, target = target, samples = sample.rate,
                           fit.iters = 5, min.offset = 5,
                           spline.method = "natural", smooth = TRUE,
                           spar = 0, p.min = 0, p.max = 1.0,
@@ -352,99 +351,205 @@ normalize_various_methods <-
 
   }
 
-# calculate_rsd <-
-#   function( data = NULL,
-#             type = NULL,
-#             impute = FALSE,
-#             names.suffix = NULL
-#   ){
-#
-#     ### Impute missing
-#     if (impute){
-#       hm <- min(data, na.rm = T) / 2
-#       data[ is.na(data) ] <- hm
-#     }
-#
-#     ### Calculate
-#
-#     map.names <- colnames(data)
-#     names(map.names) <- make.names(map.names)
-#
-#     rsd <-
-#       data.frame( Sample.type = type, data) %>%
-#       pivot_longer( -Sample.type, names_to = "Identity", values_to = "Intensity") %>%
-#       group_by( Identity, Sample.type) %>%
-#       summarise( mean = mean(Intensity, na.rm = TRUE),
-#                  sd = sd(Intensity, na.rm = TRUE),
-#                  rsd = sd/mean ) %>%
-#       ungroup() %>%
-#       mutate( names.suf = ifelse( is.null(names.suffix), "", names.suffix),
-#               Sample.type = ifelse( names.suf == "",
-#                                     Sample.type,
-#                                     paste0(Sample.type, ".", names.suffix)) ) %>%
-#       pivot_wider(names_from = Sample.type, values_from = c(mean, sd, rsd),
-#                   names_glue = "{.value}.{Sample.type}") %>%
-#       arrange(match(Identity, colnames(map.names))) %>%
-#       mutate(Identity = map.names[Identity])
-#
-#
-#     mean <-
-#       rsd %>%
-#       select(Identity, starts_with("mean.")) %>%
-#       rename_all(~stringr::str_replace(.,"^mean.",""))
-#
-#     sd <-
-#       rsd %>%
-#       select(Identity, starts_with("sd.")) %>%
-#       rename_all(~stringr::str_replace(.,"^sd.",""))
-#
-#     rsd <-
-#       rsd %>%
-#       select(Identity, starts_with("rsd.")) %>%
-#       rename_all(~stringr::str_replace(.,"^rsd.",""))
-#
-#     output <-
-#       list( type.mean = mean,
-#             type.sd   = sd,
-#             type.rsd  = rsd )
-#
-#     ### old
-#
-#     # data = NULL,
-#     # type = NULL,
-#     # impute = FALSE,
-#     # suffix = "",
-#     # BPPARAM = BiocParallel::bpparam()
-#     #
-#     # mean <-
-#     #   BiocParallel::bpaggregate( data,
-#     #                              by = list(type),
-#     #                              FUN = base::mean,
-#     #                              BPPARAM = BPPARAM)
-#     #
-#     # group <- paste0(mean[, 1], suffix)
-#     # sd <-
-#     #   BiocParallel::bpaggregate( data,
-#     #                              by = list(type),
-#     #                              FUN = stats::sd,
-#     #                              BPPARAM = BPPARAM)
-#     #
-#     # rsd <- sd[, -1]/mean[, -1]
-#     #
-#     # mean <- t(mean[, -1])
-#     # colnames(mean) <- group
-#     #
-#     # sd <- t(sd[, -1])
-#     # colnames(sd) <- group
-#     #
-#     # rsd <- t(rsd)
-#     # colnames(rsd) <- group
-#     #
-#     # output <-
-#     #   list( type.mean = mean,
-#     #         type.sd   = sd,
-#     #         type.rsd  = rsd )
-#
-#     return(output)
-#
-#   }
+#' @title affy_normalize_loess
+#'
+#' @description Provides an overview table for the time and scope conditions of
+#'     a data set
+#'
+#' @param dat A data set object
+#' @param id Scope (e.g., country codes or individual IDs)
+#' @param time Time (e.g., time periods are given by years, months, ...)
+#'
+#' @return A data frame object that contains a summary of a sample that
+#'     can later be converted to a TeX output using \code{overview_print}
+#' @examples
+#' data(toydata)
+#' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
+#'
+affy_normalize_loess <-
+  function(mat, subset=sample(1:(dim(mat)[1]), min(c(5000, nrow(mat)))),
+           epsilon=10^-2, maxit=1, log.it=TRUE, verbose=TRUE, span=2/3,
+           family.loess="symmetric"){
+
+    J <- dim(mat)[2]
+    II <- dim(mat)[1]
+    if(log.it){
+      mat <- log2(mat)
+    }
+
+    change <- epsilon +1
+    iter <- 0
+    w <- c(0, rep(1,length(subset)), 0) ##this way we give 0 weight to the
+    ##extremes added so that we can interpolate
+
+    while(iter < maxit){
+      iter <- iter + 1
+      means <- matrix(0,II,J) ##contains temp of what we substract
+
+      for (j in 1:(J-1)){
+        for (k in (j+1):J){
+          y <- mat[,j] - mat[,k]
+          x <- (mat[,j] + mat[,k]) / 2
+          index <- c(order(x)[1], subset, order(-x)[1])
+          ##put endpoints in so we can interpolate
+          xx <- x[index]
+          yy <- y[index]
+          aux <-loess(yy~xx, span=span, degree=1, weights=w, family=family.loess)
+          aux <- predict(aux, data.frame(xx=x)) / J
+          means[, j] <- means[, j] + aux
+          means[, k] <- means[, k] - aux
+          if (verbose)
+            cat("Done with",j,"vs",k,"in iteration",iter,"\n")
+        }
+      }
+      mat <- mat - means
+      change <- max(colMeans((means[subset,])^2))
+
+      if(verbose)
+        cat(iter, change,"\n")
+
+    }
+
+    if ((change > epsilon) & (maxit > 1))
+      warning(paste("No convergence after", maxit, "iterations.\n"))
+
+    if(log.it) {
+      return(2^mat)
+    } else
+      return(mat)
+  }
+
+#' @title affy_normalize_qspline
+#'
+#' @description Provides an overview table for the time and scope conditions of
+#'     a data set
+#'
+#' @param dat A data set object
+#' @param id Scope (e.g., country codes or individual IDs)
+#' @param time Time (e.g., time periods are given by years, months, ...)
+#'
+#' @return A data frame object that contains a summary of a sample that
+#'     can later be converted to a TeX output using \code{overview_print}
+#' @examples
+#' data(toydata)
+#' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
+#'
+affy_normalize_qspline <- function(x,
+                                   target        = NULL,
+                                   samples       = NULL,
+                                   fit.iters     = 5,
+                                   min.offset    = 5,
+                                   spline.method = "natural", # c("fmm", "natural", "periodic")
+                                   smooth        = TRUE,
+                                   spar          = 0,     # smoothing parameter
+                                   p.min         = 0,
+                                   p.max         = 1.0,
+                                   incl.ends     = TRUE,
+                                   converge      = FALSE,
+                                   verbose       = TRUE,
+                                   na.rm         = FALSE
+){
+
+  if (is.null(target))
+    target <- exp(apply(log(x), 1, mean))
+
+  x.n <- dim(x)[1]
+  m   <- dim(x)[2]
+
+  if (is.null(samples))
+    samples <- max(round(x.n/1000), 100)
+  else
+    if (samples < 1)
+      samples <- round(samples * x.n)
+
+  p <- (1:samples) / samples
+  p <- p[ which(p <= p.max) & which(p >= p.min) ]
+  samples <- length(p)
+
+  k <- fit.iters
+
+  if (na.rm==TRUE)
+    y.n <- sum(!is.na(target))
+  else
+    y.n <- length(target)
+
+  py.inds  <- as.integer(p * y.n)
+  y.offset <- round(py.inds[1]/fit.iters)
+
+  if (y.offset <= min.offset) {
+    y.offset <- min.offset;
+    k <- round(py.inds[1]/min.offset)
+  }
+
+  if (k <= 1) {
+    warning("'k' found is non-sense. using default 'fit.iter'")
+    k <- fit.iters
+  }
+
+  y.offset <- c(0, array(y.offset, (k-1)))
+  y.order <- order(target)
+
+  fx <- matrix(0, x.n,m)
+  if(verbose==TRUE)
+    print(paste("samples=",samples, "k=", k, "first=", py.inds[1]))
+
+  for (i in 1:m) {
+    # to handel NA values for each array
+    if (na.rm==TRUE)
+      x.valid <- which(!is.na(x[,i]))
+    else
+      x.valid <- 1:x.n
+
+    x.n <- length(x.valid)
+    px.inds  <- as.integer(p * x.n)
+    x.offset <- round(px.inds[1]/fit.iters)
+
+    if (x.offset<=min.offset) {
+      x.offset <- min.offset;
+      k <- min(round(px.inds[1]/min.offset), k)
+    }
+
+    x.offset <- c(0, array(x.offset, (k-1)))
+    x.order  <- order(x[,i]) # NA's at the end (?)
+
+    y.inds   <- py.inds ## must be reset each iteration
+    x.inds   <- px.inds
+
+    for (j in 1:k) {
+      y.inds <- y.inds - y.offset[j]
+      x.inds <- x.inds - x.offset[j]
+      ty.inds <- y.inds
+      tx.inds <- x.inds
+      if (verbose==TRUE)
+        print(paste("sampling(array=", i, "iter=", j, "off=",
+                    x.inds[1], -x.offset[j], y.inds[1], -y.offset[j], ")"))
+
+      if (converge==TRUE) {
+        ty.inds <- as.integer(c(1, y.inds))
+        tx.inds <- as.integer(c(1, x.inds))
+
+        if (j > 1) {
+          ty.inds <- c(ty.inds, y.n)
+          tx.inds <- c(tx.inds, x.n)
+        }
+      }
+      qy <- target[y.order[ty.inds]]
+      qx <-  x[x.order[tx.inds],i]
+
+      if (smooth==TRUE) {
+        sspl <- smooth.spline(qx, qy, spar=spar)
+        qx <- sspl$x
+        qy <- sspl$y
+      }
+
+      fcn <- splinefun(qx, qy, method=spline.method)
+      fx[x.valid,i] <- fx[x.valid,i] + fcn(x[x.valid,i])/k
+    }
+
+    if (na.rm==TRUE) {
+      invalid <- which(is.na(x[,i]))
+      fx[invalid,i] <- NA
+    }
+  }
+  return(fx)
+}

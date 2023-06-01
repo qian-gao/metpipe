@@ -245,10 +245,14 @@ extract_sample_info <-
       mutate( Sample.id = as.character(dplyr::row_number()),
               Run.order = ifelse( Batch == "No batch",
                                   Run.order,
-                                  paste0( substr(Batch, 7, nchar(Batch)), "_", Run.order)),
-              Sample.unique = ifelse( Sample.type == "Sample",
+                                  paste0( substr(Batch, 7, nchar(Batch)), "_", Run.order)))
+    if (standard.name){
+      sample.info <-
+        sample.info %>%
+        mutate( Sample.unique = ifelse( Sample.type == "Sample",
                                       paste( sep = "_", Project, Sample),
                                       paste( sep = "_", Project, Sample, substr(Method, 1, 3), Extract.rep,	Tech.rep) ))
+    }
 
 
     ### export

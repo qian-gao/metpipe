@@ -46,7 +46,7 @@ params$path.peaktable.pos <- NULL
 params$path.peaktable.neg <- NULL
 
 params$peaktable.sep <- ";"
-params$peaktable.sample.pattern <- ".mzML.Peak.area"
+params$peaktable.sample.pattern <- ".mzML Peak area"
 
 params$mz_col_nr <- 1
 params$rt_col_nr <- 2
@@ -111,7 +111,9 @@ if ( grepl(".xlsx", params$path.peaktable.pos) ){
 } else {
   
   peaktable <-
-    read.csv( params$path.peaktable.pos, sep = params$peaktable.sep)
+    read.csv( params$path.peaktable.pos, 
+              sep = params$peaktable.sep,
+              check.names = FALSE)
   
 }
 
@@ -136,7 +138,7 @@ peaks <-
 datalist <-
   prepare_datalist( peaks = peaks,
                     sample.info = params$sample.info.pos,
-                    sample.pattern = ".mzML.Peak.area",
+                    sample.pattern = params$peaktable.sample.pattern,
                     type.to.remove = params$type.to.remove )
 
 ```
@@ -448,12 +450,14 @@ print( paste0("POS normalized peaktables were saved in: ", path.output ), quote 
 if ( grepl(".xlsx", params$path.peaktable.neg) ){
   
   peaktable <-
-    openxlsx::read.xlsx( params$path.peaktable.neg ) 
+    readxl::read_excel( params$path.peaktable.neg ) 
   
 } else {
   
   peaktable <-
-    read.csv( params$path.peaktable.neg, sep = params$peaktable.sep)
+    read.csv( params$path.peaktable.neg, 
+              sep = params$peaktable.sep,
+              check.names = FALSE)
   
 }
 
@@ -478,7 +482,7 @@ peaks <-
 datalist <-
   prepare_datalist( peaks = peaks,
                     sample.info = params$sample.info.neg,
-                    sample.pattern = ".mzML.Peak.area",
+                    sample.pattern = params$peaktable.sample.pattern,
                     type.to.remove = params$type.to.remove )
 
 ```
