@@ -150,8 +150,12 @@ params$para.pos <-
 params$para.neg <-
   params$para.pos
 
-rmarkdown::render(paste0( path.utils, '02_Extract_precursor.Rmd'),
-                  output_file = paste0( path.result, '02_Extract_precursor_', Sys.Date(), ".html"))
+render_rmarkdown(
+    file = system.file("rmd", "02_Extract_precursor.Rmd", package="metpipe"),
+    params = params[params$Extract_precursor],
+    output = paste0( params$path.result, '02_Extract_precursor')
+  )
+
 ```
 
 ```{r 03_01_Preprocessing_IS, eval = TRUE}

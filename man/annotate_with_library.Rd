@@ -11,6 +11,7 @@ annotate_with_library(
   rt_tolerance = NULL,
   mz_tolerance = NULL,
   path.lib = NULL,
+  lib = NULL,
   path.result = NULL
 )
 }
@@ -26,6 +27,8 @@ annotate_with_library(
 \item{mz_tolerance}{= NULL,}
 
 \item{path.lib}{= NULL,}
+
+\item{lib}{= NULL}
 
 \item{path.result}{= NULL}
 }

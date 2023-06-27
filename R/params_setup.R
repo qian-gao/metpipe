@@ -229,6 +229,10 @@ params_setup <-
     params$lib <- lib
     params$lib.is <- lib.is
 
+    params$BPPARAM_set <- switch( Sys.info()["sysname"],
+                                  Windows = BiocParallel::SnowParam(max(1, min(4, parallel::detectCores()-1)), progressbar = TRUE),
+                                  BiocParallel::MulticoreParam(     max(1, min(4, parallel::detectCores()-1)), progressbar = TRUE)
+    )
     # Set input parameters
 
     params$Extract_precursor <-
@@ -244,6 +248,7 @@ params_setup <-
         "sample.info.neg",
 
         "optimize.xcms.parameters",
+        "BPPARAM_set",
         "para.pos",
         "para.neg",
         "rt_tolerance",

@@ -183,7 +183,8 @@ if (params$optimize.xcms.parameters){
                      para = params$para.pos,
                      sample.info = params$sample.info.pos,
                      mode = "pos",
-                     path.result = path.output )
+                     path.result = path.output,
+                     BPPARAM = params$BPPARAM_set )
     
 } else {
 
@@ -192,7 +193,8 @@ if (params$optimize.xcms.parameters){
                         para = params$para.pos,
                         sample.info = params$sample.info.pos,
                         mode = "pos",
-                        path.result = path.output )
+                        path.result = path.output,
+                        BPPARAM = params$BPPARAM_set)
 
 }
 
@@ -216,6 +218,7 @@ annotate_with_library( precursor = precursor.pos,
                        mode = "pos",
                        rt_tolerance = params$rt_tolerance,
                        mz_tolerance = params$mz_tolerance,
+                       lib = params$lib,
                        path.result = path.output )
 
 print( paste0("POS extracted precursors were saved as: ", path.output, "precursor_annotation_pos.xlsx"), quote = FALSE)
@@ -234,7 +237,8 @@ if (params$optimize.xcms.parameters){
                      para = params$para.neg,
                      sample.info = params$sample.info.neg,
                      mode = "neg",
-                     path.result = path.output )
+                     path.result = path.output,
+                     BPPARAM = params$BPPARAM_set )
     
 } else {
 
@@ -243,7 +247,8 @@ if (params$optimize.xcms.parameters){
                         para = params$para.neg,
                         sample.info = params$sample.info.neg,
                         mode = "neg",
-                        path.result = path.output )
+                        path.result = path.output,
+                        BPPARAM = params$BPPARAM_set )
 
 }
 
@@ -268,6 +273,7 @@ annotate_with_library( precursor = precursor.neg,
                        mode = "neg",
                        rt_tolerance = params$rt_tolerance,
                        mz_tolerance = params$mz_tolerance,
+                       lib = params$lib,
                        path.result = path.output )
   
 print( paste0("NEG extracted precursors were saved as: ", path.output, "precursor_annotation_neg.xlsx"), quote = FALSE)

@@ -9,7 +9,8 @@ process_obiwarp(
   para = NULL,
   sample.info = NULL,
   mode = NULL,
-  path.result = NULL
+  path.result = NULL,
+  BPPARAM = NULL
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ process_obiwarp(
 \item{mode}{= NULL,}
 
 \item{path.result}{= NULL}
+
+\item{BPPARAM}{= NULL}
 }
 \value{
 A data frame object that contains a summary of a sample that

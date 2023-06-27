@@ -9,6 +9,7 @@
 #' @param rt_tolerance = NULL,
 #' @param mz_tolerance = NULL,
 #' @param path.lib = NULL,
+#' @param lib = NULL
 #' @param path.result = NULL
 #'
 #' @return A data frame object that contains a summary of a sample that
@@ -24,7 +25,9 @@ annotate_with_library <-
             rt_tolerance = NULL,
             mz_tolerance = NULL,
             path.lib = NULL,
+            lib = NULL,
             path.result = NULL
+
   ){
 
     if ( file.exists(paste0(path.result, "precursor_annotation_", mode, ".rds")) ){
