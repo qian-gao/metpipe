@@ -128,7 +128,8 @@ if ( params$optimize.xcms.parameters ){
   params$para.pos <-
     optim_para( files = sample.info.pos.sel$File.path,
                 mode = "pos",
-                path.result = path.output )
+                path.result = path.output,
+                BPPARAM = params$BPPARAM_set )
   
 } else {
   
@@ -153,7 +154,8 @@ if ( params$optimize.xcms.parameters ){
   params$para.pos <-
     optim_para( files = sample.info.pos.sel$File.path,
                 mode = "pos",
-                path.result = path.output )
+                path.result = path.output,
+                BPPARAM = params$BPPARAM_set )
   
 } else {
   

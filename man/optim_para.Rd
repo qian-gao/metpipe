@@ -4,7 +4,7 @@
 \alias{optim_para}
 \title{optim_para}
 \usage{
-optim_para(files = NULL, mode = NULL, path.result = NULL)
+optim_para(files = NULL, mode = NULL, path.result = NULL, BPPARAM = NULL)
 }
 \arguments{
 \item{files}{= NULL,}
@@ -12,6 +12,8 @@ optim_para(files = NULL, mode = NULL, path.result = NULL)
 \item{mode}{= NULL,}
 
 \item{path.result}{= NULL}
+
+\item{BPPARAM}{= NULL}
 }
 \value{
 A data frame object that contains a summary of a sample that
