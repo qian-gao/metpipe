@@ -122,10 +122,10 @@ params <-
 
 ### XCMS setup
 
-optimize.xcms.parameters <- FALSE  # TRUE, FALSE
+params$optimize.xcms.parameters <- FALSE  # TRUE, FALSE
 
 # If not optimize parameters, the following parameters are used:
-para.pos <-
+params$para.pos <-
   list( # para.peak.picking
         max_peakwidth = 0.7*60,
         min_peakwidth = 0.1*60,
@@ -147,8 +147,8 @@ para.pos <-
         extraPeaks = 2
   )
 
-para.neg <-
-  para.pos
+params$para.neg <-
+  params$para.pos
 
 rmarkdown::render(paste0( path.utils, '02_Extract_precursor.Rmd'),
                   output_file = paste0( path.result, '02_Extract_precursor_', Sys.Date(), ".html"))

@@ -231,6 +231,24 @@ params_setup <-
 
     # Set input parameters
 
+    params$Extract_precursor <-
+      c("run.pipeline",
+        "path.result",
+        "method",
+        "path.mzml.pos",
+        "path.mzml.neg",
+        "run.pos",
+        "run.neg",
+        "type.use.to.optimize",
+        "sample.info.pos",
+        "sample.info.neg",
+
+        "optimize.xcms.parameters",
+        "para.pos",
+        "para.neg",
+        "rt_tolerance",
+        "mz_tolerance")
+
     params$Preprocessing_IS <-
       c("run.pipeline",
         "path.result",
