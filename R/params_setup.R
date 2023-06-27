@@ -246,6 +246,7 @@ params_setup <-
         "type.use.to.optimize",
         "sample.info.pos",
         "sample.info.neg",
+        "lib",
 
         "optimize.xcms.parameters",
         "BPPARAM_set",
