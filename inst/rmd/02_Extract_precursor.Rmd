@@ -183,7 +183,7 @@ if (params$optimize.xcms.parameters){
   peaks.pos <-
     process_obiwarp( files = sample.info.pos.sel$File.path,
                      para = params$para.pos,
-                     sample.info = params$sample.info.pos,
+                     sample.info = sample.info.pos.sel,
                      mode = "pos",
                      path.result = path.output,
                      BPPARAM = params$BPPARAM_set )
@@ -193,7 +193,7 @@ if (params$optimize.xcms.parameters){
   peaks.pos <-
     process_peak_group( files = sample.info.pos.sel$File.path,
                         para = params$para.pos,
-                        sample.info = params$sample.info.pos,
+                        sample.info = sample.info.pos.sel,
                         mode = "pos",
                         path.result = path.output,
                         BPPARAM = params$BPPARAM_set)
@@ -237,7 +237,7 @@ if (params$optimize.xcms.parameters){
   peaks.neg <-
     process_obiwarp( files = sample.info.neg.sel$File.path,
                      para = params$para.neg,
-                     sample.info = params$sample.info.neg,
+                     sample.info = sample.info.neg.sel,
                      mode = "neg",
                      path.result = path.output,
                      BPPARAM = params$BPPARAM_set )
@@ -247,7 +247,7 @@ if (params$optimize.xcms.parameters){
   peaks.neg <-
     process_peak_group( files = sample.info.neg.sel$File.path,
                         para = params$para.neg,
-                        sample.info = params$sample.info.neg,
+                        sample.info = sample.info.neg.sel,
                         mode = "neg",
                         path.result = path.output,
                         BPPARAM = params$BPPARAM_set )
