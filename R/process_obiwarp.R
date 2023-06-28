@@ -41,28 +41,28 @@ process_obiwarp <-
                             ppm             = para$ppm,
                             noise           = para$noise,
                             snthresh        = para$snthresh,
-                            mzdiff          = para$mzdiff,
+                            mzdiff          = -0.001,
                             prefilter       = c( para$prefilter, para$value_of_prefilter ),
-                            mzCenterFun     = para$mzCenterFun,
-                            integrate       = para$integrate,
-                            fitgauss        = para$fitgauss,
+                            mzCenterFun     = "wMean",
+                            integrate       = 2,
+                            fitgauss        = TRUE,
                             verboseColumns  = FALSE )
 
-      owp <- ObiwarpParam( binSize        = para$profStep,
-                           response       = para$response,
-                           distFun        = para$distFunc,
-                           gapInit        = para$gapInit,
-                           gapExtend      = para$gapExtend,
-                           factorDiag     = para$factorDiag,
-                           factorGap      = para$factorGap,
-                           localAlignment = ifelse( para$localAlignment==0,F,T ) )
+      owp <- ObiwarpParam( binSize        = para$binSize,
+                           response       = 1,
+                           distFun        = "cor_opt",
+                           gapInit        = 0,
+                           gapExtend      = 0,
+                           factorDiag     = 2,
+                           factorGap      = 1,
+                           localAlignment = FALSE)
 
       pdp <- PeakDensityParam( sampleGroups = sample.info$Sample.group,
                                bw           = para$bw,
-                               minFraction  = para$minfrac,
-                               minSamples   = para$minsamp,
+                               minFraction  = 0.7,
+                               minSamples   = 1,
                                maxFeatures  = para$max,
-                               binSize      = para$mzwid )
+                               binSize      = 0.01 )
 
       gf <- FillChromPeaksParam( expandMz = 0,
                                  expandRt = 0,
