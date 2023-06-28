@@ -48,7 +48,7 @@ process_obiwarp <-
                             fitgauss        = TRUE,
                             verboseColumns  = FALSE )
 
-      owp <- ObiwarpParam( binSize        = para$binSize,
+      owp <- ObiwarpParam( binSize        = 1, ### Check later
                            response       = 1,
                            distFun        = "cor_opt",
                            gapInit        = 0,
