@@ -71,9 +71,9 @@ process_obiwarp <-
 
       MSnbase::setMSnbaseFastLoad(FALSE)
       xdata1 <- findChromPeaks( raw_data, param = cwp, BPPARAM = BPPARAM )
-      xdata2 <- adjustRtime( xdata, param = owp )
-      xdata3 <- groupChromPeaks( xdata, param = pdp )
-      xdata <- fillChromPeaks( xdata, param = gf, BPPARAM = BPPARAM )
+      xdata2 <- adjustRtime( xdata1, param = owp )
+      xdata3 <- groupChromPeaks( xdata2, param = pdp )
+      xdata <- fillChromPeaks( xdata3, param = gf, BPPARAM = BPPARAM )
 
       saveRDS( xdata1, xdata2, xdata3, xdata,
                file = paste0(path.result, "XCMSset_all_", mode, ".rds") )
