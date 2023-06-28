@@ -151,9 +151,9 @@ print( params$para.pos, quote = FALSE)
 
 if ( params$optimize.xcms.parameters ){
 
-  params$para.pos <-
-    optim_para( files = sample.info.pos.sel$File.path,
-                mode = "pos",
+  params$para.neg <-
+    optim_para( files = sample.info.neg.sel$File.path,
+                mode = "neg",
                 path.result = path.output,
                 BPPARAM = params$BPPARAM_set )
   
@@ -161,8 +161,8 @@ if ( params$optimize.xcms.parameters ){
   
   ### Save parameters
     
-  saveRDS( params$para.pos, 
-           file = paste0(path.output, "XCMS_parameters_", "pos", ".rds"))
+  saveRDS( params$para.neg, 
+           file = paste0(path.output, "XCMS_parameters_", "neg", ".rds"))
   
 }
 
