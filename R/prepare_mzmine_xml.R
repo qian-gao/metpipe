@@ -144,7 +144,7 @@ prepare_mzmine_xml <-
 
     ### Generate MZMine xml file ###
 
-    template <- readRDS("H:/Documents/CBMR_workflow/Script/library/mzmine3.template.rds")
+    template <- readRDS(system.file("template", "mzmine3.template.rds", package="metpipe"))
 
     if (type == "is"){
 
