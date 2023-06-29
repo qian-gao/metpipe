@@ -43,11 +43,18 @@ prepare_msdial_txt <-
     params_msdial$rt_tol=rt_tol
     params_msdial$rt_tol_bigger=rt_tol_bigger
 
-    if ( mode == 'pos') {
+    if ( tolower(mode) %in% c('pos', 'positive')) {
       params_msdial$mode='Positive'
+      params$ion <-
+        paste( "[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+",
+               collapse = "\n" )
 
-    } else if ( mode == 'neg') {
+    } else if (tolower(mode) == c('neg', 'negative')) {
       params_msdial$mode='Negative'
+      params$ion <-
+        paste( "[M-H]-", "[M+HCOOH-H]-",
+               collapse = "\n" )
+
     }
 
     ### Generate MSDIAL txt file ###
