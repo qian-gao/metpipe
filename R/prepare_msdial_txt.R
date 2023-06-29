@@ -37,6 +37,7 @@ prepare_msdial_txt <-
 
     params_msdial$target=target
     params_msdial$path_lib=path_lib
+    params_msdial$path_msp=path_msp
 
     params_msdial$mz_tol=mz_tol
     params_msdial$mz_tol_bigger=mz_tol_bigger
@@ -45,13 +46,13 @@ prepare_msdial_txt <-
 
     if ( tolower(mode) %in% c('pos', 'positive')) {
       params_msdial$mode='Positive'
-      params$ion <-
+      params_msdial$ion <-
         paste( "[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+",
                collapse = "\n" )
 
     } else if (tolower(mode) == c('neg', 'negative')) {
       params_msdial$mode='Negative'
-      params$ion <-
+      params_msdial$ion <-
         paste( "[M-H]-", "[M+HCOOH-H]-",
                collapse = "\n" )
 

@@ -41,6 +41,8 @@ params_setup <-
 
     # system
     path.mzmine = "C:/Users/Public/Documents/MZmine-3.4.27/MZmine_console.exe",
+    path.msdial = "C:/Users/Public/Documents/MSDIAL_v4.9/MsdialConsoleApp.exe",
+
     BPPARAM_set = NULL,
 
     # standard names
@@ -52,6 +54,7 @@ params_setup <-
     # mzML files
     path.mzml = NULL,
     standard.name = TRUE,
+    target = NULL,
 
     # metadata
     path.meta.pos = NULL,
@@ -78,13 +81,15 @@ params_setup <-
 
     # Library path
     path.lib = NULL,
-    path.lib.is = NULL
+    path.lib.is = NULL,
+    path.msp = NULL
 
   ){
 
     if (is.null(params)) params <- list()
 
     params$path.mzmine = path.mzmine
+    params$path.msdial = path.msdial
     params$run.pipeline = run.pipeline
 
     # system
@@ -134,6 +139,20 @@ params_setup <-
       params$method = method
     }
 
+    # target
+
+    if (is.null(target)){
+      if (params$method == "LIP"){
+        params$target = "Lipidomics"
+      } else {
+        params$target = "Metabolomics"
+
+      }
+
+    } else {
+      params$target <- target
+    }
+
     if (is.null(path.result)) {
       params$path.result = gsub("mzML", "peaktable", path.mzml)
     } else {
@@ -154,10 +173,6 @@ params_setup <-
     } else {
       params$path.mzml.neg = path.mzml.neg
     }
-
-    # Library path
-    params$path.lib = path.lib
-    params$path.lib.is = path.lib.is
 
     # Path setup
     if (!dir.exists(params$path.result)) dir.create(params$path.result)
@@ -209,7 +224,7 @@ params_setup <-
 
     } else {
 
-      load(path.lib)
+      lib <- readRDS(path.lib)
 
     }
 
@@ -222,17 +237,17 @@ params_setup <-
 
     } else {
 
-      load(path.lib.is)
+      lib.is <- readRDS(path.lib.is)
 
     }
 
     params$lib <- lib
     params$lib.is <- lib.is
 
-    params$BPPARAM_set <- switch( Sys.info()["sysname"],
-                                  Windows = BiocParallel::SnowParam(max(1, min(4, parallel::detectCores()-1)), progressbar = TRUE),
-                                  BiocParallel::MulticoreParam(     max(1, min(4, parallel::detectCores()-1)), progressbar = TRUE)
-    )
+
+    # MSP path
+    params$msp <- readRDS(path.msp)
+
     # Set input parameters
 
     params$Extract_precursor <-
@@ -315,6 +330,27 @@ params_setup <-
         "mzmine.min.peaks.in.row.pos.percent",
         "mzmine.min.peaks.in.row.neg",
         "mzmine.min.peaks.in.row.neg.percent"
+      )
+
+    params$Untargeted_preprocessing <-
+      c("run.pipeline",
+        "path.result",
+        "method",
+        "path.mzml.pos",
+        "path.mzml.neg",
+        "target",
+        "run.pos",
+        "run.neg",
+        "lib.is",
+        "lib",
+        "msp",
+        "path.msdial",
+
+
+        "mz_tol_pos",
+        "rt_tol_pos",
+        "mz_tol_neg",
+        "rt_tol_neg"
       )
 
     params$Clean_peaktable <-

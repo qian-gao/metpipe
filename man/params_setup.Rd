@@ -8,6 +8,7 @@ params_setup(
   params = NULL,
   run.pipeline = TRUE,
   path.mzmine = "C:/Users/Public/Documents/MZmine-3.4.27/MZmine_console.exe",
+  path.msdial = "C:/Users/Public/Documents/MSDIAL_v4.9/MsdialConsoleApp.exe",
   BPPARAM_set = NULL,
   qc.sample.type = c("sol", "BL", "CP", "IQ", "NIST", "CAL", "Met", "M-Mix", "SPO", "PO",
     "PO50", "PO12.5", "PO25", "PO100", "BPO"),
@@ -15,6 +16,7 @@ params_setup(
     "CA07", "CA08", "CA09"),
   path.mzml = NULL,
   standard.name = TRUE,
+  target = NULL,
   path.meta.pos = NULL,
   path.meta.neg = NULL,
   meta.match.col = "Sample",
@@ -28,7 +30,8 @@ params_setup(
   path.mzml.pos = NULL,
   path.mzml.neg = NULL,
   path.lib = NULL,
-  path.lib.is = NULL
+  path.lib.is = NULL,
+  path.msp = NULL
 )
 }
 \arguments{
