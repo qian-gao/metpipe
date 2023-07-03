@@ -52,7 +52,15 @@ params$rt_tol_neg <- params$rt_tol_pos
 path.output <-
   paste0(params$path.result, "03_03_Preprocessing/")
 
+path.output.pos <-
+  paste0(path.output, "pos/")
+ 
+path.output.neg <-
+  paste0(path.output, "neg/")
+
 if (!dir.exists(path.output)) dir.create(path.output)
+if (!dir.exists(path.output.pos)) dir.create(path.output.pos)
+if (!dir.exists(path.output.neg)) dir.create(path.output.neg)
 
 mz_tol_pos = params$mz_tol_pos
 mz_tol_bigger_pos = params$mz_tol_pos+0.006
@@ -127,7 +135,7 @@ if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
 } else {
   
   system("cmd.exe", input = paste0( params$path.msdial, " lcmsdda -i ", params$path.mzml.pos,    
-                                    " -o ", path.output, "pos/",
+                                    " -o ", path.output.pos,
                                     " -m ", path.output, "MSDIAL_parameters_pos.txt"))
   
 }
@@ -137,7 +145,7 @@ if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
 ```{r grouping pos, include = FALSE, eval = params$run.pos}
 
 pdata <-
-  read.delim(list.files( path = paste0(path.output, "pos/"),
+  read.delim(list.files( path = path.output.pos,
               pattern = "^AlignResult.*\\.msdial$",
               full.names = TRUE), 
              skip = 4, 
@@ -151,8 +159,10 @@ output_data <-
          "Annotation tag (VS1.0)", "Total score",
          params$sample.info.pos$Sample.name)
 
-write.csv(output_data,
-          file = output.file)
+write.table(output_data,
+          file = output.file,
+          sep = ";",
+          row.names = FALSE)
 
 ```
 
@@ -216,7 +226,7 @@ if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
 } else {
   
   system("cmd.exe", input = paste0( params$path.msdial, " lcmsdda -i ", params$path.mzml.neg,    
-                                    " -o ", path.output, "neg/",
+                                    " -o ", path.output.neg,
                                     " -m ", path.output, "MSDIAL_parameters_neg.txt"))
   
 }
@@ -226,7 +236,7 @@ if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
 ```{r grouping neg, include = FALSE, eval = params$run.neg}
 
 pdata <-
-  read.delim(list.files( path = paste0(path.output, "neg/"),
+  read.delim(list.files( path = path.output.neg,
               pattern = "^AlignResult.*\\.msdial$",
               full.names = TRUE), 
              skip = 4, 
@@ -240,8 +250,10 @@ output_data <-
          "Annotation tag (VS1.0)", "Total score",
          params$sample.info.neg$Sample.name)
 
-write.csv(output_data,
-          file = output.file)
+write.table(output_data,
+          file = output.file,
+          sep = ";",
+          row.names = FALSE)
 
 ```
 

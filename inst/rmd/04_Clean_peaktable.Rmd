@@ -92,13 +92,13 @@ if (is.null(params$path.peaktable.pos)){
   
   params$path.peaktable.pos <- paste0(params$path.result, "03_03_Preprocessing/peaktable_targeted_pos.csv")
   
-}
+} 
 
 if (is.null(params$path.peaktable.neg)){
   
   params$path.peaktable.neg <- paste0(params$path.result, "03_03_Preprocessing/peaktable_targeted_neg.csv")
   
-}
+} 
 
 ```
 

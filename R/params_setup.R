@@ -345,7 +345,8 @@ params_setup <-
         "lib",
         "msp",
         "path.msdial",
-
+        "sample.info.pos",
+        "sample.info.neg",
 
         "mz_tol_pos",
         "rt_tol_pos",

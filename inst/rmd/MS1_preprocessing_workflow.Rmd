@@ -60,7 +60,7 @@ params <-
   params_setup( 
     
     run.pipeline = TRUE,
-    path.mzml = "J:/CBMR/SUN-CBMR-Metabolomics/Projects/AMP_test_project/mzML/PL_LIP_MS1/",
+    path.mzml = "J:/CBMR/SUN-CBMR-Metabolomics/Projects/AMP_test_project/mzML/TE_LIP_MS1/",
     
     standard.name = TRUE,  # TRUE, FALSE
     
@@ -81,7 +81,7 @@ params <-
     
     ### Only modify if not standard workflow
     method = NULL,
-    path.result = "J:/CBMR/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/PL_LIP_MS1_test2/",
+    path.result = NULL,
     sample.pattern = ".mzML",
     
     # Sample path
@@ -90,8 +90,9 @@ params <-
     path.mzml.neg = NULL,
     
     # Library path
-    path.lib = "H:/Documents/CBMR_workflow/Script/library/library.MS1.RData",
-    path.lib.is = "H:/Documents/CBMR_workflow/Script/library/library.MS1.IS.RData"
+    path.lib = "H:/Documents/CBMR_workflow/Script/library/library.MS1.rds",
+    path.lib.is = "H:/Documents/CBMR_workflow/Script/library/library.MS1.IS.rds",
+    path.msp = "H:/Documents/CBMR_workflow/Script/library/msdial.library.MS1.rds",
 
 )
 ```
@@ -122,7 +123,7 @@ params <-
 
 ### XCMS setup
 
-params$optimize.xcms.parameters <- FALSE  # TRUE, FALSE
+params$optimize.xcms.parameters <- TRUE  # TRUE, FALSE
 
 # If not optimize parameters, the following parameters are used:
 params$para.pos <-
@@ -158,7 +159,7 @@ render_rmarkdown(
 
 ```
 
-```{r 03_01_Preprocessing_IS, eval = TRUE}
+```{r 03_01_Preprocessing_IS, eval = FALSE}
 
 params$mzmine.mz.tol.pos <- params$mz_tolerance
 params$mzmine.rt.tol.pos <- params$rt_tolerance
@@ -179,7 +180,7 @@ render_rmarkdown(
 
 ```
 
-```{r 03_02_QC_IS, eval = TRUE}
+```{r 03_02_QC_IS, eval = FALSE}
 
 params$reference.type <- "reference" # reference or median
 params$figure_height <- 900
@@ -199,7 +200,7 @@ render_rmarkdown(
 
 ```
 
-```{r 03_03_Preprocessing, eval = TRUE}
+```{r 03_03_Preprocessing, eval = FALSE}
 
 params$precursor.include <- FALSE
 
@@ -222,7 +223,24 @@ render_rmarkdown(
 
 ```
 
-```{r 04_Clean_peaktable, eval = TRUE}
+```{r 03_04_Untargeted_preprocessing, eval = FALSE}
+
+params$mz_tol_pos <- params$mz_tolerance
+params$rt_tol_pos <- params$rt_tolerance
+params$mz_tol_neg <- params$mz_tol_pos
+params$rt_tol_neg <- params$rt_tol_pos
+
+render_rmarkdown(
+    file = "03_04_Untargeted_preprocessing.Rmd",
+    #file = system.file("rmd", "03_04_Untargeted_preprocessing.Rmd", package="metpipe"),
+    params = params[params$Untargeted_preprocessing],
+    output = paste0( params$path.result, '03_04_Untargeted_preprocessing')
+  )
+
+
+```
+
+```{r 04_Clean_peaktable, eval = FALSE}
 
 ### Peaktable
 
@@ -230,7 +248,7 @@ params$path.peaktable.pos <- NULL
 params$path.peaktable.neg <- NULL
 
 params$peaktable.sep <- ";"
-params$peaktable.sample.pattern <- ".mzML Peak area"
+params$peaktable.sample.pattern <- "" #".mzML Peak area"
 
 params$mz_col_nr <- 2
 params$rt_col_nr <- 3
@@ -268,7 +286,7 @@ params$path.peaktable.pos <- NULL
 params$path.peaktable.neg <- NULL
 
 params$peaktable.sep <- ";"
-params$peaktable.sample.pattern <- ".mzML Peak area"
+params$peaktable.sample.pattern <- NULL #".mzML Peak area"
 
 params$mz_col_nr <- 1
 params$rt_col_nr <- 2
