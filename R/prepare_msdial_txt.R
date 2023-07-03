@@ -50,7 +50,7 @@ prepare_msdial_txt <-
         paste( "[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+",
                collapse = "\n" )
 
-    } else if (tolower(mode) == c('neg', 'negative')) {
+    } else if (tolower(mode) %in% c('neg', 'negative')) {
       params_msdial$mode='Negative'
       params_msdial$ion <-
         paste( "[M-H]-", "[M+HCOOH-H]-",

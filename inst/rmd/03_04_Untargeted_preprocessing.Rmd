@@ -1,0 +1,254 @@
+---
+title: "Untargeted preprocessing"
+author: "Qian Gao, qian.gao@sund.ku.dk"
+date: "`r base::Sys.Date()`"
+
+knit: ( function(inputFile, encoding) { 
+          rmarkdown::render( inputFile, 
+                             encoding = encoding, 
+                             output_file = paste0( substr(inputFile,1,nchar(inputFile)-4), '_', Sys.Date(),'.html')) 
+          })
+          
+output:
+  html_document:
+    toc: yes
+    toc_depth: '4'
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_depth: '4'
+    df_print: paged
+---
+
+```{r setup environment, include = FALSE}
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
+```
+
+```{r general setup, include = FALSE, eval = !params$run.pipeline }
+
+source( "01_Input_general.R")
+source( paste0( path.utils, "utils_preprocessing.R" ))
+
+```
+
+```{r optional setup, include = FALSE, eval = !params$run.pipeline }
+
+params$mz_tol_pos <- params$mz_tolerance
+params$rt_tol_pos <- params$rt_tolerance
+params$mz_tol_neg <- params$mz_tol_pos
+params$rt_tol_neg <- params$rt_tol_pos
+
+```
+
+```{r set environment variables}
+
+path.output <-
+  paste0(params$path.result, "03_03_Preprocessing/")
+
+if (!dir.exists(path.output)) dir.create(path.output)
+
+mz_tol_pos = params$mz_tol_pos
+mz_tol_bigger_pos = params$mz_tol_pos+0.006
+rt_tol_pos = params$rt_tol_pos
+rt_tol_bigger_pos = params$rt_tol_pos+0.2
+
+mz_tol_neg = params$mz_tol_neg
+mz_tol_bigger_neg = params$mz_tol_neg+0.006
+rt_tol_neg = params$rt_tol_neg
+rt_tol_bigger_neg = params$rt_tol_neg+0.2
+
+```
+
+### Preprocessing using MSDIAL
+#### POS
+```{r generate library pos, eval = params$run.pos}
+
+lib.to.use <-
+    bind_rows(params$lib[[params$method]]$pos, 
+              params$lib.is[[params$method]]$pos %>%
+                select( Library.mz, Library.rt, Library.name, Ion)) %>%    
+    select("Library.name", "Library.mz", "Library.rt", "Library.name", "Ion") %>%
+    dplyr::rename( name = Library.name,
+                   mz = Library.mz,
+                   rt = Library.rt,
+                   adduct = Ion)
+
+output.file <- paste0(path.output, "peaktable_targeted_pos.csv")
+library.file <- paste0(path.output, "MSDIAL_library_MS1_", params$method, "_pos.txt")
+
+write.table( lib.to.use, 
+             file = library.file, 
+             sep = "\t", 
+             row.names = FALSE, 
+             quote = FALSE)
+
+msp.file <- params$msp[[params$target]]$pos
+
+print( paste0("POS peaktable was saved as: ", output.file), quote = FALSE)
+print( paste0("Library file: ", library.file), quote = FALSE)
+print( "MSDIAL parameters used in positive mode:")
+
+print( paste0("mz_tol_pos = ", mz_tol_pos), quote = FALSE)
+print( paste0("mz_tol_bigger_pos = ", mz_tol_bigger_pos), quote = FALSE)
+print( paste0("rt_tol_pos = ", rt_tol_pos), quote = FALSE)
+print( paste0("rt_tol_bigger_pos = ", rt_tol_bigger_pos), quote = FALSE)
+
+```
+
+```{r generate parameters pos, echo = TRUE, eval = params$run.pos}
+
+prepare_msdial_txt(
+    target = params$target, # Metabolomics, Lipidomics
+    mode = 'Positive',
+    path_lib = library.file,
+    path_msp = msp.file,
+    mz_tol = mz_tol_pos,
+    mz_tol_bigger = mz_tol_bigger_pos,
+    rt_tol = rt_tol_pos,
+    rt_tol_bigger = rt_tol_bigger_pos,
+    output_file = paste0(path.output, "/MSDIAL_parameters_pos.txt")
+  )
+
+```
+
+```{r data preprocessing pos, include = FALSE, eval = params$run.pos}
+
+
+if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
+  
+  
+} else {
+  
+  system("cmd.exe", input = paste0( params$path.msdial, " lcmsdda -i ", params$path.mzml.pos,    
+                                    " -o ", path.output, "pos/",
+                                    " -m ", path.output, "MSDIAL_parameters_pos.txt"))
+  
+}
+
+```
+
+```{r grouping pos, include = FALSE, eval = params$run.pos}
+
+pdata <-
+  read.delim(list.files( path = paste0(path.output, "pos/"),
+              pattern = "^AlignResult.*\\.msdial$",
+              full.names = TRUE), 
+             skip = 4, 
+             check.names = FALSE)
+
+### PMD
+output_data <-
+  pdata %>%
+  select("Alignment ID", "Average Mz", "Average Rt(min)",
+         "Metabolite name", "Adduct type", "Formula", 
+         "Annotation tag (VS1.0)", "Total score",
+         params$sample.info.pos$Sample.name)
+
+write.csv(output_data,
+          file = output.file)
+
+```
+
+#### NEG
+```{r generate library neg, eval = params$run.neg}
+
+lib.to.use <-
+    bind_rows(params$lib[[params$method]]$neg, 
+              params$lib.is[[params$method]]$neg %>%
+                select( Library.mz, Library.rt, Library.name, Ion)) %>%    
+  select("Library.name", "Library.mz", "Library.rt", "Library.name", "Ion") %>%
+    dplyr::rename( name = Library.name,
+                   mz = Library.mz,
+                   rt = Library.rt,
+                   adduct = Ion)
+
+output.file <- paste0(path.output, "peaktable_targeted_neg.csv")
+library.file <- paste0(path.output, "MSDIAL_library_MS1_", params$method, "_neg.txt")
+
+write.table( lib.to.use, 
+             file = library.file, 
+             sep = "\t", 
+             row.names = FALSE, 
+             quote = FALSE)
+
+msp.file <- params$msp[[params$target]]$neg
+
+print( paste0("NEG peaktable was saved as .msdial file in: ", path.output), quote = FALSE)
+print( paste0("Library file: ", library.file), quote = FALSE)
+print( "MSDIAL parameters used in negative mode:")
+
+print( paste0("mz_tol_neg = ", mz_tol_neg), quote = FALSE)
+print( paste0("mz_tol_bigger_neg = ", mz_tol_bigger_neg), quote = FALSE)
+print( paste0("rt_tol_neg = ", rt_tol_neg), quote = FALSE)
+print( paste0("rt_tol_bigger_neg = ", rt_tol_bigger_neg), quote = FALSE)
+
+```
+
+```{r generate parameters neg, echo = TRUE, eval = params$run.neg}
+
+prepare_msdial_txt(
+    target = params$target, # Metabolomics, Lipidomics
+    mode = 'Negative',
+    path_lib = library.file,
+    path_msp = msp.file,
+    mz_tol = mz_tol_neg,
+    mz_tol_bigger = mz_tol_bigger_neg,
+    rt_tol = rt_tol_neg,
+    rt_tol_bigger = rt_tol_bigger_neg,
+    output_file = paste0(path.output, "/MSDIAL_parameters_neg.txt")
+  )
+
+```
+
+```{r data preprocessing neg, include = FALSE, eval = params$run.neg}
+
+
+if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
+  
+  
+} else {
+  
+  system("cmd.exe", input = paste0( params$path.msdial, " lcmsdda -i ", params$path.mzml.neg,    
+                                    " -o ", path.output, "neg/",
+                                    " -m ", path.output, "MSDIAL_parameters_neg.txt"))
+  
+}
+
+```
+
+```{r grouping neg, include = FALSE, eval = params$run.neg}
+
+pdata <-
+  read.delim(list.files( path = paste0(path.output, "neg/"),
+              pattern = "^AlignResult.*\\.msdial$",
+              full.names = TRUE), 
+             skip = 4, 
+             check.names = FALSE)
+
+### PMD
+output_data <-
+  pdata %>%
+  select("Alignment ID", "Average Mz", "Average Rt(min)",
+         "Metabolite name", "Adduct type", "Formula", 
+         "Annotation tag (VS1.0)", "Total score",
+         params$sample.info.neg$Sample.name)
+
+write.csv(output_data,
+          file = output.file)
+
+```
+
+```{r SessionInfo, include = FALSE}
+
+# Session info
+
+utils::sessionInfo()
+
+```
