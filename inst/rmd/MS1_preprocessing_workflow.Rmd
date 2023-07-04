@@ -223,7 +223,7 @@ render_rmarkdown(
 
 ```
 
-```{r 03_04_Untargeted_preprocessing, eval = FALSE}
+```{r 03_04_Untargeted_preprocessing, eval = TRUE}
 
 params$mz_tol_pos <- params$mz_tolerance
 params$rt_tol_pos <- params$rt_tolerance
@@ -240,7 +240,7 @@ render_rmarkdown(
 
 ```
 
-```{r 04_Clean_peaktable, eval = FALSE}
+```{r 04_Clean_peaktable, eval = TRUE}
 
 ### Peaktable
 
@@ -339,8 +339,8 @@ params$datatable.sep <- ";"
 params$feature_col_nr <- 2
 
 render_rmarkdown(
-    file = system.file("rmd", "06_Merge_and_map_names.Rmd", package="metpipe"),
-    #file = "06_Merge_and_map_names.Rmd",
+    #file = system.file("rmd", "06_Merge_and_map_names.Rmd", package="metpipe"),
+    file = "06_Merge_and_map_names.Rmd",
     params = params[params$Merge_and_map_names],
     output = paste0( params$path.result, '06_Merge_and_map_names')
   )

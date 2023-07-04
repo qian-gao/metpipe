@@ -112,6 +112,13 @@ print( paste0("rt_tol_bigger_pos = ", rt_tol_bigger_pos), quote = FALSE)
 
 ```{r generate parameters pos, echo = TRUE, eval = params$run.pos}
 
+ref.samples <-
+  params$sample.info.pos %>%
+  filter(Sample.type == params$po.sample.to.use) %>%
+  pull(File.path)
+
+params$align_ref <- ref.samples[1]
+
 prepare_msdial_txt(
     target = params$target, # Metabolomics, Lipidomics
     mode = 'Positive',
@@ -121,6 +128,7 @@ prepare_msdial_txt(
     mz_tol_bigger = mz_tol_bigger_pos,
     rt_tol = rt_tol_pos,
     rt_tol_bigger = rt_tol_bigger_pos,
+    align_ref = params$align_ref,
     output_file = paste0(path.output, "/MSDIAL_parameters_pos.txt")
   )
 
@@ -157,7 +165,12 @@ output_data <-
   select("Alignment ID", "Average Mz", "Average Rt(min)",
          "Metabolite name", "Adduct type", "Formula", 
          "Annotation tag (VS1.0)", "Total score",
-         params$sample.info.pos$Sample.name)
+         params$sample.info.pos$Sample.name) %>%
+  group_by("Metabolite name") %>%
+  mutate( `Metabolite name` = ifelse(`Metabolite name` == "Unknown", 
+                                     paste0("Unknown_", row_number()),
+                                     `Metabolite name`)) %>%
+  ungroup()
 
 write.table(output_data,
           file = output.file,
@@ -203,6 +216,13 @@ print( paste0("rt_tol_bigger_neg = ", rt_tol_bigger_neg), quote = FALSE)
 
 ```{r generate parameters neg, echo = TRUE, eval = params$run.neg}
 
+ref.samples <-
+  params$sample.info.neg %>%
+  filter(Sample.type == params$po.sample.to.use) %>%
+  pull(File.path)
+
+params$align_ref <- ref.samples[1]
+
 prepare_msdial_txt(
     target = params$target, # Metabolomics, Lipidomics
     mode = 'Negative',
@@ -212,6 +232,7 @@ prepare_msdial_txt(
     mz_tol_bigger = mz_tol_bigger_neg,
     rt_tol = rt_tol_neg,
     rt_tol_bigger = rt_tol_bigger_neg,
+    align_ref = params$align_ref,
     output_file = paste0(path.output, "/MSDIAL_parameters_neg.txt")
   )
 

@@ -13,6 +13,7 @@ prepare_msdial_txt(
   mz_tol_bigger = NULL,
   rt_tol = NULL,
   rt_tol_bigger = NULL,
+  align_ref = NULL,
   output_file = NULL
 )
 }
@@ -30,6 +31,8 @@ prepare_msdial_txt(
 \item{rt_tol}{= NULL,}
 
 \item{rt_tol_bigger}{= NULL}
+
+\item{align_ref}{= NULL}
 
 \item{output_file}{= NULL}
 }

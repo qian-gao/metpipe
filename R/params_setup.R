@@ -347,6 +347,7 @@ params_setup <-
         "path.msdial",
         "sample.info.pos",
         "sample.info.neg",
+        "po.sample.to.use",
 
         "mz_tol_pos",
         "rt_tol_pos",

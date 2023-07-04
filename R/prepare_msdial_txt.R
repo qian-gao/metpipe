@@ -9,6 +9,7 @@
 #' @param mz_tol_bigger = NULL,
 #' @param rt_tol = NULL,
 #' @param rt_tol_bigger = NULL
+#' @param align_ref = NULL
 #' @param output_file = NULL
 #'
 #' @return A list of summaries for all types of samples
@@ -27,6 +28,7 @@ prepare_msdial_txt <-
     mz_tol_bigger = NULL,
     rt_tol = NULL,
     rt_tol_bigger = NULL,
+    align_ref = NULL,
     output_file = NULL
 
   ){
@@ -57,6 +59,8 @@ prepare_msdial_txt <-
                collapse = "\n" )
 
     }
+
+    params_msdial$align_ref <- align_ref
 
     ### Generate MSDIAL txt file ###
 
