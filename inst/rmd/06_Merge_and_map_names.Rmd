@@ -100,13 +100,18 @@ rsd.pos <-
 feature.info.pos <-
   rsd.pos %>%
   rowwise() %>%
-  mutate( Identity = strsplit( Identity, "-iso")[[1]][1]) %>%
+  mutate( Identity_orig = Identity,
+          Source = ifelse(grepl("w/o MS2", Identity), "public_db", 
+                          ifelse(grepl("unknown", tolower(Identity)), "", "in_house")),
+          Identity = strsplit( Identity, "-iso")[[1]][1]) %>%
   ungroup() %>%
   left_join(params$lib[[params$method]]$pos, by = c("Identity" = "Library.name")) %>%
-  mutate( Compound.name = ifelse( is.na(Compound.name),
+  mutate( Identity = gsub("w/o MS2:", "", Identity),
+          Compound.name = ifelse( is.na(Compound.name),
                                   Identity,
                                   Compound.name),
-          Identifier = paste0("pos_", Identity))
+          Identifier = paste0("pos_", Identity_orig),
+          )
 
 data.pos <-
   cbind(sample.pos[, c("Sample.type", "Sample")], datatable.pos) %>%
@@ -153,13 +158,18 @@ rsd.neg <-
 feature.info.neg <-
   rsd.neg %>%
   rowwise() %>%
-  mutate( Identity = strsplit( Identity, "-iso")[[1]][1]) %>%
+  mutate( Identity_orig = Identity,
+          Source = ifelse(grepl("w/o MS2", Identity), "public_db", 
+                          ifelse(grepl("unknown", tolower(Identity)), "", "in_house")),
+          Identity = strsplit( Identity, "-iso")[[1]][1]) %>%
   ungroup() %>%
-  left_join(params$lib[[params$method]]$neg, by = c("Identity" = "Library.name")) %>%
-  mutate( Compound.name = ifelse( is.na(Compound.name),
+  left_join(params$lib[[params$method]]$pos, by = c("Identity" = "Library.name")) %>%
+  mutate( Identity = gsub("w/o MS2:", "", Identity),
+          Compound.name = ifelse( is.na(Compound.name),
                                   Identity,
                                   Compound.name),
-          Identifier = paste0("neg_", Identity))
+          Identifier = paste0("neg_", Identity_orig),
+          )
 
 data.neg <-
   cbind(sample.neg[, c("Sample.type", "Sample")], datatable.neg) %>%
@@ -219,9 +229,8 @@ feature.info.keep <-
   feature.info %>%
   mutate(Compound.name = trimws(Compound.name)) %>%
   group_by(Compound.name) %>%
-  mutate( po.max.flag = get(paste0("mean.", params$po.sample.to.use)) == max(get(paste0("mean.", params$po.sample.to.use))),
-          rsd.min.flag = get(paste0("rsd.", params$po.sample.to.use)) == min(get(paste0("rsd.", params$po.sample.to.use)))) %>%
-  filter(po.max.flag & row_number() == 1) %>%
+  arrange(Compound.name, Source, desc(get(paste0("mean.", params$po.sample.to.use)))) %>%
+  filter(row_number() == 1) %>%
   ungroup()
 
 map.names <- feature.info.keep$Compound.name
@@ -249,7 +258,9 @@ wb <- createWorkbook()
 addWorksheet(wb, "datatable")
 writeData(wb, "datatable", out.table)
 addWorksheet(wb, "feature.info")
-writeData(wb, "feature.info", feature.info)
+writeData(wb, "feature.info", feature.info.keep)
+addWorksheet(wb, "feature.info.before.merge")
+writeData(wb, "feature.info.before.merge", feature.info)
 saveWorkbook(wb, paste0(path.output, "datatable_", params$method, ".xlsx"), overwrite = TRUE)
 
 print(paste0("Datatable was saved as ", path.output, "datatable_", params$method, ".xlsx"), quote = FALSE)

@@ -260,8 +260,9 @@ params$identity_col_nr <- 4
 # Feature filtering
 params$bl.thres <- c( 3, "BL", "<", "PO")            # 3, mean in PO should be > 3 times BL
 params$rsd.po.thres <- c( "PO", "<", 40)        # 50, RSD in PO should be < 50%
-params$rt.range <- c(0, 30)         # c(0, 30), only keep peaks in 0 - 30 min
-params$mean.thres <- NULL
+params$mean.po.thres <- c( "PO", ">", 1000) 
+params$rt.range <- c(0.8, 30)         # c(0, 30), only keep peaks in 0 - 30 min
+params$mean.thres <- c()
 
 # Filter based on missings
 params$filter_by_missing_feature_pct <- 50

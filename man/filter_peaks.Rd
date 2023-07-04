@@ -10,6 +10,7 @@ filter_peaks(
   sample.type = NULL,
   bl.thres = NULL,
   rsd.po.thres = NULL,
+  mean.po.thres = NULL,
   rt.range = NULL,
   mean.thres = NULL
 )
@@ -27,6 +28,9 @@ type of sample compared to blanks. e.g. c( 3, "BL", "<", "PO")}
 
 \item{rsd.po.thres}{Threshold for keeping features based on their rsd in pools.
 e.g. c( "PO", "<", 40)}
+
+\item{mean.po.thres}{Threshold for keeping features based on their mean in pools.
+e.g. c( "PO", ">", 1000)}
 
 \item{rt.range}{Retention time range for keeping features}
 

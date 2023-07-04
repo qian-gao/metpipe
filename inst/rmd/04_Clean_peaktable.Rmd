@@ -59,6 +59,7 @@ identity_col_nr <- 4
 # Feature filtering
 bl.thres <- c( 3, "BL", "<", "PO100")            # 3, mean in PO should be > 3 times BL
 rsd.po.thres <- c( "PO100", "<", 50)        # 50, RSD in PO should be < 50%
+mean.po.thres <- c( "PO100", ">", 1000) 
 rt.range <- c(0, 30)         # c(0, 30), only keep peaks in 0 - 30 min
 mean.thres <- list( c( "PO100", ">", 1, "PO25"),
                     c( "PO25", ">", 1, "PO12.5")

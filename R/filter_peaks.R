@@ -11,6 +11,8 @@
 #'    type of sample compared to blanks. e.g. c( 3, "BL", "<", "PO")
 #' @param rsd.po.thres Threshold for keeping features based on their rsd in pools.
 #'    e.g. c( "PO", "<", 40)
+#' @param mean.po.thres Threshold for keeping features based on their mean in pools.
+#'    e.g. c( "PO", ">", 1000)
 #' @param rt.range Retention time range for keeping features
 #' @param mean.thres Threshold for keeping features based on their mean values in
 #'    certain types. e.g. list( c( "PO100", ">", 1, "PO25"),
@@ -27,6 +29,7 @@ filter_peaks <-
             sample.type = NULL,
             bl.thres = NULL,
             rsd.po.thres = NULL,
+            mean.po.thres = NULL,
             rt.range = NULL,
             mean.thres = NULL
   ){
@@ -107,6 +110,27 @@ filter_peaks <-
       print( paste0( "Only keep features having RSD in ",
                      rsd.po.thres[1], " ", rsd.po.thres[2], " ", rsd.po.thres[3],
                      "% : ", sum(!index), " features have been removed" ),
+             quote = FALSE)
+
+    }
+
+    if (!is.null(mean.po.thres)){
+
+      index <-
+        apply( mzrt$type.mean,
+               MAR = 1,
+               function(x){ eval( parse( text = paste0( x[mean.po.thres[1]], mean.po.thres[2], mean.po.thres[3]) ))
+               })
+
+      index.list$index.mean.po.thres <- index
+
+      mzrt <-
+        mzrt_filter( mzrt = mzrt,
+                     index = index)
+
+      print( paste0( "Only keep features having mean in ",
+                     mean.po.thres[1], " ", mean.po.thres[2], " ", mean.po.thres[3],
+                     ": ", sum(!index), " features have been removed" ),
              quote = FALSE)
 
     }
