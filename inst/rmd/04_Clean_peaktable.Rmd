@@ -170,6 +170,7 @@ mzrt.filtered <-
                 sample.type = params$sample.info.pos$Sample.type,
                 bl.thres = params$bl.thres,
                 rsd.po.thres = params$rsd.po.thres,
+                mean.po.thres = params$mean.po.thres,
                 rt.range = params$rt.range,
                 mean.thres = params$mean.thres)
 
@@ -316,6 +317,7 @@ mzrt.filtered <-
                 sample.type = params$sample.info.neg$Sample.type,
                 bl.thres = params$bl.thres,
                 rsd.po.thres = params$rsd.po.thres,
+                mean.po.thres = params$mean.po.thres,
                 rt.range = params$rt.range,
                 mean.thres = params$mean.thres)
 
