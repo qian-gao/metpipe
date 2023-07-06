@@ -190,7 +190,7 @@ params_setup <-
                              calibration.sample.type = params$calibration.sample.type,
                              export.rds = paste0(params$path.result, "sample_info_pos.rds"),
                              export.xlsx = paste0(params$path.result, "sample_info_pos.xlsx")) %>%
-        filter( !grepl("MS2p", Method))
+        filter( !grepl("MS2p", Sample.name))
 
     }
 
@@ -206,7 +206,7 @@ params_setup <-
                              calibration.sample.type = params$calibration.sample.type,
                              export.rds = paste0(params$path.result, "sample_info_neg.rds"),
                              export.xlsx = paste0(params$path.result, "sample_info_neg.xlsx")) %>%
-        filter( !grepl("MS2n", Method))
+        filter( !grepl("MS2n", Sample.name))
 
     }
 
