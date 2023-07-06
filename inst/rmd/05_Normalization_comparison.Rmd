@@ -117,7 +117,7 @@ if ( grepl(".xlsx", params$path.peaktable.pos) ){
   
 }
 
-if (!is.null(params$peaktable.sample.pattern)){
+if (!is.null(params$peaktable.sample.pattern) & params$peaktable.sample.pattern != ""){
   
   f.names <- colnames(peaktable)[grepl(params$peaktable.sample.pattern, colnames(peaktable))]
   
@@ -461,7 +461,7 @@ if ( grepl(".xlsx", params$path.peaktable.neg) ){
   
 }
 
-if (!is.null(params$peaktable.sample.pattern)){
+if (!is.null(params$peaktable.sample.pattern) & params$peaktable.sample.pattern != ""){
   
   f.names <- colnames(peaktable)[grepl(params$peaktable.sample.pattern, colnames(peaktable))]
   

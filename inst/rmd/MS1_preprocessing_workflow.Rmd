@@ -28,20 +28,6 @@ library(metpipe)
 library(ggplot2)
 library(openxlsx)
 library(tidyverse)
-# path.root <- "H:/Documents/CBMR_workflow/Script/"
-# source( "utils_normalization.R" )
-# library(plotly)
-# library(openxlsx)
-
-# path.root <- "H:/Documents/CBMR_workflow/packages/metpipe/R/"
-
-# source( paste0( path.root, "pipeline/params_setup.R"))
-# source( paste0( path.root, "pipeline/render_rmarkdown.R"))
-# source( paste0( path.root, "preprocessing/extract_sample_info.R"))
-# source( paste0( path.root, "preprocessing/generate_mzmine3_xml.R"))
-# source( paste0( path.root, "preprocessing/prepare_mzmine_xml.R"))
-# source( paste0( path.root, "pipeline/utils_qc.R"))
-
 
 knitr::opts_chunk$set(
   message = FALSE,
@@ -97,28 +83,6 @@ params <-
 )
 ```
 
-```{r load utilities}
-# params <-
-#   params_setup( run.pipeline = run.pipeline,
-#                 path.mzml = path.mzml,
-#                 standard.name = standard.name,
-#                 path.meta.pos = path.meta.pos,
-#                 path.meta.neg = path.meta.pos,
-#                 meta.match.col = meta.match.col, 
-#                 rt_tolerance = rt_tolerance,
-#                 mz_tolerance = mz_tolerance,
-#                 type.use.to.optimize = type.use.to.optimize,  
-#                 po.sample.to.use = po.sample.to.use,
-#                 sample.pattern = sample.pattern,
-#                 path.lib = path.lib,
-#                 path.lib.is = path.lib.is)
-
-# source( paste0( path.utils, "utils_preprocessing.R" ))
-# source( paste0( path.utils, "utils_qc.R" ))
-# source( paste0( path.utils, "utils_normalization.R" ))
-
-```
-
 ```{r 02_Extract_precursor, eval = FALSE}
 
 ### XCMS setup
@@ -153,6 +117,7 @@ params$para.neg <-
 
 render_rmarkdown(
     file = system.file("rmd", "02_Extract_precursor.Rmd", package="metpipe"),
+    #file = 02_Extract_precursor.Rmd",
     params = params[params$Extract_precursor],
     output = paste0( params$path.result, '02_Extract_precursor')
   )
@@ -231,8 +196,8 @@ params$mz_tol_neg <- params$mz_tol_pos
 params$rt_tol_neg <- params$rt_tol_pos
 
 render_rmarkdown(
-    file = "03_04_Untargeted_preprocessing.Rmd",
-    #file = system.file("rmd", "03_04_Untargeted_preprocessing.Rmd", package="metpipe"),
+    #file = "03_04_Untargeted_preprocessing.Rmd",
+    file = system.file("rmd", "03_04_Untargeted_preprocessing.Rmd", package="metpipe"),
     params = params[params$Untargeted_preprocessing],
     output = paste0( params$path.result, '03_04_Untargeted_preprocessing')
   )
@@ -248,7 +213,7 @@ params$path.peaktable.pos <- NULL
 params$path.peaktable.neg <- NULL
 
 params$peaktable.sep <- ";"
-params$peaktable.sample.pattern <- "" #".mzML Peak area"
+params$peaktable.sample.pattern <- NULL #".mzML Peak area"
 
 params$mz_col_nr <- 2
 params$rt_col_nr <- 3
@@ -340,8 +305,8 @@ params$datatable.sep <- ";"
 params$feature_col_nr <- 2
 
 render_rmarkdown(
-    #file = system.file("rmd", "06_Merge_and_map_names.Rmd", package="metpipe"),
-    file = "06_Merge_and_map_names.Rmd",
+    file = system.file("rmd", "06_Merge_and_map_names.Rmd", package="metpipe"),
+    #file = "06_Merge_and_map_names.Rmd",
     params = params[params$Merge_and_map_names],
     output = paste0( params$path.result, '06_Merge_and_map_names')
   )
