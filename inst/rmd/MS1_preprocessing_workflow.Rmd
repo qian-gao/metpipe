@@ -76,9 +76,9 @@ params <-
     path.mzml.neg = NULL,
     
     # Library path
-    path.lib = "H:/Documents/CBMR_workflow/Script/library/library.MS1.rds",
-    path.lib.is = "H:/Documents/CBMR_workflow/Script/library/library.MS1.IS.rds",
-    path.msp = "H:/Documents/CBMR_workflow/Script/library/msdial.library.MS1.rds",
+    path.lib = "J:/CBMR/SUN-CBMR-Metabolomics/Workflow/library/library.MS1.rds",
+    path.lib.is = "J:/CBMR/SUN-CBMR-Metabolomics/Workflow/library/library.MS1.IS.rds",
+    path.msp = "J:/CBMR/SUN-CBMR-Metabolomics/Workflow/library/msdial.library.MS1.rds"
 
 )
 ```
@@ -218,7 +218,7 @@ params$peaktable.sample.pattern <- NULL #".mzML Peak area"
 params$mz_col_nr <- 2
 params$rt_col_nr <- 3
 params$identity_col_nr <- 4
-
+params$others <- c(8)
 
 ### Peak cleaning setup
 
@@ -257,7 +257,8 @@ params$peaktable.sample.pattern <- NULL #".mzML Peak area"
 params$mz_col_nr <- 1
 params$rt_col_nr <- 2
 params$identity_col_nr <- 3
-params$sample_col_nr <- 4
+params$sample_col_nr <- 5
+params$others <- c(4)
 
 ### Processing parameters
 # Filter based on missings

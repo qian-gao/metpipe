@@ -72,12 +72,18 @@ if ( grepl(".xlsx", params$path.datatable.pos) ){
   datatable.pos <-
     readxl::read_excel( params$path.datatable.pos) 
   
+  feature.pos <- 
+    readxl::read_excel( params$path.datatable.pos, sheet = 2)
+  
 } else {
   
   datatable.pos <-
     read.csv( params$path.datatable.pos, 
               sep = params$datatable.sep,
               check.names = FALSE)
+  
+  feature.pos <- data.frame(Identity = "")
+
   
 }
 
@@ -111,7 +117,9 @@ feature.info.pos <-
                                   Identity,
                                   Compound.name),
           Identifier = paste0("pos_", Identity_orig),
-          )
+          ) %>%
+  left_join(feature.pos[, c(match("Identity", names(feature.pos)),
+                            match("m_name", names(feature.pos)):ncol(feature.pos))], by = c("Identity_orig" = "Identity"))
 
 data.pos <-
   cbind(sample.pos[, c("Sample.type", "Sample")], datatable.pos) %>%
@@ -127,7 +135,10 @@ colnames(data.pos)[2:ncol(data.pos)] <- paste0("pos_", colnames(data.pos)[2:ncol
 if ( grepl(".xlsx", params$path.datatable.neg) ){
   
   datatable.neg <-
-    readxl::read_excel( params$path.datatable.neg) 
+    readxl::read_excel( params$path.datatable.neg)
+  
+  feature.neg <- 
+    readxl::read_excel( params$path.datatable.neg, sheet = 2)
   
 } else {
   
@@ -135,6 +146,8 @@ if ( grepl(".xlsx", params$path.datatable.neg) ){
     read.csv( params$path.datatable.neg, 
               sep = params$datatable.sep,
               check.names = FALSE)
+  
+  feature.neg <- data.frame(Identity = "")
   
 }
 
@@ -169,7 +182,9 @@ feature.info.neg <-
                                   Identity,
                                   Compound.name),
           Identifier = paste0("neg_", Identity_orig),
-          )
+          ) %>%
+  left_join(feature.neg[, c(match("Identity", names(feature.neg)),
+                            match("m_name", names(feature.neg)):ncol(feature.neg))], by = c("Identity_orig" = "Identity"))
 
 data.neg <-
   cbind(sample.neg[, c("Sample.type", "Sample")], datatable.neg) %>%
@@ -227,7 +242,8 @@ if ( run.pos & run.neg){
 
 feature.info.keep <-
   feature.info %>%
-  mutate(Compound.name = trimws(Compound.name)) %>%
+  mutate(Compound.name = trimws(Compound.name),
+         m_name = make.names(Identity)) %>%
   group_by(Compound.name) %>%
   arrange(Compound.name, Source, desc(get(paste0("mean.", params$po.sample.to.use)))) %>%
   filter(row_number() == 1) %>%
