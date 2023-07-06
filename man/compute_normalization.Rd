@@ -10,7 +10,8 @@ compute_normalization(
   path.result = NULL,
   prefix = NULL,
   batch.wise = NULL,
-  po.sample.to.use = NULL
+  po.sample.to.use = NULL,
+  feature.info = NULL
 )
 }
 \arguments{

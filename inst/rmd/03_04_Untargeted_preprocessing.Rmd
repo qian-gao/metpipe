@@ -163,7 +163,7 @@ output_data <-
   pdata %>%
   select("Alignment ID", "Average Mz", "Average Rt(min)",
          "Metabolite name", "Adduct type", "Formula", 
-         "Annotation tag (VS1.0)", "Total score",
+         "Annotation tag (VS1.0)", "MS/MS assigned", "Total score",
          params$sample.info.pos$Sample.name) %>%
   dplyr::rename(Metabolite_name = "Metabolite name") %>%
   group_by(Metabolite_name) %>%
@@ -289,7 +289,7 @@ output_data <-
   pdata %>%
   select("Alignment ID", "Average Mz", "Average Rt(min)",
          "Metabolite name", "Adduct type", "Formula", 
-         "Annotation tag (VS1.0)", "Total score",
+         "Annotation tag (VS1.0)", "MS/MS assigned", "Total score",
          params$sample.info.neg$Sample.name) %>%
   dplyr::rename(Metabolite_name = "Metabolite name") %>%
   group_by(Metabolite_name) %>%

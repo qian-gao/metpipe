@@ -24,7 +24,8 @@ compute_normalization <-
             path.result = NULL,
             prefix = NULL,
             batch.wise = NULL,
-            po.sample.to.use = NULL
+            po.sample.to.use = NULL,
+            feature.info = NULL
   ){
 
     data <- datalist$data
@@ -108,7 +109,8 @@ compute_normalization <-
           use.type = po.sample.to.use,
           data.rsd.orig = data.rsd.orig,
           export.path = path.result,
-          prefix = prefix
+          prefix = prefix,
+          feature.info = feature.info
         )
 
       process.list$low_cv <- result.normalization$x
@@ -128,7 +130,8 @@ compute_normalization <-
             use.reference = "Control",
             data.rsd.orig = data.rsd.orig,
             export.path = path.result,
-            prefix = prefix
+            prefix = prefix,
+            feature.info = feature.info
           )
 
       } else {
@@ -142,7 +145,8 @@ compute_normalization <-
             use.reference = po.sample.to.use,
             data.rsd.orig = data.rsd.orig,
             export.path = path.result,
-            prefix = prefix
+            prefix = prefix,
+            feature.info = feature.info
           )
 
       }
@@ -161,7 +165,8 @@ compute_normalization <-
           type = sample.info$Sample.type,
           data.rsd.orig = data.rsd.orig,
           export.path = path.result,
-          prefix = prefix
+          prefix = prefix,
+          feature.info = feature.info
         )
 
       process.list$nomis <- result.normalization$x
@@ -177,7 +182,8 @@ compute_normalization <-
           type = sample.info$Sample.type,
           data.rsd.orig = data.rsd.orig,
           export.path = path.result,
-          prefix = prefix
+          prefix = prefix,
+          feature.info = feature.info
         )
 
       process.list$qspline <- result.normalization$x
@@ -193,7 +199,8 @@ compute_normalization <-
           type = sample.info$Sample.type,
           data.rsd.orig = data.rsd.orig,
           export.path = path.result,
-          prefix = prefix
+          prefix = prefix,
+          feature.info = feature.info
         )
 
       process.list$loess <- result.normalization$x
@@ -210,7 +217,8 @@ compute_normalization <-
           type = sample.info$Sample.type,
           data.rsd.orig = data.rsd.orig,
           export.path = path.result,
-          prefix = prefix
+          prefix = prefix,
+          feature.info = feature.info
         )
 
       process.list$combat <- result.normalization$x
@@ -227,7 +235,8 @@ compute_normalization <-
           type = sample.info$Sample.type,
           data.rsd.orig = data.rsd.orig,
           export.path = path.result,
-          prefix = prefix
+          prefix = prefix,
+          feature.info = feature.info
         )
 
       process.list$limma <- result.normalization$x
@@ -243,7 +252,8 @@ compute_normalization <-
           type = sample.info$Sample.type,
           data.rsd.orig = data.rsd.orig,
           export.path = path.result,
-          prefix = prefix
+          prefix = prefix,
+          feature.info = feature.info
         )
 
       process.list$sum <- result.normalization$x
@@ -259,7 +269,8 @@ compute_normalization <-
           type = sample.info$Sample.type,
           data.rsd.orig = data.rsd.orig,
           export.path = path.result,
-          prefix = prefix
+          prefix = prefix,
+          feature.info = feature.info
         )
 
       process.list$median <- result.normalization$x

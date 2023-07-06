@@ -130,6 +130,10 @@ peaks.names <-
 peaks.all <-
   cbind(peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)], peaktable[, peaks.names])
 
+f.info <- 
+  peaktable[, c(params$identity_col_nr, params$others), drop = FALSE] %>%
+  dplyr::rename( Identity = 1) 
+
 peaks.temp <-
   peaks.all %>%
   dplyr::rename( mz = 1,
@@ -201,7 +205,9 @@ feature_filter <-
   )
 
 data <- feature_filter$x
-features <- features[feature_filter$index, ]
+features <- 
+  features[feature_filter$index, ] %>%
+  left_join(f.info, by = "Identity")
 
 ```
 
@@ -222,7 +228,7 @@ data <- data.impute$x
 ### Prepare feature info
 
 peaktable.cleaned <-
-  cbind( features[, c("mz", "rt", "Identity")], 
+  cbind( features[, c("mz", "rt", "Identity", names(f.info)[-1])], 
          t(data)) %>%
   rowwise() %>% 
   mutate( Identity = strsplit( Identity, "-iso")[[1]][1] ) %>%
@@ -234,8 +240,11 @@ peaktable.cleaned <-
   ungroup() %>%
   select( -n )
 
+features$Identity_orig <- features$Identity
+features$Identity <- peaktable.cleaned$Identity
+
 peaktable.cleaned <-
-  rbind(peaktable.cleaned, peaks.is)
+  bind_rows(peaktable.cleaned, peaks.is)
         
 output.file <- paste0(path.output, "peaktable_targeted_pos_cleaned.xlsx")
 
@@ -276,6 +285,10 @@ peaks.names <-
   
 peaks.all <-
   cbind(peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)], peaktable[, peaks.names])
+
+f.info <- 
+  peaktable[, c(params$identity_col_nr, params$others), drop = FALSE] %>%
+  dplyr::rename( Identity = 1) 
 
 peaks.temp <-
   peaks.all %>%
@@ -348,7 +361,9 @@ feature_filter <-
   )
 
 data <- feature_filter$x
-features <- features[feature_filter$index, ]
+features <- 
+  features[feature_filter$index, ] %>%
+  left_join(f.info, by = "Identity")
 
 ```
 
@@ -369,7 +384,7 @@ data <- data.impute$x
 ### Prepare feature info
 
 peaktable.cleaned <-
-  cbind( features[, c("mz", "rt", "Identity")], 
+  cbind( features[, c("mz", "rt", "Identity", names(f.info)[-1]),], 
          t(data)) %>%
   rowwise() %>% 
   mutate( Identity = strsplit( Identity, "-iso")[[1]][1] ) %>%
@@ -381,8 +396,11 @@ peaktable.cleaned <-
   ungroup() %>%
   select( -n )
 
+features$Identity_orig <- features$Identity
+features$Identity <- peaktable.cleaned$Identity
+
 peaktable.cleaned <-
-  rbind(peaktable.cleaned, peaks.is)
+  bind_rows(peaktable.cleaned, peaks.is)
 
 output.file <- paste0(path.output, "peaktable_targeted_neg_cleaned.xlsx")
   

@@ -117,7 +117,7 @@ if ( grepl(".xlsx", params$path.peaktable.pos) ){
   
 }
 
-if (!is.null(params$peaktable.sample.pattern) & params$peaktable.sample.pattern != ""){
+if (!is.null(params$peaktable.sample.pattern)){
   
   f.names <- colnames(peaktable)[grepl(params$peaktable.sample.pattern, colnames(peaktable))]
   
@@ -128,9 +128,9 @@ if (!is.null(params$peaktable.sample.pattern) & params$peaktable.sample.pattern 
 }
 
 f.info <- 
-  peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)]
+  peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr, params$others)]
 
-colnames(f.info) <- c("mz", "rt", "identity")
+colnames(f.info)[1:3] <- c("mz", "rt", "identity")
 
 peaks <-
   cbind(f.info, peaktable[, f.names])
@@ -140,6 +140,10 @@ datalist <-
                     sample.info = params$sample.info.pos,
                     sample.pattern = params$peaktable.sample.pattern,
                     type.to.remove = params$type.to.remove )
+
+datalist$feature.info <-
+  datalist$feature.info %>%
+  left_join(f.info[, c(3:ncol(f.info))], by = c("Identity" = "identity"))
 
 ```
 
@@ -225,7 +229,8 @@ process.list <-
     path.result = path.output,
     prefix = "pos_",
     batch.wise = FALSE,
-    po.sample.to.use = params$po.sample.to.use)
+    po.sample.to.use = params$po.sample.to.use,
+    feature.info = datalist$feature.info)
 
 ```
 
@@ -461,7 +466,7 @@ if ( grepl(".xlsx", params$path.peaktable.neg) ){
   
 }
 
-if (!is.null(params$peaktable.sample.pattern) & params$peaktable.sample.pattern != ""){
+if (!is.null(params$peaktable.sample.pattern)){
   
   f.names <- colnames(peaktable)[grepl(params$peaktable.sample.pattern, colnames(peaktable))]
   
@@ -472,9 +477,9 @@ if (!is.null(params$peaktable.sample.pattern) & params$peaktable.sample.pattern 
 }
 
 f.info <- 
-  peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)]
+  peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr, params$others)]
 
-colnames(f.info) <- c("mz", "rt", "identity")
+colnames(f.info)[1:3] <- c("mz", "rt", "identity")
 
 peaks <-
   cbind(f.info, peaktable[, f.names])
@@ -484,6 +489,10 @@ datalist <-
                     sample.info = params$sample.info.neg,
                     sample.pattern = params$peaktable.sample.pattern,
                     type.to.remove = params$type.to.remove )
+
+datalist$feature.info <-
+  datalist$feature.info %>%
+  left_join(f.info[, c(3:ncol(f.info))], by = c("Identity" = "identity"))
 
 ```
 
@@ -569,7 +578,8 @@ process.list <-
     path.result = path.output,
     prefix = "neg_",
     batch.wise = FALSE,
-    po.sample.to.use = params$po.sample.to.use)
+    po.sample.to.use = params$po.sample.to.use,
+    feature.info = datalist$feature.info)
 
 ```
 
