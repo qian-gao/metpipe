@@ -32,7 +32,9 @@ normalize_various_methods <-
     sample.rate = 0.33,
     data.rsd.orig = NULL,
     export.path = NULL,
-    prefix = ""
+    prefix = "",
+    feature.info = NULL
+
   ) {
 
     #library(crmn)
@@ -286,10 +288,17 @@ normalize_various_methods <-
         left_join(output$rsd, by = c("Metabolite" = "Identity")) %>%
         dplyr::rename(Identity = Metabolite)
 
-
     } else {
 
       names(output)[names(output) == "rsd"] <- "normalizer"
+
+    }
+
+    if (!is.null(feature.info)) {
+
+      output$normalizer <-
+        output$normalizer %>%
+        dplyr::left_join(feature.info, by = "Identity")
 
     }
 

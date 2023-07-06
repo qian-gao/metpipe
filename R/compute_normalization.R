@@ -77,7 +77,8 @@ compute_normalization <-
         normalizer %>%
         dplyr::left_join(data.rsd.orig, by = c("Metabolite" = "Identity")) %>%
         dplyr::left_join(data.rsd, by = c("Metabolite" = "Identity")) %>%
-        dplyr::rename( Identity = Metabolite)
+        dplyr::rename( Identity = Metabolite) %>%
+        dplyr::left_join(feature.info, by = "Identity")
 
       x.output <-
         cbind( Sample.name = sample.info$Sample.name,

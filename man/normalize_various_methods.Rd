@@ -19,7 +19,8 @@ normalize_various_methods(
   sample.rate = 0.33,
   data.rsd.orig = NULL,
   export.path = NULL,
-  prefix = ""
+  prefix = "",
+  feature.info = NULL
 )
 }
 \arguments{
