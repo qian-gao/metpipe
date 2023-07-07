@@ -208,6 +208,14 @@ if ( run.pos & run.neg){
     data.pos %>%
     inner_join(data.neg, by = "Sample")
   
+  if (nrow(datatable) == 0){
+    
+    datatable <-
+      cbind(data.pos, data.neg[, -1])
+    
+    print("No matching samples were found, data from pos and neg were concatenated directly. Check if the sequence of samples in pos and neg are the same in input datatable.")
+  }
+  
   sample.info <-
     sample.pos[match(datatable$Sample, sample.pos$Sample), ] %>%
     select(-c("File.path", "File.name", "File.batch", "Sample.name")) 
