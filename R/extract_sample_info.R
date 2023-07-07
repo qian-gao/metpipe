@@ -154,6 +154,8 @@ extract_sample_info <-
             sample.info.other %>%
             mutate( Sample = as.character(Sample))
 
+          sample.info <- sample.info[, colnames(sample.info) != "Sample"]
+
         }
 
         sample.info <-
