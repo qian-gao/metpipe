@@ -119,7 +119,7 @@ ref.samples <-
 
 params$align_ref <- ref.samples[1]
 
-if (!exists(paste0(path.output, "/MSDIAL_parameters_pos.txt"))){
+if (!file.exists(paste0(path.output, "/MSDIAL_parameters_pos.txt"))){
   prepare_msdial_txt(
       target = params$target, # Metabolomics, Lipidomics
       mode = 'Positive',
@@ -246,7 +246,7 @@ ref.samples <-
 
 params$align_ref <- ref.samples[1]
 
-if (!exists(paste0(path.output, "/MSDIAL_parameters_neg.txt"))){
+if (!file.exists(paste0(path.output, "/MSDIAL_parameters_neg.txt"))){
   prepare_msdial_txt(
       target = params$target, # Metabolomics, Lipidomics
       mode = 'Negative',
