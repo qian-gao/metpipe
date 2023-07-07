@@ -141,7 +141,7 @@ if (!exists(paste0(path.output, "/MSDIAL_parameters_pos.txt"))){
 if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
   
   
-} else {
+} else if (!file.exists(output.file)) {
   
   system("cmd.exe", input = paste0( params$path.msdial, " lcmsdda -i ", params$path.mzml.pos,    
                                     " -o ", path.output.pos,
@@ -268,7 +268,7 @@ if (!exists(paste0(path.output, "/MSDIAL_parameters_neg.txt"))){
 if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
   
   
-} else {
+} else if (!file.exists(output.file)){
   
   system("cmd.exe", input = paste0( params$path.msdial, " lcmsdda -i ", params$path.mzml.neg,    
                                     " -o ", path.output.neg,
