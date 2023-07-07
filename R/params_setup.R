@@ -188,9 +188,9 @@ params_setup <-
                              standard.name = params$standard.name,
                              qc.sample.type = params$qc.sample.type,
                              calibration.sample.type = params$calibration.sample.type,
-                             export.rds = paste0(params$path.result, "sample_info_pos.rds"),
-                             export.xlsx = paste0(params$path.result, "sample_info_pos.xlsx")) %>%
-        filter( !grepl("MS2p", Sample.name))
+                             export.rds = paste0(params$path.result, "sample_info_pos"),
+                             export.xlsx = paste0(params$path.result, "sample_info_pos")) %>%
+        filter( !grepl("ms2p", tolower(Sample.name)))
 
     }
 
@@ -204,9 +204,9 @@ params_setup <-
                              standard.name = params$standard.name,
                              qc.sample.type = params$qc.sample.type,
                              calibration.sample.type = params$calibration.sample.type,
-                             export.rds = paste0(params$path.result, "sample_info_neg.rds"),
-                             export.xlsx = paste0(params$path.result, "sample_info_neg.xlsx")) %>%
-        filter( !grepl("MS2n", Sample.name))
+                             export.rds = paste0(params$path.result, "sample_info_neg"),
+                             export.xlsx = paste0(params$path.result, "sample_info_neg")) %>%
+        filter( !grepl("ms2n", tolower(Sample.name)))
 
     }
 
