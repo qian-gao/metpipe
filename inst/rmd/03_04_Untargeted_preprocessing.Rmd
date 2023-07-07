@@ -63,14 +63,14 @@ if (!dir.exists(path.output.pos)) dir.create(path.output.pos)
 if (!dir.exists(path.output.neg)) dir.create(path.output.neg)
 
 mz_tol_pos = params$mz_tol_pos
-mz_tol_bigger_pos = params$mz_tol_pos+0.006
+mz_tol_bigger_pos = params$mz_tol_pos+0.003
 rt_tol_pos = params$rt_tol_pos
-rt_tol_bigger_pos = params$rt_tol_pos+0.2
+rt_tol_bigger_pos = params$rt_tol_pos+0.1
 
 mz_tol_neg = params$mz_tol_neg
-mz_tol_bigger_neg = params$mz_tol_neg+0.006
+mz_tol_bigger_neg = params$mz_tol_neg+0.003
 rt_tol_neg = params$rt_tol_neg
-rt_tol_bigger_neg = params$rt_tol_neg+0.2
+rt_tol_bigger_neg = params$rt_tol_neg+0.1
 
 ```
 

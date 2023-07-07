@@ -70,16 +70,16 @@ path_mzML_pos = params$path.mzml.pos
 path_mzML_neg = params$path.mzml.neg
 
 mzmine_mz_tol_pos = params$mzmine.mz.tol.pos
-mzmine_mz_tol_bigger_pos = params$mzmine.mz.tol.pos+0.006
+mzmine_mz_tol_bigger_pos = params$mzmine.mz.tol.pos+0.003
 mzmine_rt_tol_pos = params$mzmine.rt.tol.pos
-mzmine_rt_tol_bigger_pos = params$mzmine.rt.tol.pos+0.2
+mzmine_rt_tol_bigger_pos = params$mzmine.rt.tol.pos+0.1
 mzmine_min_peaks_in_row_pos = params$mzmine.min.peaks.in.row.pos
 mzmine_min_peaks_in_row_pos_percent = params$mzmine.min.peaks.in.row.pos.percent
 
 mzmine_mz_tol_neg = params$mzmine.mz.tol.neg
-mzmine_mz_tol_bigger_neg = params$mzmine.mz.tol.neg+0.006
+mzmine_mz_tol_bigger_neg = params$mzmine.mz.tol.neg+0.003
 mzmine_rt_tol_neg = params$mzmine.rt.tol.neg
-mzmine_rt_tol_bigger_neg = params$mzmine.rt.tol.neg+0.2
+mzmine_rt_tol_bigger_neg = params$mzmine.rt.tol.neg+0.1
 mzmine_min_peaks_in_row_neg = params$mzmine.min.peaks.in.row.neg
 mzmine_min_peaks_in_row_neg_percent = params$mzmine.min.peaks.in.row.neg.percent
 
