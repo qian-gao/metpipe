@@ -119,19 +119,20 @@ ref.samples <-
 
 params$align_ref <- ref.samples[1]
 
-prepare_msdial_txt(
-    target = params$target, # Metabolomics, Lipidomics
-    mode = 'Positive',
-    path_lib = library.file,
-    path_msp = msp.file,
-    mz_tol = mz_tol_pos,
-    mz_tol_bigger = mz_tol_bigger_pos,
-    rt_tol = rt_tol_pos,
-    rt_tol_bigger = rt_tol_bigger_pos,
-    align_ref = params$align_ref,
-    output_file = paste0(path.output, "/MSDIAL_parameters_pos.txt")
-  )
-
+if (!exists(paste0(path.output, "/MSDIAL_parameters_pos.txt"))){
+  prepare_msdial_txt(
+      target = params$target, # Metabolomics, Lipidomics
+      mode = 'Positive',
+      path_lib = library.file,
+      path_msp = msp.file,
+      mz_tol = mz_tol_pos,
+      mz_tol_bigger = mz_tol_bigger_pos,
+      rt_tol = rt_tol_pos,
+      rt_tol_bigger = rt_tol_bigger_pos,
+      align_ref = params$align_ref,
+      output_file = paste0(path.output, "/MSDIAL_parameters_pos.txt")
+    )
+}
 ```
 
 ```{r data preprocessing pos, include = FALSE, eval = params$run.pos}
@@ -245,19 +246,20 @@ ref.samples <-
 
 params$align_ref <- ref.samples[1]
 
-prepare_msdial_txt(
-    target = params$target, # Metabolomics, Lipidomics
-    mode = 'Negative',
-    path_lib = library.file,
-    path_msp = msp.file,
-    mz_tol = mz_tol_neg,
-    mz_tol_bigger = mz_tol_bigger_neg,
-    rt_tol = rt_tol_neg,
-    rt_tol_bigger = rt_tol_bigger_neg,
-    align_ref = params$align_ref,
-    output_file = paste0(path.output, "/MSDIAL_parameters_neg.txt")
-  )
-
+if (!exists(paste0(path.output, "/MSDIAL_parameters_neg.txt"))){
+  prepare_msdial_txt(
+      target = params$target, # Metabolomics, Lipidomics
+      mode = 'Negative',
+      path_lib = library.file,
+      path_msp = msp.file,
+      mz_tol = mz_tol_neg,
+      mz_tol_bigger = mz_tol_bigger_neg,
+      rt_tol = rt_tol_neg,
+      rt_tol_bigger = rt_tol_bigger_neg,
+      align_ref = params$align_ref,
+      output_file = paste0(path.output, "/MSDIAL_parameters_neg.txt")
+    )
+}
 ```
 
 ```{r data preprocessing neg, include = FALSE, eval = params$run.neg}
