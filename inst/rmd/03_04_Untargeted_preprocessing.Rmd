@@ -97,7 +97,11 @@ write.table( lib.to.use,
              row.names = FALSE, 
              quote = FALSE)
 
-msp.file <- params$msp[[params$target]]$pos
+if ( file.exists( "/home/projects/ku_00007/" )){
+  msp.file <- params$msp$linux[[params$target]]$pos
+} else {
+  msp.file <- params$msp[[params$target]]$pos
+}
 
 print( paste0("POS peaktable was saved as: ", output.file), quote = FALSE)
 print( paste0("Library file: ", library.file), quote = FALSE)
@@ -228,7 +232,11 @@ write.table( lib.to.use,
              row.names = FALSE, 
              quote = FALSE)
 
-msp.file <- params$msp[[params$target]]$neg
+if ( file.exists( "/home/projects/ku_00007/" )){
+  msp.file <- params$msp$linux[[params$target]]$neg
+} else {
+  msp.file <- params$msp[[params$target]]$neg  
+}
 
 print( paste0("NEG peaktable was saved as .msdial file in: ", path.output), quote = FALSE)
 print( paste0("Library file: ", library.file), quote = FALSE)
