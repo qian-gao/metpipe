@@ -143,7 +143,7 @@ if (!file.exists(paste0(path.output, "/MSDIAL_parameters_pos.txt"))){
 
 
 if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
-  
+  setwd('/home/projects/ku_00007/apps/MSDIAL/MSDIAL_ver.4.9')
   system( paste0( 'bash cd /home/projects/ku_00007/apps/MSDIAL/MSDIAL_ver.4.9; ./MsdialConsoleApp lcmsdda',
                                 ' -i ', params$path.mzml.pos,    
                                 ' -o ', path.output.pos,
@@ -278,7 +278,7 @@ if (!file.exists(paste0(path.output, "/MSDIAL_parameters_neg.txt"))){
 
 
 if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
-  
+  setwd('/home/projects/ku_00007/apps/MSDIAL/MSDIAL_ver.4.9')
   system( paste0( 'bash cd /home/projects/ku_00007/apps/MSDIAL/MSDIAL_ver.4.9; ./MsdialConsoleApp lcmsdda',
                                 ' -i ', params$path.mzml.neg,    
                                 ' -o ', path.output.neg,
