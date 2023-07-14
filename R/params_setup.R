@@ -88,12 +88,22 @@ params_setup <-
 
     if (is.null(params)) params <- list()
 
-    params$path.mzmine = path.mzmine
-    params$path.msdial = path.msdial
     params$run.pipeline = run.pipeline
 
     # system
-    params$path.mzmine = path.mzmine
+
+    if ( file.exists( "/home/projects/ku_00007/" )){
+
+      params$path.mzmine = "/home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/start_mzmine3"
+      params$path.msdial = "/home/projects/ku_00007/apps/MSDIAL/MSDIAL_ver.4.9/MsdialConsoleApp"
+
+    } else {
+
+      params$path.mzmine = path.mzmine
+      params$path.msdial = path.msdial
+
+    }
+
     if (is.null(BPPARAM_set)){
 
       params$BPPARAM_set = switch( Sys.info()["sysname"],
