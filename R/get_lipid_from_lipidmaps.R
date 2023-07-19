@@ -40,7 +40,7 @@ get_lipid_from_lipidmaps <-
           
           df.i <- 
             as.data.frame(all) %>%
-            mutate(isomer_label = TRUE)
+            mutate(isomer_label = FALSE)
           
         } else {
           
@@ -48,14 +48,14 @@ get_lipid_from_lipidmaps <-
           
             df.i <- 
               data.table::rbindlist(all, fill = TRUE) %>%
-              mutate(isomer_label = FALSE)
+              mutate(isomer_label = TRUE)
             
           } else {
             
             df.i <- 
               data.table::rbindlist(all, fill = TRUE)[1, ] 
             
-            df.i$isomer_label = FALSE
+            df.i$isomer_label = TRUE
             
           }
           
