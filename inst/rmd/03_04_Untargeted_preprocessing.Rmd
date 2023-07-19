@@ -82,7 +82,7 @@ lib.to.use <-
     bind_rows(params$lib[[params$method]]$pos, 
               params$lib.is[[params$method]]$pos %>%
                 select( Library.mz, Library.rt, Library.name, Ion)) %>%    
-    select("Library.name", "Library.mz", "Library.rt", "Library.name", "Ion") %>%
+    select("Library.name", "Library.mz", "Library.rt", "Library.name", "Ion", "Inchikey", "Molecular.formula", "Smiles") %>%
     dplyr::rename( name = Library.name,
                    mz = Library.mz,
                    rt = Library.rt,
@@ -217,7 +217,7 @@ lib.to.use <-
     bind_rows(params$lib[[params$method]]$neg, 
               params$lib.is[[params$method]]$neg %>%
                 select( Library.mz, Library.rt, Library.name, Ion)) %>%    
-  select("Library.name", "Library.mz", "Library.rt", "Library.name", "Ion") %>%
+    select("Library.name", "Library.mz", "Library.rt", "Library.name", "Ion", "Inchikey", "Molecular.formula", "Smiles") %>%
     dplyr::rename( name = Library.name,
                    mz = Library.mz,
                    rt = Library.rt,
