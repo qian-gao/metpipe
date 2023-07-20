@@ -154,9 +154,10 @@ params_setup <-
     if (is.null(target)){
       if (params$method == "LIP"){
         params$target = "Lipidomics"
+      } else if (params$method == "GC"){
+        params$target = "GC"
       } else {
         params$target = "Metabolomics"
-
       }
 
     } else {
@@ -225,6 +226,11 @@ params_setup <-
 
     params$run.pos <- exists("sample.info.pos")
     params$run.neg <- exists("sample.info.neg")
+
+    if (params$target == "GC") {
+      params$run.neg <- FALSE
+      params$path.mzml.pos = path.mzml
+    }
 
     # Import library
     if ( grepl(".xlsx", path.lib) ){
@@ -364,7 +370,9 @@ params_setup <-
         "mz_tol_pos",
         "rt_tol_pos",
         "mz_tol_neg",
-        "rt_tol_neg"
+        "rt_tol_neg",
+        "ri_tol",
+        "ri_tol_bigger"
       )
 
     params$Clean_peaktable <-

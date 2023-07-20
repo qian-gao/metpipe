@@ -9,10 +9,13 @@ prepare_msdial_txt(
   mode = NULL,
   path_lib = NULL,
   path_msp = NULL,
+  path_ri = NULL,
   mz_tol = NULL,
   mz_tol_bigger = NULL,
   rt_tol = NULL,
   rt_tol_bigger = NULL,
+  ri_tol = NULL,
+  ri_tol_bigger = NULL,
   align_ref = NULL,
   output_file = NULL
 )
@@ -24,6 +27,8 @@ prepare_msdial_txt(
 
 \item{path_lib}{= NULL,}
 
+\item{path_msp}{= NULL,}
+
 \item{mz_tol}{= NULL,}
 
 \item{mz_tol_bigger}{= NULL,}
@@ -31,6 +36,10 @@ prepare_msdial_txt(
 \item{rt_tol}{= NULL,}
 
 \item{rt_tol_bigger}{= NULL}
+
+\item{ri_tol}{= NULL,}
+
+\item{ri_tol_bigger}{= NULL}
 
 \item{align_ref}{= NULL}
 

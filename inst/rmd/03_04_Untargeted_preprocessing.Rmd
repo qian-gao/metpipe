@@ -100,8 +100,10 @@ write.table( lib.to.use,
 
 if ( file.exists( "/home/projects/ku_00007/" )){
   msp.file <- params$msp$linux[[params$target]]$pos
+  path_ri <- params$msp$linux$GC$ri
 } else {
   msp.file <- params$msp[[params$target]]$pos
+  path_ri <- params$msp$GC$ri
 }
 
 print( paste0("POS peaktable was saved as: ", output.file), quote = FALSE)
@@ -130,10 +132,13 @@ if (!file.exists(paste0(path.output, "/MSDIAL_parameters_pos.txt"))){
       mode = 'Positive',
       path_lib = library.file,
       path_msp = msp.file,
+      path_ri = path_ri,
       mz_tol = mz_tol_pos,
       mz_tol_bigger = mz_tol_bigger_pos,
       rt_tol = rt_tol_pos,
       rt_tol_bigger = rt_tol_bigger_pos,
+      ri_tol = params$ri_tol,
+      ri_tol_bigger = params$ri_tol_bigger,   
       align_ref = params$align_ref,
       output_file = paste0(path.output, "/MSDIAL_parameters_pos.txt")
     )

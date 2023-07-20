@@ -5,10 +5,14 @@
 #' @param target = NULL,
 #' @param mode = NULL,
 #' @param path_lib = NULL,
+#' @param path_lib = NULL,
+#' @param path_msp = NULL,
 #' @param mz_tol = NULL,
 #' @param mz_tol_bigger = NULL,
 #' @param rt_tol = NULL,
 #' @param rt_tol_bigger = NULL
+#' @param ri_tol = NULL,
+#' @param ri_tol_bigger = NULL
 #' @param align_ref = NULL
 #' @param output_file = NULL
 #'
@@ -24,10 +28,13 @@ prepare_msdial_txt <-
     mode = NULL,
     path_lib = NULL,
     path_msp = NULL,
+    path_ri = NULL,
     mz_tol = NULL,
     mz_tol_bigger = NULL,
     rt_tol = NULL,
     rt_tol_bigger = NULL,
+    ri_tol = NULL,
+    ri_tol_bigger = NULL,
     align_ref = NULL,
     output_file = NULL
 
@@ -40,6 +47,7 @@ prepare_msdial_txt <-
     params_msdial$target=target
     params_msdial$path_lib=path_lib
     params_msdial$path_msp=path_msp
+    params_msdial$path_ri=path_ri
 
     params_msdial$mz_tol=mz_tol
     params_msdial$mz_tol_bigger=mz_tol_bigger
@@ -64,7 +72,13 @@ prepare_msdial_txt <-
 
     ### Generate MSDIAL txt file ###
 
-    template <- readRDS(system.file("template", "msdial.template.rds", package="metpipe"))
+    template.all <- readRDS(system.file("template", "msdial.template.rds", package="metpipe"))
+
+    if (target == "GC"){
+      template <- template.all$gc
+    } else {
+      template <- template.all$lc
+    }
 
     names(params_msdial) <- paste0("\\$\\{", names(params_msdial), "\\}")
 
