@@ -86,7 +86,8 @@ lib.to.use <-
     dplyr::rename( name = Library.name,
                    mz = Library.mz,
                    rt = Library.rt,
-                   adduct = Ion)
+                   adduct = Ion) %>%
+    mutate(name = paste0(name, ";"))
 
 output.file <- paste0(path.output, "peaktable_targeted_pos.csv")
 library.file <- paste0(path.output, "MSDIAL_library_MS1_", params$method, "_pos.txt")
@@ -217,11 +218,12 @@ lib.to.use <-
     bind_rows(params$lib[[params$method]]$neg, 
               params$lib.is[[params$method]]$neg %>%
                 select( Library.mz, Library.rt, Library.name, Ion)) %>%    
-    select("Library.name", "Library.mz", "Library.rt", "Library.name", "Ion", "Inchikey", "Molecular.formula", "Smiles") %>%
+    select("Library.name", "Library.mz", "Library.rt", "Ion", "Inchikey", "Molecular.formula", "Smiles") %>%
     dplyr::rename( name = Library.name,
                    mz = Library.mz,
                    rt = Library.rt,
-                   adduct = Ion)
+                   adduct = Ion) %>%
+    mutate(name = paste0(name, ";"))
 
 output.file <- paste0(path.output, "peaktable_targeted_neg.csv")
 library.file <- paste0(path.output, "MSDIAL_library_MS1_", params$method, "_neg.txt")
