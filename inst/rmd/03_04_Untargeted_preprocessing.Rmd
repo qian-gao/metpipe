@@ -179,9 +179,12 @@ output_data <-
   group_by(Metabolite_name) %>%
   mutate( Metabolite_name = ifelse( Metabolite_name == "Unknown", 
                                     paste0("Unknown_", row_number()),
-                                    Metabolite_name)) %>%
+                                    ifelse(substr(Metabolite_name, nchar(Metabolite_name)-1, nchar(Metabolite_name)) == ";",
+                                           substr(Metabolite_name, 1, nchar(Metabolite_name) -1),
+                                           Metabolite_name)
+                                    )) %>%
   ungroup() %>%
-  filter(!grepl("[(d]", Metabolite_name)) %>%
+  filter(!grepl("[(d)]", Metabolite_name, fixed = TRUE)) %>%
   mutate( `Adduct type` = trimws(`Adduct type`))
 
 # path.output.pos <- getwd()
@@ -315,9 +318,12 @@ output_data <-
   group_by(Metabolite_name) %>%
   mutate( Metabolite_name = ifelse( Metabolite_name == "Unknown", 
                                     paste0("Unknown_", row_number()),
-                                    Metabolite_name)) %>%
+                                    ifelse(substr(Metabolite_name, nchar(Metabolite_name)-1, nchar(Metabolite_name)) == ";",
+                                           substr(Metabolite_name, 1, nchar(Metabolite_name) -1),
+                                           Metabolite_name)
+                                    )) %>%
   ungroup() %>%
-  filter(!grepl("[(d]", Metabolite_name)) %>%
+  filter(!grepl("[(d)]", Metabolite_name, fixed = TRUE)) %>%
   mutate( `Adduct type` = trimws(`Adduct type`))
 
 write.table(output_data,
