@@ -131,8 +131,11 @@ if (!file.exists(paste0(path.output, "/MSDIAL_parameters_pos.txt"))){
 
 ```{r data preprocessing pos, include = FALSE, eval = params$run.pos}
 
+temp.file <- list.files( path = path.output.pos,
+              pattern = "^AlignResult.*\\.msdial$",
+              full.names = TRUE)
 
-if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
+if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(temp.file) ) {
   setwd('/home/projects/ku_00007/apps/MSDIAL/MSDIAL_ver.4.9')
   system( paste0( 'bash cd /home/projects/ku_00007/apps/MSDIAL/MSDIAL_ver.4.9; ./MsdialConsoleApp ',
                                         params$type,
@@ -140,7 +143,7 @@ if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
                                 ' -o ', path.output.pos,
                                 ' -m ', path.output, 'MSDIAL_parameters_pos.txt -p') )
   
-} else if (!file.exists(output.file)) {
+} else if (!file.exists(temp.file)) {
   
   system("cmd.exe", input = paste0( params$path.msdial,
                                     " ",    params$type,
@@ -254,8 +257,11 @@ if (!file.exists(paste0(path.output, "/MSDIAL_parameters_neg.txt"))){
 
 ```{r data preprocessing neg, include = FALSE, eval = params$run.neg}
 
+temp.file <- list.files( path = path.output.neg,
+              pattern = "^AlignResult.*\\.msdial$",
+              full.names = TRUE)
 
-if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
+if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(temp.file) ) {
   setwd('/home/projects/ku_00007/apps/MSDIAL/MSDIAL_ver.4.9')
   system( paste0( 'bash cd /home/projects/ku_00007/apps/MSDIAL/MSDIAL_ver.4.9; ./MsdialConsoleApp ',
                                         params$type,
@@ -263,7 +269,7 @@ if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
                                 ' -o ', path.output.neg,
                                 ' -m ', path.output, 'MSDIAL_parameters_neg.txt -p') )
   
-} else if (!file.exists(output.file)) {
+} else if (!file.exists(temp.file)) {
   
   system("cmd.exe", input = paste0( params$path.msdial,
                                     " ",    params$type,
