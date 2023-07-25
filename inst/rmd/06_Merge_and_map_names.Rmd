@@ -170,7 +170,7 @@ feature.info.neg <-
   mutate( Identity_orig = Identity,
           Identity = strsplit( Identity, "-iso")[[1]][1]) %>%
   ungroup() %>%
-  left_join(params$lib[[params$method]]$pos, by = c("Identity" = "Library.name")) %>%
+  left_join(params$lib[[params$method]]$neg, by = c("Identity" = "Library.name")) %>%
   mutate( Identity = gsub("w/o MS2:", "", Identity),
           Compound.name = ifelse( is.na(Compound.name),
                                   Identity,
