@@ -31,56 +31,6 @@ knitr::opts_chunk$set(
 
 ```
 
-```{r general setup, include = FALSE, eval = !params$run.pipeline }
-
-source( "01_Input_general.R")
-source( paste0( path.utils, "utils_normalization.R" ))
-
-```
-
-```{r optional setup, include = FALSE, eval = !params$run.pipeline }
-
-### Peaktable
-
-params$path.peaktable.pos <- NULL
-params$path.peaktable.neg <- NULL
-
-params$peaktable.sep <- ";"
-params$peaktable.sample.pattern <- ".mzML Peak area"
-
-params$mz_col_nr <- 1
-params$rt_col_nr <- 2
-params$identity_col_nr <- 3
-params$sample_col_nr <- 4
-
-### Processing parameters
-# Filter based on missings
-
-params$missing.sample.thres <- 30
-params$missing.feature.thres <- 30
-
-# Misssing imputation
-# "LoD", "HF", "median", "min", "mean"
-
-params$missing.impute.method.sample <- "LoD"  
-params$missing.impute.method.is <- "LoD"
-
-# Outlier removal
-
-params$outliers.sample <- NULL
-params$outliers.feature <- NULL
-params$outliers.is <- NULL
-
-# Sample types to remove from datatable
-params$type.to.remove <- c("Met", "CA", "IQ", "sol", "BL", "CP", "NIST")
-
-# Normalization method
-#c("bestis", "low_cv", "pqn", "nomis", "qspline", "loess", "sum", "median", "combat", "limma")
-
-params$norm.method <- c("bestis", "low_cv", "sum", "median")
-
-```
-
 ```{r set path}
 
 path.output <- paste0(params$path.result, "05_Normalization_comparison/")

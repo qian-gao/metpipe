@@ -46,12 +46,12 @@ params <-
   params_setup( 
     
     run.pipeline = TRUE,
-    path.mzml = "J:/CBMR/SUN-CBMR-Metabolomics/Projects/AMP_test_project/mzML/TE_LIP_MS1/",
+    path.mzml = "J:/CBMR/SUN-CBMR-Metabolomics/Projects/AMP_test_project/mzML/TE_GC_MS1/",
     
     standard.name = TRUE,  # TRUE, FALSE
     
     # Metadata
-    path.meta.pos = "J:/CBMR/SUN-CBMR-Metabolomics/Projects/AMP_test_project/files/AMP_meta.xlsx",
+    path.meta.pos = NULL,
     path.meta.neg = NULL,
     
     meta.match.col = "Sample", # "Sample" for standard.name = TRUE, "Sample.name" for 
@@ -195,6 +195,9 @@ params$rt_tol_pos <- params$rt_tolerance
 params$mz_tol_neg <- params$mz_tol_pos
 params$rt_tol_neg <- params$rt_tol_pos
 
+params$ri_tol <- NULL
+params$ri_tol_bigger <- NULL
+  
 render_rmarkdown(
     #file = "03_04_Untargeted_preprocessing.Rmd",
     file = system.file("rmd", "03_04_Untargeted_preprocessing.Rmd", package="metpipe"),

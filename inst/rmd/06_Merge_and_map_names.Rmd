@@ -31,26 +31,6 @@ knitr::opts_chunk$set(
 
 ```
 
-```{r general setup, include = FALSE, eval = !params$run.pipeline }
-
-source( "01_Input_general.R")
-source( paste0( path.utils, "utils_normalization.R" ))
-
-
-```
-
-```{r optional setup, include = FALSE, eval = !params$run.pipeline }
-
-### datatables
-
-path.datatable.pos <- "H:/Documents/CBMR-workflow/Test_result/05_normalized_data/pos_normalised_bestis.xlsx"
-path.datatable.neg <- "H:/Documents/CBMR-workflow/Test_result/05_normalized_data/neg_normalised_bestis.xlsx"
-
-datatable.sep <- ";"
-feature_col_nr <- 2
-
-```
-
 ### 1 Data import
 
 ```{r set run}
@@ -107,8 +87,6 @@ feature.info.pos <-
   rsd.pos %>%
   rowwise() %>%
   mutate( Identity_orig = Identity,
-          Source = ifelse(grepl("w/o MS2", Identity), "public_db", 
-                          ifelse(grepl("unknown", tolower(Identity)), "", "in_house")),
           Identity = strsplit( Identity, "-iso")[[1]][1]) %>%
   ungroup() %>%
   left_join(params$lib[[params$method]]$pos, by = c("Identity" = "Library.name")) %>%
@@ -121,6 +99,24 @@ feature.info.pos <-
   left_join(feature.pos[, c(match("Identity", names(feature.pos)),
                             match("m_name", names(feature.pos)):ncol(feature.pos))], by = c("Identity_orig" = "Identity"))
 
+if ("Annotation tag (VS1.0)" %in% colnames(feature.info.pos)){
+  
+  colnames(feature.info.pos)[colnames(feature.info.pos) == "Annotation tag (VS1.0)"] <- "Annotation.tag"
+  feature.info.pos <-
+    feature.info.pos %>%
+    mutate(Source = case_when(Annotation.tag == "annotated by user-defined text library" ~ "in_house",
+                              Annotation.tag == "430"                                    ~ "public_db_MS2_matched",
+                              Annotation.tag == "530"                                    ~ "public_db_MS1_matched",
+                              Annotation.tag == "999"                                    ~ as.character(NA)))
+  
+} else {
+  
+  feature.info.pos <-
+    feature.info.pos %>%
+    mutate(Source = ifelse( grepl("unknown", tolower(Identity)), as.character(NA), "in_house"))
+  
+}
+  
 data.pos <-
   cbind(sample.pos[, c("Sample.type", "Sample")], datatable.pos) %>%
   filter(Sample.type == "Sample") %>%
@@ -172,8 +168,6 @@ feature.info.neg <-
   rsd.neg %>%
   rowwise() %>%
   mutate( Identity_orig = Identity,
-          Source = ifelse(grepl("w/o MS2", Identity), "public_db", 
-                          ifelse(grepl("unknown", tolower(Identity)), "", "in_house")),
           Identity = strsplit( Identity, "-iso")[[1]][1]) %>%
   ungroup() %>%
   left_join(params$lib[[params$method]]$pos, by = c("Identity" = "Library.name")) %>%
@@ -185,6 +179,24 @@ feature.info.neg <-
           ) %>%
   left_join(feature.neg[, c(match("Identity", names(feature.neg)),
                             match("m_name", names(feature.neg)):ncol(feature.neg))], by = c("Identity_orig" = "Identity"))
+
+if ("Annotation tag (VS1.0)" %in% colnames(feature.info.neg)){
+  
+  colnames(feature.info.neg)[colnames(feature.info.neg) == "Annotation tag (VS1.0)"] <- "Annotation.tag"
+  feature.info.neg <-
+    feature.info.neg %>%
+    mutate(Source = case_when(Annotation.tag == "annotated by user-defined text library" ~ "in_house",
+                              Annotation.tag == "430"                                    ~ "public_db_MS2_matched",
+                              Annotation.tag == "530"                                    ~ "public_db_MS1_matched",
+                              Annotation.tag == "999"                                    ~ as.character(NA)))
+  
+} else {
+  
+  feature.info.neg <-
+    feature.info.neg %>%
+    mutate(Source = ifelse( grepl("unknown", tolower(Identity)), as.character(NA), "in_house"))
+  
+}
 
 data.neg <-
   cbind(sample.neg[, c("Sample.type", "Sample")], datatable.neg) %>%

@@ -181,39 +181,20 @@ output_data <-
   pdata %>%
   select("Alignment ID", "Average Mz", "Average Rt(min)",
          "Metabolite name", "Adduct type", "Formula", 
-         "Annotation tag (VS1.0)", "MS/MS assigned", "Total score",
+         "Annotation tag (VS1.0)", "MS/MS assigned", "MS/MS matched", 
+         "Total score", "RT similarity", "Dot product", "Fragment presence %", "S/N average",
          params$sample.info.pos$Sample.name) %>%
   dplyr::rename(Metabolite_name = "Metabolite name") %>%
   group_by(Metabolite_name) %>%
-  mutate( Metabolite_name = ifelse( Metabolite_name == "Unknown", 
+  mutate( Metabolite_name = trimws(Metabolite_name),
+          Metabolite_name = ifelse( Metabolite_name == "Unknown", 
                                     paste0("Unknown_", row_number()),
-                                    ifelse(substr(Metabolite_name, nchar(Metabolite_name)-1, nchar(Metabolite_name)) == ";",
-                                           substr(Metabolite_name, 1, nchar(Metabolite_name) -1),
-                                           Metabolite_name)
-                                    )) %>%
+                                    ifelse(substr(Metabolite_name, nchar(Metabolite_name), nchar(Metabolite_name)) == ";",
+                                          substr(Metabolite_name, 1, nchar(Metabolite_name) -1),
+                                          Metabolite_name))) %>%
   ungroup() %>%
   filter(!grepl("[(d)]", Metabolite_name, fixed = TRUE)) %>%
   mutate( `Adduct type` = trimws(`Adduct type`))
-
-# path.output.pos <- getwd()
-# input <- output_data[, "Metabolite name"]
-# 
-# names(input) <- "m"
-# 
-# output <-
-#   input %>%
-#   rowwise() %>%
-#   filter(!grepl("Unknown", m) & !grepl("_iso", m)) %>%
-#   filter(grepl("_|/", m)) %>%
-#   mutate( connect = ifelse( grepl("O-", m), " O-", " "),
-#           Class = strsplit(m, " ")[[1]][1],
-#           head = paste0(Class, connect),
-#           back = gsub(head, "", m, fixed = TRUE),
-#           back1 = ifelse(grepl("/", back), strsplit(back, "/")[[1]][1], back ),
-#           back2 = ifelse(grepl("/", back), strsplit(back, "/")[[1]][2], as.character(NA) ),
-#           b1_split = ifelse(grepl("_", back1), strsplit(back1, ":_"), as.character(NA))
-#           
-#   )
 
 write.table(output_data,
           file = output.file,
@@ -323,13 +304,14 @@ output_data <-
   pdata %>%
   select("Alignment ID", "Average Mz", "Average Rt(min)",
          "Metabolite name", "Adduct type", "Formula", 
-         "Annotation tag (VS1.0)", "MS/MS assigned", "Total score",
+         "Annotation tag (VS1.0)", "MS/MS assigned", "MS/MS matched", 
+         "Total score", "RT similarity", "Dot product", "Fragment presence %", "S/N average",
          params$sample.info.neg$Sample.name) %>%
   dplyr::rename(Metabolite_name = "Metabolite name") %>%
   group_by(Metabolite_name) %>%
   mutate( Metabolite_name = ifelse( Metabolite_name == "Unknown", 
                                     paste0("Unknown_", row_number()),
-                                    ifelse(substr(Metabolite_name, nchar(Metabolite_name)-1, nchar(Metabolite_name)) == ";",
+                                    ifelse(substr(Metabolite_name, nchar(Metabolite_name), nchar(Metabolite_name)) == ";",
                                            substr(Metabolite_name, 1, nchar(Metabolite_name) -1),
                                            Metabolite_name)
                                     )) %>%
