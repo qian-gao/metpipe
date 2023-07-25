@@ -31,22 +31,6 @@ knitr::opts_chunk$set(
 
 ```
 
-```{r general setup, include = FALSE, eval = !params$run.pipeline }
-
-source( "01_Input_general.R")
-source( paste0( path.utils, "utils_preprocessing.R" ))
-
-```
-
-```{r optional setup, include = FALSE, eval = !params$run.pipeline }
-
-params$mz_tol_pos <- params$mz_tolerance
-params$rt_tol_pos <- params$rt_tolerance
-params$mz_tol_neg <- params$mz_tol_pos
-params$rt_tol_neg <- params$rt_tol_pos
-
-```
-
 ```{r set environment variables}
 
 path.output <-

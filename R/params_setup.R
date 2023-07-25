@@ -382,6 +382,7 @@ params_setup <-
         "run.neg",
         "sample.info.pos",
         "sample.info.neg",
+        "po.sample.to.use",
 
         "path.peaktable.pos",
         "path.peaktable.neg",
