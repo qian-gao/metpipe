@@ -10,7 +10,7 @@
 #' @param mz_tolerance = NULL,
 #' @param path.lib = NULL,
 #' @param lib = NULL
-#' @param path.result = NULL
+#' @param output.file = NULL
 #'
 #' @return A data frame object that contains a summary of a sample that
 #'     can later be converted to a TeX output using \code{overview_print}
@@ -26,14 +26,15 @@ annotate_with_library <-
             mz_tolerance = NULL,
             path.lib = NULL,
             lib = NULL,
-            path.result = NULL
+            output.file = NULL
 
   ){
 
-    if ( file.exists(paste0(path.result, "precursor_annotation_", mode, ".rds")) ){
+    output.file.rds <- gsub(".csv", ".rds", output.file)
+    if ( file.exists( output.file.rds )){
 
       prec.lib <-
-        readRDS( paste0(path.result, "precursor_annotation_", mode, ".rds"))
+        readRDS( output.file.rds )
 
     } else {
 
@@ -75,11 +76,15 @@ annotate_with_library <-
 
       }
 
-      saveRDS( prec.lib,
-               file = paste0(path.result, "precursor_annotation_", mode, ".rds") )
+      prec.lib <-
+        prec.lib %>%
+        dplyr::relocate(colnames(precursor)[4:ncol(precursor)], .after = last_col())
 
-      openxlsx::write.xlsx( prec.lib,
-                            file = paste0(path.result, "precursor_annotation_", mode, ".xlsx") )
+      saveRDS( prec.lib,
+               file = output.file.rds )
+
+      write.table( prec.lib, sep = ";",
+                   file = output.file )
 
     }
 

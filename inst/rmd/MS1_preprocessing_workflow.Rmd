@@ -46,7 +46,7 @@ params <-
   params_setup( 
     
     run.pipeline = TRUE,
-    path.mzml = "J:/CBMR/SUN-CBMR-Metabolomics/Projects/AMP_test_project/mzML/TE_GC_MS1/",
+    path.mzml = "J:/CBMR/SUN-CBMR-Metabolomics/Projects/AMP_test_project/mzML/TE_LIP_MS1/",
     
     standard.name = TRUE,  # TRUE, FALSE
     
@@ -83,10 +83,11 @@ params <-
 )
 ```
 
-```{r 02_Extract_precursor, eval = FALSE}
+```{r 02_01_Extract_precursor xcms, eval = FALSE}
+
+params$extract_precursor <- TRUE
 
 ### XCMS setup
-
 params$optimize.xcms.parameters <- TRUE  # TRUE, FALSE
 
 # If not optimize parameters, the following parameters are used:
@@ -116,13 +117,35 @@ params$para.neg <-
   params$para.pos
 
 render_rmarkdown(
-    file = system.file("rmd", "02_Extract_precursor.Rmd", package="metpipe"),
-    #file = 02_Extract_precursor.Rmd",
+    #file = system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
+    file = "Preprocessing_xcms.Rmd",
     params = params[params$Extract_precursor],
-    output = paste0( params$path.result, '02_Extract_precursor')
+    output = paste0( params$path.result, '02_01_Extract_precursor_xcms')
   )
 
 ```
+
+```{r 02_02_Extract_precursor msdial, eval = FALSE}
+
+params$extract_precursor <- TRUE
+
+params$mz_tol_pos <- params$mz_tolerance
+params$rt_tol_pos <- params$rt_tolerance
+params$mz_tol_neg <- params$mz_tol_pos
+params$rt_tol_neg <- params$rt_tol_pos
+
+params$ri_tol <- NULL
+params$ri_tol_bigger <- NULL
+
+render_rmarkdown(
+    #file = system.file("rmd", "Untargeted_preprocessing_msdial.Rmd", package="metpipe"),
+    file = "Untargeted_preprocessing_msdial.Rmd",
+    params = params[params$Untargeted_preprocessing],
+    output = paste0( params$path.result, '02_02_Extract_precursor_msdial')
+  )
+
+```
+
 
 ```{r 03_01_Preprocessing_IS, eval = FALSE}
 
@@ -137,7 +160,8 @@ params$mzmine.min.peaks.in.row.neg <- params$mzmine.min.peaks.in.row.pos
 params$mzmine.min.peaks.in.row.neg.percent <- params$mzmine.min.peaks.in.row.pos.percent
 
 render_rmarkdown(
-    file = system.file("rmd", "03_01_Preprocessing_IS.Rmd", package="metpipe"),
+    #file = system.file("rmd", "Preprocessing_IS_mzmine.Rmd", package="metpipe"),
+    file = "Preprocessing_IS_mzmine.Rmd",
     params = params[params$Preprocessing_IS],
     output = paste0( params$path.result, '03_01_Preprocessing_IS')
     
@@ -157,7 +181,8 @@ params$sample.info.pos.qc <- NULL
 params$sample.info.neg.qc <- NULL
 
 render_rmarkdown(
-    file = system.file("rmd", "03_02_QC_IS.Rmd", package="metpipe"),
+    #file = system.file("rmd", "QC_IS.Rmd", package="metpipe"),
+    file = "QC_IS.Rmd",
     params = params[params$QC_IS],
     output = paste0( params$path.result, '03_02_QC_IS')
     
@@ -165,7 +190,7 @@ render_rmarkdown(
 
 ```
 
-```{r 03_03_Preprocessing, eval = FALSE}
+```{r 04_01_Preprocessing mzmine, eval = FALSE}
 
 params$precursor.include <- FALSE
 
@@ -180,15 +205,61 @@ params$mzmine.min.peaks.in.row.neg <- params$mzmine.min.peaks.in.row.pos
 params$mzmine.min.peaks.in.row.neg.percent <- params$mzmine.min.peaks.in.row.pos.percent
 
 render_rmarkdown(
-    file = system.file("rmd", "03_03_Preprocessing.Rmd", package="metpipe"),
+    #file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+    file = "Preprocessing_mzmine.Rmd",
     params = params[params$Preprocessing],
-    output = paste0( params$path.result, '03_03_Preprocessing')
+    output = paste0( params$path.result, '04_01_Preprocessing_mzmine')
   )
 
 
 ```
 
-```{r 03_04_Untargeted_preprocessing, eval = TRUE}
+```{r 04_02_Untargeted_preprocessing xcms, eval = TRUE}
+
+params$extract_precursor <- FALSE
+
+### XCMS setup
+params$optimize.xcms.parameters <- FALSE  # TRUE, FALSE
+
+# If not optimize parameters, the following parameters are used:
+params$para.pos <-
+  list( # para.peak.picking
+        max_peakwidth = 0.7*60,
+        min_peakwidth = 0.1*60,
+        ppm = 10,
+        snthresh = 10,
+        noise = 500,
+        prefilter = 3,
+        value_of_prefilter = 500, 
+        
+        # para.peak.group
+        bw = 0.2*60,
+        minFraction.1 = 0.5,
+        minFraction.2 = 0.7,
+        binSize = 0.01,
+        
+        # para.adjust.rt
+        span = 0.6,
+        minFraction.ref = 0.8,
+        extraPeaks = 2
+  )
+
+params$para.neg <-
+  params$para.pos
+
+render_rmarkdown(
+    #file = system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
+    file = "Preprocessing_xcms.Rmd",
+    params = params[params$Extract_precursor],
+    output = paste0( params$path.result, '04_02_Extract_precursor_xcms')
+  )
+
+```
+
+
+```{r 04_03_Untargeted_preprocessing msdial, eval = TRUE}
+
+params$extract_precursor <- FALSE
 
 params$mz_tol_pos <- params$mz_tolerance
 params$rt_tol_pos <- params$rt_tolerance
@@ -199,16 +270,16 @@ params$ri_tol <- NULL
 params$ri_tol_bigger <- NULL
   
 render_rmarkdown(
-    #file = "03_04_Untargeted_preprocessing.Rmd",
-    file = system.file("rmd", "03_04_Untargeted_preprocessing.Rmd", package="metpipe"),
+    #file = system.file("rmd", "Untargeted_preprocessing_msdial.Rmd", package="metpipe"),
+    file = "Untargeted_preprocessing_msdial.Rmd",
     params = params[params$Untargeted_preprocessing],
-    output = paste0( params$path.result, '03_04_Untargeted_preprocessing')
+    output = paste0( params$path.result, '04_03_Untargeted_preprocessing')
   )
 
 
 ```
 
-```{r 04_Clean_peaktable, eval = TRUE}
+```{r 05_Clean_peaktable, eval = TRUE}
 
 ### Peaktable
 
@@ -239,15 +310,15 @@ params$filter_by_missing_feature_pct <- 50
 params$missing.impute.method <- "LoD"  # "LoD", "HF", "median", "min", "mean"
 
 render_rmarkdown(
-    file = system.file("rmd", "04_Clean_peaktable.Rmd", package="metpipe"),
-    #file = "04_Clean_peaktable.Rmd",
+    #file = system.file("rmd", "Clean_peaktable.Rmd", package="metpipe"),
+    file = "Clean_peaktable.Rmd",
     params = params[params$Clean_peaktable],
-    output = paste0( params$path.result, '04_Clean_peaktable')
+    output = paste0( params$path.result, '05_Clean_peaktable')
   )
 
 ```
 
-```{r 05_Normalization_comparison, eval = TRUE}
+```{r 06_Normalization_comparison, eval = TRUE}
 
 ### Peaktable
 
@@ -290,15 +361,15 @@ params$type.to.remove <- c("Met", "CA", "IQ", "sol", "BL")
 params$norm.method <- c("bestis", "low_cv", "sum", "median")
 
 render_rmarkdown(
-    file = system.file("rmd", "05_Normalization_comparison.Rmd", package="metpipe"),
-    #file = "05_Normalization_comparison.Rmd",
+    file = system.file("rmd", "Normalization_comparison.Rmd", package="metpipe"),
+    #file = "Normalization_comparison.Rmd",
     params = params[params$Normalization_comparison],
-    output = paste0( params$path.result, '05_Normalization_comparison')
+    output = paste0( params$path.result, '06_Normalization_comparison')
   )
 
 ```
 
-```{r 06_Merge_and_map_names, eval = TRUE}
+```{r 07_Merge_and_map_names, eval = TRUE}
 
 ### datatables
 
@@ -309,10 +380,10 @@ params$datatable.sep <- ";"
 params$feature_col_nr <- 2
 
 render_rmarkdown(
-    file = system.file("rmd", "06_Merge_and_map_names.Rmd", package="metpipe"),
-    #file = "06_Merge_and_map_names.Rmd",
+    file = system.file("rmd", "Merge_and_map_names.Rmd", package="metpipe"),
+    #file = "Merge_and_map_names.Rmd",
     params = params[params$Merge_and_map_names],
-    output = paste0( params$path.result, '06_Merge_and_map_names')
+    output = paste0( params$path.result, '07_Merge_and_map_names')
   )
 
 ```

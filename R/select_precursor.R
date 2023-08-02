@@ -12,48 +12,49 @@
 #' @examples
 #' @export
 #' @importFrom dplyr "%>%" mutate select
-#' 
+#'
 select_precursor <-
   function( XCMSnExp = NULL,
             #method = NULL,
             mode = NULL,
             path.result = NULL
   ){
-    
+
     if ( file.exists(paste0(path.result, "precursor_", mode, ".rds")) ){
-      
+
       precursor <-
         readRDS( paste0(path.result, "precursor_", mode, ".rds"))
-      
+
     } else {
-      
-      mzrt <- 
-        XCMSnExp_mzrt( XCMSnExp = XCMSnExp, 
-                       mzdigit = 4, 
-                       rtdigit = 1, 
-                       method = "medret", 
+
+      mzrt <-
+        XCMSnExp_mzrt( XCMSnExp = XCMSnExp,
+                       mzdigit = 4,
+                       rtdigit = 1,
+                       method = "medret",
                        value = "into")
-      
+
       ### PMD
       pmd <- pmd::globalstd( mzrt,
                              sda = F,
                              ng = NULL)
-      
-      pmd.cluster <- pmd::getcluster( pmd, 
+
+      pmd.cluster <- pmd::getcluster( pmd,
                                       corcutoff = 0.9)
-      
-      precursor <- 
+
+      precursor <-
         cbind.data.frame( mz = pmd.cluster$mz[ pmd.cluster$stdmassindex2 ],
-                          rt = pmd.cluster$rt[ pmd.cluster$stdmassindex2 ]) %>%
+                          rt = pmd.cluster$rt[ pmd.cluster$stdmassindex2 ],
+                          mzrt$data[ pmd.cluster$stdmassindex2, ]) %>%
         mutate( id = row_number()) %>%
-        select( id, rt, mz)  %>%
+        select( id, rt, mz, colnames(mzrt$data))  %>%
         mutate( rt = rt / 60)
-      
-      saveRDS( precursor, 
+
+      saveRDS( precursor,
                file = paste0(path.result, "precursor_", mode, ".rds") )
-      
+
     }
-    
+
     return(precursor)
-    
+
   }

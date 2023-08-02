@@ -34,7 +34,7 @@ knitr::opts_chunk$set(
 ```{r set path, include = FALSE}
 
 path.output <-
-  paste0(params$path.result, "04_Clean_peaktable/")
+  paste0(params$path.result, "05_Clean_peaktable/")
 
 if (!dir.exists(path.output)) dir.create(path.output)
 
@@ -48,13 +48,13 @@ if (is.null(params$path.peaktable.pos) | is.null(params$path.peaktable.neg)){
 
 if (is.null(params$path.peaktable.pos)){
   
-  params$path.peaktable.pos <- paste0(params$path.result, "03_03_Preprocessing/peaktable_targeted_pos.csv")
+  params$path.peaktable.pos <- paste0(params$path.result, "04_Preprocessing/peaktable_targeted_pos.csv")
   
 } 
 
 if (is.null(params$path.peaktable.neg)){
   
-  params$path.peaktable.neg <- paste0(params$path.result, "03_03_Preprocessing/peaktable_targeted_neg.csv")
+  params$path.peaktable.neg <- paste0(params$path.result, "04_Preprocessing/peaktable_targeted_neg.csv")
   
 } 
 

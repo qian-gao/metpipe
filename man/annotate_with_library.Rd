@@ -12,7 +12,7 @@ annotate_with_library(
   mz_tolerance = NULL,
   path.lib = NULL,
   lib = NULL,
-  path.result = NULL
+  output.file = NULL
 )
 }
 \arguments{
@@ -30,7 +30,7 @@ annotate_with_library(
 
 \item{lib}{= NULL}
 
-\item{path.result}{= NULL}
+\item{output.file}{= NULL}
 }
 \value{
 A data frame object that contains a summary of a sample that

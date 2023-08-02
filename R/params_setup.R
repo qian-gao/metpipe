@@ -280,13 +280,20 @@ params_setup <-
         "sample.info.pos",
         "sample.info.neg",
         "lib",
+        "extract_precursor",
 
         "optimize.xcms.parameters",
         "BPPARAM_set",
         "para.pos",
         "para.neg",
         "rt_tolerance",
-        "mz_tolerance")
+        "mz_tolerance",
+        "mz_tol_pos",
+        "rt_tol_pos",
+        "mz_tol_neg",
+        "rt_tol_neg",
+        "ri_tol",
+        "ri_tol_bigger")
 
     params$Preprocessing_IS <-
       c("run.pipeline",
@@ -366,7 +373,14 @@ params_setup <-
         "sample.info.pos",
         "sample.info.neg",
         "po.sample.to.use",
+        "extract_precursor",
 
+        "optimize.xcms.parameters",
+        "BPPARAM_set",
+        "para.pos",
+        "para.neg",
+        "rt_tolerance",
+        "mz_tolerance",
         "mz_tol_pos",
         "rt_tol_pos",
         "mz_tol_neg",

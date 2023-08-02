@@ -59,7 +59,7 @@ params$mzmine.min.peaks.in.row.pos.percent <- params$mzmine.min.peaks.in.row.pos
 ```{r set environment variables}
 
 path.output <-
-  paste0(params$path.result, "03_03_Preprocessing/")
+  paste0(params$path.result, "04_Preprocessing/")
 
 if (!dir.exists(path.output)) dir.create(path.output)
 
