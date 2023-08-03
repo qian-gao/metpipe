@@ -132,6 +132,10 @@ extract_sample_info <-
 
       }
 
+      sample.info <-
+        sample.info %>%
+        filter(File.batch != "subset")
+
       if (!is.null(path.meta)){
 
         if (is.data.frame(path.meta)){

@@ -203,6 +203,7 @@ params_setup <-
                              export.xlsx = paste0(params$path.result, "sample_info_pos")) %>%
         filter( !grepl("ms2p", tolower(Sample.name)))
 
+
     }
 
     if ( params$path.mzml.neg != "No_data" ){
@@ -361,6 +362,7 @@ params_setup <-
       c("run.pipeline",
         "path.result",
         "method",
+        "sample.pattern",
         "path.mzml.pos",
         "path.mzml.neg",
         "target",
