@@ -42,6 +42,18 @@ if (params$extract_precursor){
   path.mzml.neg <- paste0(params$path.mzml.neg, "/subset/")
   output.file.pos <- paste0(path.output, "precursor_annotation_pos.csv")
   output.file.neg <- paste0(path.output, "precursor_annotation_neg.csv")
+  
+  sample.info.pos <-
+    extract_sample_info( path = params$path.mzml.pos,
+                         sample.pattern = params$sample.pattern,
+                         standard.name = FALSE) %>%
+    filter(File.batch == "subset")
+  
+  sample.info.neg <-
+    extract_sample_info( path = params$path.mzml.neg,
+                         sample.pattern = params$sample.pattern,
+                         standard.name = FALSE) %>%
+    filter(File.batch == "subset")
     
 } else {
   
@@ -52,6 +64,10 @@ if (params$extract_precursor){
   path.mzml.neg <- params$path.mzml.neg
   output.file.pos <- paste0(path.output, "peaktable_targeted_pos.csv")
   output.file.neg <- paste0(path.output, "peaktable_targeted_neg.csv")
+  
+  sample.info.pos <- params$sample.info.pos
+  sample.info.neg <- params$sample.info.neg
+
 }
 
 path.output.pos <-
@@ -73,6 +89,13 @@ mz_tol_neg = params$mz_tol_neg
 mz_tol_bigger_neg = params$mz_tol_neg+0.003
 rt_tol_neg = params$rt_tol_neg
 rt_tol_bigger_neg = params$rt_tol_neg+0.1
+
+
+if (params$target == "GC"){
+  process_type <- "gcms"
+} else {
+  process_type <- "lcmsdda" 
+}
 
 ```
 
@@ -152,10 +175,12 @@ temp.file <- list.files( path = path.output.pos,
               pattern = "^AlignResult.*\\.msdial$",
               full.names = TRUE)
 
+if (length(temp.file) == 0) temp.file <- ""
+
 if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(temp.file) ) {
   setwd('/home/projects/ku_00007/apps/MSDIAL/MSDIAL_ver.4.9')
   system( paste0( 'bash cd /home/projects/ku_00007/apps/MSDIAL/MSDIAL_ver.4.9; ./MsdialConsoleApp ',
-                                        params$type,
+                                        process_type,
                                 ' -i ', path.mzml.pos,    
                                 ' -o ', path.output.pos,
                                 ' -m ', path.output, 'MSDIAL_parameters_pos.txt -p') )
@@ -163,7 +188,7 @@ if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(temp.file) ) {
 } else if (!file.exists(temp.file)) {
   
   system("cmd.exe", input = paste0( params$path.msdial,
-                                    " ",    params$type,
+                                    " ",    process_type,
                                     " -i ", path.mzml.pos,    
                                     " -o ", path.output.pos,
                                     " -m ", path.output, "MSDIAL_parameters_pos.txt -p"))
@@ -187,7 +212,7 @@ output_data <-
          "Metabolite name", "Adduct type", "Formula", 
          "Annotation tag (VS1.0)", "MS/MS assigned", "MS/MS matched", 
          "Total score", "RT similarity", "Dot product", "Fragment presence %", "S/N average",
-         params$sample.info.pos$Sample.name) %>%
+         sample.info.pos$Sample.name) %>%
   dplyr::rename( rt = "Average Rt(min)",
                  mz = "Average Mz",
                  Library.name = "Metabolite name") %>%
@@ -197,7 +222,13 @@ output_data <-
                                     paste0("Unknown_pos_", row_number()),
                                     ifelse(substr(Library.name, nchar(Library.name), nchar(Library.name)) == ";",
                                           substr(Library.name, 1, nchar(Library.name) -1),
-                                          Library.name))) %>%
+                                          Library.name)),
+          Library.name = ifelse( `Annotation tag (VS1.0)` %in% c("430"), 
+                                   paste0( "w MS2:", Library.name), 
+                                   Library.name),
+          Library.name = ifelse( `Annotation tag (VS1.0)` %in% c("annotated by user-defined text library") & `MS/MS matched` == TRUE, 
+                                   paste0( "m MS2:", Library.name), 
+                                   Library.name)) %>%
   ungroup() %>%
   filter(!grepl("[(d)]", Library.name, fixed = TRUE)) %>%
   mutate( `Adduct type` = trimws(`Adduct type`))
@@ -211,10 +242,7 @@ if (params$extract_precursor){
   
   output_data <-
     output_data %>%
-    mutate( Library.rt = ifelse( `Annotation tag (VS1.0)` %in% c("430", "530", "999"), NA, 99),
-            Library.name = ifelse( `Annotation tag (VS1.0)` %in% c("430"), 
-                                   paste0( "w MS2:", Library.name), 
-                                   Library.name))
+    mutate( Library.rt = ifelse( `Annotation tag (VS1.0)` %in% c("annotated by user-defined text library"), 99, NA))
     
   saveRDS( output_data,
            file = paste0(path.output, "precursor_annotation_pos.rds") )
@@ -293,10 +321,12 @@ temp.file <- list.files( path = path.output.neg,
               pattern = "^AlignResult.*\\.msdial$",
               full.names = TRUE)
 
+if (length(temp.file) == 0) temp.file <- ""
+
 if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(temp.file) ) {
   setwd('/home/projects/ku_00007/apps/MSDIAL/MSDIAL_ver.4.9')
   system( paste0( 'bash cd /home/projects/ku_00007/apps/MSDIAL/MSDIAL_ver.4.9; ./MsdialConsoleApp ',
-                                        params$type,
+                                        process_type,
                                 ' -i ', path.mzml.neg,    
                                 ' -o ', path.output.neg,
                                 ' -m ', path.output, 'MSDIAL_parameters_neg.txt -p') )
@@ -304,7 +334,7 @@ if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(temp.file) ) {
 } else if (!file.exists(temp.file)) {
   
   system("cmd.exe", input = paste0( params$path.msdial,
-                                    " ",    params$type,
+                                    " ",    process_type,
                                     " -i ", path.mzml.neg,    
                                     " -o ", path.output.neg,
                                     " -m ", path.output, "MSDIAL_parameters_neg.txt -p"))
@@ -328,7 +358,7 @@ output_data <-
          "Metabolite name", "Adduct type", "Formula", 
          "Annotation tag (VS1.0)", "MS/MS assigned", "MS/MS matched", 
          "Total score", "RT similarity", "Dot product", "Fragment presence %", "S/N average",
-         params$sample.info.neg$Sample.name) %>%
+         sample.info.neg$Sample.name) %>%
   dplyr::rename( rt = "Average Rt(min)",
                  mz = "Average Mz",
                  Library.name = "Metabolite name") %>%
@@ -338,8 +368,13 @@ output_data <-
                                     paste0("Unknown_neg_", row_number()),
                                     ifelse(substr(Library.name, nchar(Library.name), nchar(Library.name)) == ";",
                                            substr(Library.name, 1, nchar(Library.name) -1),
-                                           Library.name)
-                                    )) %>%
+                                           Library.name)),
+          Library.name = ifelse( `Annotation tag (VS1.0)` %in% c("430"), 
+                                   paste0( "w MS2:", Library.name), 
+                                   Library.name),
+          Library.name = ifelse( `Annotation tag (VS1.0)` %in% c("annotated by user-defined text library") & `MS/MS matched` == TRUE, 
+                                   paste0( "m MS2:", Library.name), 
+                                   Library.name)) %>%
   ungroup() %>%
   filter(!grepl("[(d)]", Library.name, fixed = TRUE)) %>%
   mutate( `Adduct type` = trimws(`Adduct type`))
@@ -353,7 +388,7 @@ if (params$extract_precursor){
   
   output_data <-
     output_data %>%
-    mutate( Library.rt = ifelse( `Annotation tag (VS1.0)` %in% c("430", "530", "999"), NA, 99),
+    mutate( Library.rt = ifelse( `Annotation tag (VS1.0)` %in% c("annotated by user-defined text library"), 99, NA),
             Library.name = ifelse( `Annotation tag (VS1.0)` %in% c("430"), 
                                    paste0( "w MS2:", Library.name), 
                                    Library.name))
