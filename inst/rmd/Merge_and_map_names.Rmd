@@ -38,7 +38,7 @@ knitr::opts_chunk$set(
 run.pos <- !is.null(params$path.datatable.pos)
 run.neg <- !is.null(params$path.datatable.neg)
 
-path.output <- paste0(params$path.result, "06_Merge_and_map_names/")
+path.output <- paste0(params$path.result, "07_Merge_and_map_names/")
 
 if (!dir.exists(path.output)) dir.create(path.output)
 
@@ -89,48 +89,23 @@ feature.info.pos <-
   mutate( Identity_orig = Identity,
           Identity = strsplit( Identity, "-iso")[[1]][1]) %>%
   ungroup() %>%
-  left_join(params$lib[[params$method]]$pos, by = c("Identity" = "Library.name")) %>%
-  mutate( Identity = gsub("w/o MS2:", "", Identity),
-          Compound.name = ifelse( is.na(Compound.name),
-                                  Identity,
-                                  Compound.name),
+  mutate( Source = case_when( grepl("unknown", tolower(Identity))                        ~ as.character(NA),
+                              grepl("m MS2:", Identity)                                  ~ "in_house_MS2_matched",
+                              grepl("w MS2:", Identity)                                  ~ "public_db_MS2_matched", 
+                              grepl("w/o MS2:", Identity)                                ~ "public_db_MS1_matched", 
+                              TRUE                                                       ~ "in_house_MS1_matched"),
+          Identity = gsub("w/o MS2:", "", 
+                          gsub("w MS2:", "", 
+                               gsub("m MS2:", "", Identity))),
           Identifier = paste0("pos_", Identity_orig),
           ) %>%
+  left_join(params$lib[[params$method]]$pos, by = c("Identity" = "Library.name")) %>%
+  mutate( Compound.name = ifelse( is.na(Compound.name),
+                                  Identity,
+                                  Compound.name)) %>%
   left_join(feature.pos[, c(match("Identity", names(feature.pos)),
                             match("m_name", names(feature.pos)):ncol(feature.pos))], by = c("Identity_orig" = "Identity"))
-  
-if ("Annotation tag (VS1.0)" %in% colnames(feature.info.pos)){
-  
-  colnames(feature.info.pos)[colnames(feature.info.pos) == "Annotation tag (VS1.0)"] <- "Annotation.tag"
-  feature.info.pos <-
-    feature.info.pos %>%
-    mutate(Source = case_when(Annotation.tag == "annotated by user-defined text library" ~ "in_house",
-                              Annotation.tag == "430"                                    ~ "public_db_MS2_matched",
-                              Annotation.tag == "530"                                    ~ "public_db_MS1_matched",
-                              Annotation.tag == "999"                                    ~ as.character(NA)))
-  
-} else {
-  
-  feature.info.pos <-
-    feature.info.pos %>%
-    mutate(Source = ifelse( grepl("unknown", tolower(Identity)), as.character(NA), "in_house"))
-  
-}
- 
-# if (params$method == "LIP"){
-#   
-#   lipids <-
-#     feature.info.pos %>%
-#     filter(Source %in% c("public_db_MS2_matched", "public_db_MS1_matched")) %>%
-#     pull(Identity) %>%
-#     unique()
-#   
-#   lipid.info <-
-#     get_lipid_from_lipidmaps( lipids = lipids,
-#                               type = "abbrev_chains") # "abbrev" "abbrev_chains"
-#   
-#   
-# }
+
 
 data.pos <-
   cbind(sample.pos[, c("Sample.type", "Sample")], datatable.pos) %>%
@@ -185,33 +160,22 @@ feature.info.neg <-
   mutate( Identity_orig = Identity,
           Identity = strsplit( Identity, "-iso")[[1]][1]) %>%
   ungroup() %>%
-  left_join(params$lib[[params$method]]$neg, by = c("Identity" = "Library.name")) %>%
-  mutate( Identity = gsub("w/o MS2:", "", Identity),
-          Compound.name = ifelse( is.na(Compound.name),
-                                  Identity,
-                                  Compound.name),
+  mutate( Source = case_when( grepl("unknown", tolower(Identity))                        ~ as.character(NA),
+                              grepl("m MS2:", Identity)                                  ~ "in_house_MS2_matched",
+                              grepl("w MS2:", Identity)                                  ~ "public_db_MS2_matched", 
+                              grepl("w/o MS2:", Identity)                                ~ "public_db_MS1_matched", 
+                              TRUE                                                       ~ "in_house_MS1_matched"),
+          Identity = gsub("w/o MS2:", "", 
+                          gsub("w MS2:", "", 
+                               gsub("m MS2:", "", Identity))),
           Identifier = paste0("neg_", Identity_orig),
           ) %>%
+  left_join(params$lib[[params$method]]$neg, by = c("Identity" = "Library.name")) %>%
+  mutate( Compound.name = ifelse( is.na(Compound.name),
+                                  Identity,
+                                  Compound.name)) %>%
   left_join(feature.neg[, c(match("Identity", names(feature.neg)),
                             match("m_name", names(feature.neg)):ncol(feature.neg))], by = c("Identity_orig" = "Identity"))
-
-if ("Annotation tag (VS1.0)" %in% colnames(feature.info.neg)){
-  
-  colnames(feature.info.neg)[colnames(feature.info.neg) == "Annotation tag (VS1.0)"] <- "Annotation.tag"
-  feature.info.neg <-
-    feature.info.neg %>%
-    mutate(Source = case_when(Annotation.tag == "annotated by user-defined text library" ~ "in_house",
-                              Annotation.tag == "430"                                    ~ "public_db_MS2_matched",
-                              Annotation.tag == "530"                                    ~ "public_db_MS1_matched",
-                              Annotation.tag == "999"                                    ~ as.character(NA)))
-  
-} else {
-  
-  feature.info.neg <-
-    feature.info.neg %>%
-    mutate(Source = ifelse( grepl("unknown", tolower(Identity)), as.character(NA), "in_house"))
-  
-}
 
 data.neg <-
   cbind(sample.neg[, c("Sample.type", "Sample")], datatable.neg) %>%

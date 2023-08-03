@@ -13,6 +13,7 @@
 
 #' @export
 #' @importFrom dplyr "%>%" mutate
+#' @import httr
 
 
 get_lipid_from_lipidmaps <-
@@ -32,7 +33,6 @@ get_lipid_from_lipidmaps <-
       apply(df, 1, function(x){
 
         all <- httr::content(httr::GET(url = paste0(temp, x[["query"]], "/all")))
-
 
         if ("input" %in% names(all)) {
 
