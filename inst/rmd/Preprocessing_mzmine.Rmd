@@ -165,7 +165,7 @@ prepare_mzmine_xml(
 
 if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
   
-  system( paste0( 'cd /home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/; ./MZmine ', params$path.mzmine, ' ', path.output, 'MZMine_parameters_pos.xml') )
+  system( paste0( 'cd /home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/; ./MZmine ', path.output, 'MZMine_parameters_pos.xml') )
   
 } else if ( !file.exists(output.file)){
   
@@ -259,7 +259,7 @@ output.file <- paste0(path.output, "peaktable_targeted_neg.csv")
 
 if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
   
-  system( paste0( 'cd /home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/; ./MZmine ', params$path.mzmine, ' ', path.output, 'MZMine_parameters_neg.xml') )
+  system( paste0( 'cd /home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/; ./MZmine ', path.output, 'MZMine_parameters_neg.xml') )
   
 } else if ( !file.exists(output.file)){
   
