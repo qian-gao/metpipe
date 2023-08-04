@@ -203,7 +203,7 @@ params_setup <-
                              export.xlsx = paste0(params$path.result, "sample_info_pos")) %>%
         filter( !grepl("ms2p", tolower(Sample.name)))
 
-
+      params$sample.info.pos <- sample.info.pos
     }
 
     if ( params$path.mzml.neg != "No_data" ){
@@ -220,10 +220,11 @@ params_setup <-
                              export.xlsx = paste0(params$path.result, "sample_info_neg")) %>%
         filter( !grepl("ms2n", tolower(Sample.name)))
 
+      params$sample.info.neg <- sample.info.neg
+
     }
 
-    params$sample.info.pos <- sample.info.pos
-    params$sample.info.neg <- sample.info.neg
+
 
     params$run.pos <- exists("sample.info.pos")
     params$run.neg <- exists("sample.info.neg")
