@@ -1,6 +1,6 @@
 ---
 title: "Extract_precursor"
-author: "Qian Gao, qian.gao@sund.ku.dk"
+author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
 
 knit: ( function(inputFile, encoding) { 
@@ -222,14 +222,21 @@ precursor.pos <-
 
 print( paste0( "POS: ", nrow(precursor.pos), " precursors has been selected in raw data"), quote = FALSE)
 
-annotate_with_library( precursor = precursor.pos,
-                       method = params$method,
-                       mode = "pos",
-                       rt_tolerance = params$rt_tolerance,
-                       mz_tolerance = params$mz_tolerance,
-                       lib = params$lib,
-                       output.file = output.file.pos )
+# annotate_with_library( precursor = precursor.pos,
+#                        method = params$method,
+#                        mode = "pos",
+#                        rt_tolerance = params$rt_tolerance,
+#                        mz_tolerance = params$mz_tolerance,
+#                        lib = params$lib,
+#                        output.file = output.file.pos )
 
+match_library( feature_info = precursor.pos,
+               rt_tolerance = params$rt_tolerance,
+               mz_tolerance = params$mz_tolerance,
+               library_file = params$lib[[params$method]][["pos"]],
+               mode = "pos",
+               output.file = output.file.pos ) 
+    
 print( paste0("POS preprocessed data were saved as: ", output.file.pos), quote = FALSE)
 
 ```
@@ -277,14 +284,21 @@ precursor.neg <-
   
 print( paste0( "NEG: ", nrow(precursor.neg), " precursors has been selected in raw data"), quote = FALSE)
 
-annotate_with_library( precursor = precursor.neg,
-                       method = params$method,
-                       mode = "neg",
-                       rt_tolerance = params$rt_tolerance,
-                       mz_tolerance = params$mz_tolerance,
-                       lib = params$lib,
-                       output.file = output.file.neg )
-  
+# annotate_with_library( precursor = precursor.neg,
+#                        method = params$method,
+#                        mode = "neg",
+#                        rt_tolerance = params$rt_tolerance,
+#                        mz_tolerance = params$mz_tolerance,
+#                        lib = params$lib,
+#                        output.file = output.file.neg )
+
+match_library( feature_info = precursor.neg,
+               rt_tolerance = params$rt_tolerance,
+               mz_tolerance = params$mz_tolerance,
+               library_file = params$lib[[params$method]][["neg"]],
+               mode = "neg",
+               output.file = output.file.neg ) 
+
 print( paste0("NEG preprocessed data were saved as: ", output.file.neg), quote = FALSE)
 
 ```

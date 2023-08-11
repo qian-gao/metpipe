@@ -29,16 +29,8 @@ match_library <-
             rt_tolerance = 0.1,
             mz_tolerance = 0.01,
             library_file = NULL,
-            verbose = FALSE ) {
-
-    library(tidyverse)
-
-    if ( verbose ) {
-
-      print( "match_library was created by Qian Gao" )
-      print( "qian.gao@sund.ku.dk" )
-
-    }
+            mode = NULL,
+            output.file = NULL ) {
 
     if (!is.data.frame(feature_info)){
       x <-
@@ -85,7 +77,26 @@ match_library <-
     result <-
       x %>%
         left_join(match.from.y, by = "identifier") %>%
-        select(-identifier)
+        select(-identifier) %>%
+        group_by(Library.name) %>%
+        mutate( Library.name = ifelse( is.na(Library.name),
+                                     paste0("Unknown_", ifelse(is.null(mode), "", mode), "_", row_number()),
+                                     Library.name) ) %>%
+        ungroup()
 
-    return(result)
+    output <-
+      result %>%
+      dplyr::relocate(colnames(result)[4:ncol(result)], .after = last_col())
+
+    if (!is.null(output.file)){
+
+      # saveRDS( output,
+      #          file = gsub(".csv", ".rds", output.file))
+
+      write.table( output, sep = ";",
+                   file = output.file)
+
+    }
+
+    return(output)
   }

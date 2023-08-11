@@ -1,6 +1,6 @@
 ---
 title: "Preprocessing"
-author: "CBMR Metabolomics Platform"
+author: "Qian Gao, qian.gao@sund.ku.dk"
 date: "`r base::Sys.Date()`"
 
 knit: ( function(inputFile, encoding) { 
@@ -31,40 +31,40 @@ knitr::opts_chunk$set(
 
 ```
 
+```{r general setup, include = FALSE, eval = !params$run.pipeline }
+
+source( "01_Input_general.R")
+source( paste0( path.utils, "utils_preprocessing.R" ))
+
+```
+
+```{r optional setup, include = FALSE, eval = !params$run.pipeline }
+
+### Precursor
+
+params$precursor.include <- TRUE  # TRUE, FALSE
+
+params$mzmine.mz.tol.pos <- params$mz_tolerance
+params$mzmine.rt.tol.pos <- params$rt_tolerance
+params$mzmine.min.peaks.in.row.pos <- 5
+params$mzmine.min.peaks.in.row.pos.percent <- 0.2
+
+params$mzmine.mz.tol.neg <- params$mzmine.mz.tol.pos
+params$mzmine.rt.tol.neg <- params$mzmine.rt.tol.pos
+params$mzmine.min.peaks.in.row.neg <- params$mzmine.min.peaks.in.row.pos
+params$mzmine.min.peaks.in.row.pos.percent <- params$mzmine.min.peaks.in.row.pos.percent
+
+```
+
 ```{r set environment variables}
 
-if (params$preprocessing.is){
-  
-  path.output <-
-    paste0(params$path.result, "03_01_Preprocessing_IS/")
-  
-  path_lib_pos = paste0(path.output, "library_MS1_IS_", params$method, "_pos.csv")
-  path_lib_neg = paste0(path.output, "library_MS1_IS_", params$method, "_neg.csv")
-  
-  output.file.prefix <- paste0(path.output, "peaktable_targeted_IS")
-  library.file.prefix <- paste0(path.output, "library_MS1_IS_", params$method)
-  
-  mzmine.param.pos <- "MZMine_parameters_IS_pos.xml"
-  mzmine.param.neg <- "MZMine_parameters_IS_neg.xml"
-
-} else {
-  
-  path.output <-
+path.output <-
   paste0(params$path.result, "04_Preprocessing/")
-  
-  path_lib_pos = paste0(path.output, "library_MS1_", params$method, "_pos.csv")
-  path_lib_neg = paste0(path.output, "library_MS1_", params$method, "_neg.csv")
-  
-  output.file.prefix <- paste0(path.output, "peaktable_targeted")
-  library.file.prefix <- paste0(path.output, "library_MS1_", params$method)
-  
-  mzmine.param.pos <- "MZMine_parameters_pos.xml"
-  mzmine.param.neg <- "MZMine_parameters_neg.xml"
-  
-}
-
 
 if (!dir.exists(path.output)) dir.create(path.output)
+
+path_lib_pos = paste0(path.output, "library_MS1_", params$method, "_pos.csv")
+path_lib_neg = paste0(path.output, "library_MS1_", params$method, "_neg.csv")
 
 path_mzML_pos = params$path.mzml.pos
 path_mzML_neg = params$path.mzml.neg
@@ -120,15 +120,15 @@ lib.to.use <-
                    rt = Library.rt,
                    name = Library.name)
 
-output.file <- paste0(output.file.prefix, "_pos.csv")
-library.file <- paste0(library.file.prefix, "_pos.csv")
+output.file <- paste0(path.output, "peaktable_targeted_pos.csv")
+library.file <- paste0(path.output, "library_MS1_", params$method, "_pos.csv")
 
 write.table( lib.to.use, 
              sep = ";",
              row.names = FALSE,
              file = library.file )
 
-print( paste0("POS peaktable was saved as: ", output.file), quote = FALSE)
+print( paste0("POS peaktable for internal standards was saved as: ", output.file), quote = FALSE)
 print( paste0("Library file: ", library.file), quote = FALSE)
 print( "MZmine parameters used in positive mode:")
 
@@ -145,7 +145,7 @@ print( paste0("mzmine_min_peaks_in_row_pos_percent = ", mzmine_min_peaks_in_row_
 ```{r generate xml pos, echo = TRUE, eval = params$run.pos}
 
 prepare_mzmine_xml(
-    type = ifelse(params$preprocessing.is, "is", "peak"),
+    type = "peak",
     path_mzML = path_mzML_pos,
     path_output = path.output,
     mode = "pos",
@@ -165,7 +165,7 @@ prepare_mzmine_xml(
 
 if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
   
-  system( paste0( 'cd /home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/; ./MZmine -batch ', path.output, mzmine.param.pos) )
+  system( paste0( 'cd /home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/; ./MZmine -batch ', path.output, 'MZMine_parameters_pos.xml') )
   
 } else if ( !file.exists(output.file)){
   
@@ -173,7 +173,7 @@ if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
   #                                   ' "', paste0(path.output, "MZMine_parameters_pos.xml"), '"'))
   
   system("cmd.exe", input = paste0( params$path.mzmine,
-                                    ' -batch "', paste0(path.output, mzmine.param.pos), '"' ))
+                                    ' -batch "', paste0(path.output, "MZMine_parameters_pos.xml"), '"' ))
   
 }
 
@@ -213,15 +213,15 @@ lib.to.use <-
                    rt = Library.rt,
                    name = Library.name)
 
-output.file <- paste0(output.file.prefix, "_neg.csv")
-library.file <- paste0(library.file.prefix, "_neg.csv")
+output.file <- paste0(path.output, "peaktable_targeted_neg.csv")
+library.file <- paste0(path.output, "library_MS1_", params$method, "_neg.csv")
 
 write.table( lib.to.use, 
              sep = ";",
              row.names = FALSE,
              file = library.file )
 
-print( paste0("NEG peaktable was saved as: ", output.file), quote = FALSE)
+print( paste0("NEG peaktable for internal standards was saved as: ", output.file), quote = FALSE)
 print( paste0("Library file: ", library.file), quote = FALSE)
 print( "MZmine parameters used in negative mode:")
 
@@ -238,7 +238,7 @@ print( paste0("mzmine_min_peaks_in_row_neg_percent = ", mzmine_min_peaks_in_row_
 ```{r generate xml neg, echo = TRUE, eval = params$run.neg}
 
 prepare_mzmine_xml(
-    type = ifelse(params$preprocessing.is, "is", "peak"),
+    type = "peak",
     path_mzML = path_mzML_neg,
     path_output = path.output,
     mode = "neg",
@@ -255,9 +255,11 @@ prepare_mzmine_xml(
 
 ```{r data preprocessing neg, include = FALSE, eval = params$run.neg}
 
+output.file <- paste0(path.output, "peaktable_targeted_neg.csv")
+
 if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
   
-  system( paste0( 'cd /home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/; ./MZmine -batch ', path.output, mzmine.param.neg) )
+  system( paste0( 'cd /home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/; ./MZmine -batch ', path.output, 'MZMine_parameters_neg.xml') )
   
 } else if ( !file.exists(output.file)){
   
@@ -265,7 +267,7 @@ if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
   #                                   ' "', paste0(path.output, "MZMine_parameters_neg.xml"), '"'))
   
   system("cmd.exe", input = paste0( params$path.mzmine,
-                                    ' -batch "', paste0(path.output, mzmine.param.neg), '"' ))
+                                    ' -batch "', paste0(path.output, "MZMine_parameters_neg.xml"), '"' ))
   
 }
 

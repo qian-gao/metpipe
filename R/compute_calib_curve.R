@@ -79,25 +79,47 @@ compute_calib_curve <-
 
     if (is.null(k)) {
 
-      k <- matrix(rep(dilution.nr, length(ids)), nrow = length(ids))
+      k <- matrix(rep(dilution.nr, length(ids)), nrow = length(ids), ncol = length(norms))
       rownames(k) <- ids
+      colnames(k) <- norms
 
     }
 
     for (i in 1:length(ids)){
 
       data.i <- data[data$Identity == ids[i], ]
-      k.i <- k[i]
 
       mod.i <- lapply( norms,
                        function(x, data){
                          d <- data[data$Normalizer == x, ]
-                         mod <- mgcv::gam( Intensity ~ s(Concentration, k = k.i),
-                                           data = d, method = "REML")
+                         k.i.x <- k[i, x]
+
+                         mod <- NULL
+                         repeatn <- 1
+                         while( is.null(mod) && repeatn <= 50 && k.i.x > 0) {
+                           # print(repeatn)
+                           # print(k.i.x)
+                           repeatn <- repeatn + 1
+                           try(
+                             mod <- mgcv::gam( Intensity ~ s(Concentration, k = k.i.x),
+                                               data = d, method = "REML")
+                           )
+                           k.i.x <- k.i.x - 1
+                         }
+
+                         return(mod)
+                         # mod <- mgcv::gam( Intensity ~ s(Concentration, k = k.i),
+                         #                   data = d, method = "REML")
                        },
                        data = data.i)
 
       names(mod.i) <- norms
+
+      k.i <- t(sapply(mod.i, function(x){
+        length(x$coefficients)
+      }))
+
+      k[i, ] <- k.i
 
       devi <- t(sapply(mod.i, function(x){
                                 a <- summary(x)
@@ -115,11 +137,8 @@ compute_calib_curve <-
 
     # Output the whole grid of k
     k.w <-
-      matrix(k[, rep(1:ncol(k), each = length(norms))], nrow = nrow(k)) %>%
+      k %>%
       as.data.frame()
-
-    rownames(k.w) <- ids
-    colnames(k.w) <- norms
 
     result <- list( mods = mods,
                     k = k.w,

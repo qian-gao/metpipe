@@ -1,7 +1,6 @@
 #' @title annotate_with_library
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Wrapper function, annotate peaks based on m/z and RT in the library
 #'
 #' @param precursor = NULL,
 #' @param method = NULL,

@@ -308,6 +308,7 @@ params_setup <-
         "lib.is",
         "path.mzmine",
 
+        "preprocessing.is",
         "mzmine.mz.tol.pos",
         "mzmine.rt.tol.pos",
         "mzmine.mz.tol.neg",
@@ -348,6 +349,7 @@ params_setup <-
         "lib",
         "path.mzmine",
 
+        "preprocessing.is",
         "precursor.include",
         "mzmine.mz.tol.pos",
         "mzmine.rt.tol.pos",

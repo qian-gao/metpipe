@@ -1,6 +1,6 @@
 ---
 title: "Normalization comparison"
-author: "Qian Gao, qian.gao@sund.ku.dk"
+author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
 
 knit: ( function(inputFile, encoding) { 

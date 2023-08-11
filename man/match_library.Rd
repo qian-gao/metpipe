@@ -9,7 +9,8 @@ match_library(
   rt_tolerance = 0.1,
   mz_tolerance = 0.01,
   library_file = NULL,
-  verbose = FALSE
+  mode = NULL,
+  output.file = NULL
 )
 }
 \arguments{

@@ -1,6 +1,6 @@
 ---
 title: "Data preprocessing workflow"
-author: "Qian Gao, qian.gao@sund.ku.dk"
+author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
 
 # knit: ( function(inputFile, encoding) { 
@@ -160,8 +160,8 @@ params$mzmine.min.peaks.in.row.neg <- params$mzmine.min.peaks.in.row.pos
 params$mzmine.min.peaks.in.row.neg.percent <- params$mzmine.min.peaks.in.row.pos.percent
 
 render_rmarkdown(
-    file = system.file("rmd", "Preprocessing_IS_mzmine.Rmd", package="metpipe"),
-    #file = "Preprocessing_IS_mzmine.Rmd",
+    file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+    #file = "Preprocessing_mzmine.Rmd",
     params = params[params$Preprocessing_IS],
     output = paste0( params$path.result, '03_01_Preprocessing_IS')
     
@@ -193,6 +193,7 @@ render_rmarkdown(
 ```{r 04_01_Preprocessing mzmine, eval = TRUE}
 
 params$precursor.include <- TRUE
+params$preprocessing.is <- FALSE
 
 params$mzmine.mz.tol.pos <- params$mz_tolerance
 params$mzmine.rt.tol.pos <- params$rt_tolerance
