@@ -14,6 +14,8 @@ devtools::document()
 devtools::install_github("https://github.com/qian-gao/metpipe",
                          auth_token = "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")
 
+devtools::install_github("https://github.com/qian-gao/metpipe", force = TRUE)
+
 ### function description
 
 #' @title overview_tab
