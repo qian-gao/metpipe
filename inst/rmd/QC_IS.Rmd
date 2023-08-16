@@ -22,34 +22,12 @@ output:
 
 ```{r setup environment, include = FALSE}
 
-if (!exists("run.pipeline")) run.pipeline <- FALSE
-
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   echo = FALSE,
   include = TRUE
 )
-
-```
-
-```{r general setup, include = FALSE, eval = !params$run.pipeline }
-
-source( "01_Input_general.R")
-source( paste0( path.utils, "utils_qc.R" ))
-
-```
-
-```{r optional setup, include = FALSE, eval = !params$run.pipeline }
-
-params$reference.type <- "reference" # reference or median
-params$figure_height <- 900
-
-params$path.peaktable.IS.pos <- NULL
-params$path.peaktable.IS.neg <- NULL
-
-params$sample.info.pos.qc <- NULL
-params$sample.info.neg.qc <- NULL
 
 ```
 

@@ -43,13 +43,18 @@ extract_sample_info <-
     # sample.pattern <- ".mzML"
     # path.file <- 'Test_files/pos'
 
-    if ( is.null(files) & !is.null(path) ){
+    if ( is.null(files) & !is.null(path) ){ #!!! retire files in the future
 
-      files <-
-        list.files( path = path,
-                    pattern = sample.pattern,
-                    recursive = T,
-                    full.names = T )
+      if (length(path) == 1){
+        files <-
+          list.files( path = path,
+                      pattern = sample.pattern,
+                      recursive = T,
+                      full.names = T )
+      } else {
+
+        files <- path
+      }
 
     }
 
@@ -134,7 +139,7 @@ extract_sample_info <-
 
       sample.info <-
         sample.info %>%
-        filter(File.batch != "subset")
+        filter(!File.batch %in% c("subset"))
 
       if (!is.null(path.meta)){
 

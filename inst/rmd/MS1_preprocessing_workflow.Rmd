@@ -45,7 +45,6 @@ knitr::opts_chunk$set(
 params <-
   params_setup( 
     
-    run.pipeline = TRUE,
     path.mzml = "J:/CBMR/SUN-CBMR-Metabolomics/Projects/AMP_test_project/mzML/TE_LIP_MS1/",
     
     standard.name = TRUE,  # TRUE, FALSE

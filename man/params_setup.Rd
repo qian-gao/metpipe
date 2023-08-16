@@ -6,9 +6,8 @@
 \usage{
 params_setup(
   params = NULL,
-  run.pipeline = TRUE,
-  path.mzmine = "C:/Users/Public/Documents/MZmine-3.4.27/MZmine_console.exe",
-  path.msdial = "C:/Users/Public/Documents/MSDIAL_v4.9/MsdialConsoleApp.exe",
+  path.mzmine = NULL,
+  path.msdial = NULL,
   BPPARAM_set = NULL,
   qc.sample.type = c("sol", "BL", "CP", "IQ", "NIST", "CAL", "Met", "M-Mix", "SPO", "PO",
     "PO50", "PO12.5", "PO25", "PO100", "BPO"),
@@ -36,8 +35,6 @@ params_setup(
 }
 \arguments{
 \item{params}{A list of parameters, set as NULL if nothing has been set up yet}
-
-\item{run.pipeline}{If run whole pipeline or not, TRUE/FALSE}
 
 \item{path.mzmine}{Path of MZmine}
 
@@ -81,6 +78,8 @@ standard.name = TRUE, "Sample.name" for standard.name = FALSE}
 \item{path.lib}{Path to in house library xlsx/RData}
 
 \item{path.lib.is}{Path to in house library for internal standards xlsx/RData}
+
+\item{run.pipeline}{If run whole pipeline or not, TRUE/FALSE}
 }
 \value{
 A list of parameters

@@ -69,6 +69,10 @@ if ( grepl(".xlsx", params$path.peaktable.pos) ){
   peaktable <-
     readxl::read_excel( params$path.peaktable.pos )
   
+} else if (is.data.frame(params$path.peaktable.pos)){
+  
+  peaktable <- params$path.peaktable.pos
+  
 } else {
   
   peaktable <-
@@ -322,6 +326,10 @@ if ( grepl(".xlsx", params$path.peaktable.neg) ){
   
   peaktable <-
     readxl::read_excel( params$path.peaktable.neg )
+  
+} else if (is.data.frame(params$path.peaktable.neg)){
+  
+  peaktable <- params$path.peaktable.neg
   
 } else {
   

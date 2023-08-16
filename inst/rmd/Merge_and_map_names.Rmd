@@ -55,6 +55,14 @@ if ( grepl(".xlsx", params$path.datatable.pos) ){
   feature.pos <- 
     readxl::read_excel( params$path.datatable.pos, sheet = 2)
   
+} else if (is.list(params$path.datatable.pos)){
+  
+  datatable.pos <-
+    params$path.datatable.pos[[1]]
+  
+  feature.pos <- 
+    params$path.datatable.pos[[2]]
+  
 } else {
   
   datatable.pos <-
@@ -125,6 +133,14 @@ if ( grepl(".xlsx", params$path.datatable.neg) ){
   
   feature.neg <- 
     readxl::read_excel( params$path.datatable.neg, sheet = 2)
+  
+} else if (is.list(params$path.datatable.neg)){
+  
+  datatable.pos <-
+    params$path.datatable.neg[[1]]
+  
+  feature.pos <- 
+    params$path.datatable.neg[[2]]
   
 } else {
   

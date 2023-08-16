@@ -37,7 +37,6 @@
 params_setup <-
   function(
     params = NULL,
-    run.pipeline = TRUE,
 
     # system
     path.mzmine = NULL,
@@ -88,12 +87,10 @@ params_setup <-
 
     if (is.null(params)) params <- list()
 
-    params$run.pipeline = run.pipeline
-
     # system
 
     if (!is.null(path.mzmine)){
-	
+
       params$path.mzmine = path.mzmine
 
     } else if ( file.exists( "/home/projects/ku_00007/" )){
@@ -107,7 +104,7 @@ params_setup <-
     }
 
     if (!is.null(path.msdial)){
-	
+
       params$path.msdial = path.msdial
 
     } else if ( file.exists( "/home/projects/ku_00007/" )){
@@ -160,9 +157,9 @@ params_setup <-
     ### Only modify if not standard workflow
 
     if (is.null(method)) {
-      params$method = strsplit(strsplit(path.mzml, "mzML/")[[1]][2], "_")[[1]][2]
+      params$method = toupper(strsplit(strsplit(path.mzml, "mzML/")[[1]][2], "_")[[1]][2])
     } else {
-      params$method = method
+      params$method = toupper(method)
     }
 
     # target
@@ -205,7 +202,7 @@ params_setup <-
     if (!dir.exists(params$path.result)) dir.create(params$path.result)
 
     # Generate sample info
-    if ( params$path.mzml.pos != "No_data" ){
+    if ( !"No_data" %in% params$path.mzml.pos ){
 
       sample.info.pos <-
         extract_sample_info( path = params$path.mzml.pos,
@@ -222,7 +219,7 @@ params_setup <-
       params$sample.info.pos <- sample.info.pos
     }
 
-    if ( params$path.mzml.neg != "No_data" ){
+    if ( !"No_data" %in% params$path.mzml.neg ){
 
       sample.info.neg <-
         extract_sample_info( path = params$path.mzml.neg,
@@ -287,7 +284,7 @@ params_setup <-
     # Set input parameters
 
     params$Extract_precursor <-
-      c("run.pipeline",
+      c(
         "path.result",
         "method",
         "path.mzml.pos",
@@ -314,7 +311,7 @@ params_setup <-
         "ri_tol_bigger")
 
     params$Preprocessing_IS <-
-      c("run.pipeline",
+      c(
         "path.result",
         "method",
         "path.mzml.pos",
@@ -336,7 +333,7 @@ params_setup <-
     )
 
     params$QC_IS <-
-      c("run.pipeline",
+      c(
         "path.result",
         "method",
         "run.pos",
@@ -354,7 +351,7 @@ params_setup <-
       )
 
     params$Preprocessing <-
-      c("run.pipeline",
+      c(
         "path.result",
         "method",
         "path.mzml.pos",
@@ -378,7 +375,7 @@ params_setup <-
       )
 
     params$Untargeted_preprocessing <-
-      c("run.pipeline",
+      c(
         "path.result",
         "method",
         "sample.pattern",
@@ -411,7 +408,7 @@ params_setup <-
       )
 
     params$Clean_peaktable <-
-      c("run.pipeline",
+      c(
         "path.result",
         "run.pos",
         "run.neg",
@@ -437,7 +434,7 @@ params_setup <-
       )
 
     params$Normalization_comparison <-
-      c("run.pipeline",
+      c(
         "path.result",
         "run.pos",
         "run.neg",
@@ -466,7 +463,7 @@ params_setup <-
       )
 
     params$Merge_and_map_names <-
-      c("run.pipeline",
+      c(
         "path.result",
         "method",
         "run.pos",
