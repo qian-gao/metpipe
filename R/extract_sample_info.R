@@ -171,7 +171,7 @@ extract_sample_info <-
 
         sample.info <-
           sample.info %>%
-          mutate( Sample.name = gsub( "[.]", "-", Sample.name)) %>%
+          #mutate( Sample.name = gsub( "[.]", "-", Sample.name)) %>%
           left_join( sample.info.other, by = meta.match.col )
 
         if (!is.null(group.var)){
