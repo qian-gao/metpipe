@@ -135,11 +135,11 @@ peaks.temp <-
 
 peaks.is <-
   peaks.temp %>%
-  filter(grepl("^[0-9][0-9][0-9]", substr(Identity, 1, 3)))
+  filter(grepl("^[0-9][0-9]", substr(Identity, 1, 3)))
 
 peaks <-
   peaks.temp %>%
-  filter(!grepl("^[0-9][0-9][0-9]", substr(Identity, 1, 3)))
+  filter(!grepl("^[0-9][0-9]", substr(Identity, 1, 3)))
 
 ```
 
@@ -395,11 +395,11 @@ peaks.temp <-
 
 peaks.is <-
   peaks.temp %>%
-  filter(grepl("^[0-9][0-9][0-9]", substr(Identity, 1, 3)))
+  filter(grepl("^[0-9][0-9]", substr(Identity, 1, 3)))
 
 peaks <-
   peaks.temp %>%
-  filter(!grepl("^[0-9][0-9][0-9]", substr(Identity, 1, 3)))
+  filter(!grepl("^[0-9][0-9]", substr(Identity, 1, 3)))
 
 ```
 

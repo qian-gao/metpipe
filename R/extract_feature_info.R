@@ -39,7 +39,7 @@ extract_feature_info <-
                Identity = if_else(is.na(Identity),
                                   paste0(round(mz, 3), "_", round(rt, 3)),
                                   Identity),
-               feature.type = if_else(grepl("^[0-9][0-9][0-9]", substr(Identity, 1, 3)), "IS", ""),
+               feature.type = if_else(grepl("^[0-9][0-9]", substr(Identity, 1, 3)), "IS", ""),
                #feature.type = if_else(substr(Identity, 4, 4) == ".", "IS", feature.type),
                Feature.id = row_number()) %>% ###!!!!! fix in the future
         group_by(Identity) %>%
