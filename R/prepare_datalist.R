@@ -21,19 +21,19 @@ prepare_datalist <-
 
     peaks.temp <-
       peaks %>%
-      mutate( peaks.type = ifelse( substr(identity, 3, 3) == ".", "IS", ""))
+      mutate( peaks.type = ifelse( grepl("^[0-9][0-9][0-9]", substr(Identity, 1, 3)), "IS", ""))
 
     peaktable <-
       peaks.temp %>%
       filter(peaks.type != "IS") %>%
       select(-peaks.type) %>%
-      arrange(identity)
+      arrange(Identity)
 
     peaktable.IS <-
       peaks.temp %>%
       filter(peaks.type == "IS") %>%
       select(-peaks.type) %>%
-      arrange(identity)
+      arrange(Identity)
 
     feature.info <-
       extract_feature_info( files = peaktable,

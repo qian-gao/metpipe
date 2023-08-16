@@ -14,8 +14,7 @@ generate_mzmine3_xml(template = NULL, params = NULL, output_file = NULL)
 \item{output_file}{= NULL}
 }
 \value{
-A data frame object that contains a summary of a sample that
-    can later be converted to a TeX output using \code{overview_print}
+A data frame object
 }
 \description{
 Provides an overview table for the time and scope conditions of

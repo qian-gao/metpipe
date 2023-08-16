@@ -64,14 +64,14 @@ if (is.null(params$path.peaktable.neg)){
 #### 1 Data import
 ```{r data import pos, eval = params$run.pos}
 
-if ( grepl(".xlsx", params$path.peaktable.pos) ){
+if (is.data.frame(params$path.peaktable.pos)){
+  
+  peaktable <- params$path.peaktable.pos
+  
+} else if ( grepl(".xlsx", params$path.peaktable.pos) ){
   
   peaktable <-
     readxl::read_excel( params$path.peaktable.pos )
-  
-} else if (is.data.frame(params$path.peaktable.pos)){
-  
-  peaktable <- params$path.peaktable.pos
   
 } else {
   
@@ -92,13 +92,15 @@ peaks.all <-
   cbind(peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)], peaktable[, peaks.names])
 
 f.info <- 
-  peaktable[, c(params$identity_col_nr, params$others), drop = FALSE] %>%
-  dplyr::rename( Identity = 1) %>%
+  peaktable[, c(params$identity_col_nr, params$mz_col_nr, params$rt_col_nr, params$others), drop = FALSE] %>%
+  dplyr::rename( Identity = 1,
+                 mz = 2,
+                 rt = 3) %>%
   mutate(  Identity = if_else( grepl(": 0.", Identity, fixed = TRUE),
                                substr(Identity, 1, regexpr("\\:[^\\:]*$", Identity)-1),
                                Identity),
            Identity = ifelse( is.na(Identity),
-                             paste0(round(mz, 3), "_", round(rt, 3)),
+                             paste0("MZ_", round(mz, 3), "_RT_", round(rt, 3)),
                              Identity ),
           Feature.id = row_number()) %>%
   group_by(Identity) %>%
@@ -108,7 +110,7 @@ f.info <-
                              Identity)) %>%
   ungroup() %>%
   arrange(Feature.id) %>%
-  select( -c(n, Feature.id) )
+  select( -c(n, Feature.id, mz, rt) )
 
 peaks.temp <-
   peaks.all %>%
@@ -119,7 +121,7 @@ peaks.temp <-
                                substr(Identity, 1, regexpr("\\:[^\\:]*$", Identity)-1),
                                Identity),
            Identity = ifelse( is.na(Identity),
-                             paste0(round(mz, 3), "_", round(rt, 3)),
+                             paste0("MZ_", round(mz, 3), "_RT_", round(rt, 3)),
                              Identity ),
           Feature.id = row_number()) %>%
   group_by(Identity) %>%
@@ -133,12 +135,12 @@ peaks.temp <-
 
 peaks.is <-
   peaks.temp %>%
-  filter(substr(Identity, 3, 3) == ".")
+  filter(grepl("^[0-9][0-9][0-9]", substr(Identity, 1, 3)))
 
 peaks <-
   peaks.temp %>%
-  filter(substr(Identity, 3, 3) != ".")
-  
+  filter(!grepl("^[0-9][0-9][0-9]", substr(Identity, 1, 3)))
+
 ```
 
 
@@ -322,14 +324,14 @@ print( paste0("POS cleaned peaktable was saved as: ", output.file ), quote = FAL
 #### 1 Data import
 ```{r data import neg, eval = params$run.neg}
 
-if ( grepl(".xlsx", params$path.peaktable.neg) ){
+if (is.data.frame(params$path.peaktable.neg)){
+  
+  peaktable <- params$path.peaktable.neg
+  
+} else if ( grepl(".xlsx", params$path.peaktable.neg) ){
   
   peaktable <-
     readxl::read_excel( params$path.peaktable.neg )
-  
-} else if (is.data.frame(params$path.peaktable.neg)){
-  
-  peaktable <- params$path.peaktable.neg
   
 } else {
   
@@ -350,13 +352,15 @@ peaks.all <-
   cbind(peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)], peaktable[, peaks.names])
 
 f.info <- 
-  peaktable[, c(params$identity_col_nr, params$others), drop = FALSE] %>%
-  dplyr::rename( Identity = 1) %>%
+  peaktable[, c(params$identity_col_nr, params$mz_col_nr, params$rt_col_nr, params$others), drop = FALSE] %>%
+  dplyr::rename( Identity = 1,
+                 mz = 2,
+                 rt = 3) %>%
   mutate(  Identity = if_else( grepl(": 0.", Identity, fixed = TRUE),
                                substr(Identity, 1, regexpr("\\:[^\\:]*$", Identity)-1),
                                Identity),
            Identity = ifelse( is.na(Identity),
-                             paste0(round(mz, 3), "_", round(rt, 3)),
+                             paste0("MZ_", round(mz, 3), "_RT_", round(rt, 3)),
                              Identity ),
           Feature.id = row_number()) %>%
   group_by(Identity) %>%
@@ -366,7 +370,7 @@ f.info <-
                              Identity)) %>%
   ungroup() %>%
   arrange(Feature.id) %>%
-  select( -c(n, Feature.id) )
+  select( -c(n, Feature.id, mz, rt) )
 
 peaks.temp <-
   peaks.all %>%
@@ -377,7 +381,7 @@ peaks.temp <-
                                substr(Identity, 1, regexpr("\\:[^\\:]*$", Identity)-1),
                                Identity),
           Identity = ifelse( is.na(Identity),
-                             paste0(round(mz, 3), "_", round(rt, 3)),
+                             paste0("MZ_", round(mz, 3), "_RT_", round(rt, 3)),
                              Identity ),
           Feature.id = row_number()) %>%
   group_by(Identity) %>%
@@ -391,11 +395,11 @@ peaks.temp <-
 
 peaks.is <-
   peaks.temp %>%
-  filter(substr(Identity, 3, 3) == ".")
+  filter(grepl("^[0-9][0-9][0-9]", substr(Identity, 1, 3)))
 
 peaks <-
   peaks.temp %>%
-  filter(substr(Identity, 3, 3) != ".")
+  filter(!grepl("^[0-9][0-9][0-9]", substr(Identity, 1, 3)))
 
 ```
 

@@ -47,21 +47,21 @@ if (!dir.exists(path.output)) dir.create(path.output)
 #### POS
 ```{r map features pos, eval = params$run.pos}
 
-if ( grepl(".xlsx", params$path.datatable.pos) ){
-  
-  datatable.pos <-
-    readxl::read_excel( params$path.datatable.pos) 
-  
-  feature.pos <- 
-    readxl::read_excel( params$path.datatable.pos, sheet = 2)
-  
-} else if (is.list(params$path.datatable.pos)){
+if (is.list(params$path.datatable.pos)){
   
   datatable.pos <-
     params$path.datatable.pos[[1]]
   
   feature.pos <- 
     params$path.datatable.pos[[2]]
+  
+} else if ( grepl(".xlsx", params$path.datatable.pos) ){
+  
+  datatable.pos <-
+    readxl::read_excel( params$path.datatable.pos) 
+  
+  feature.pos <- 
+    readxl::read_excel( params$path.datatable.pos, sheet = 2)
   
 } else {
   
@@ -126,21 +126,21 @@ colnames(data.pos)[2:ncol(data.pos)] <- paste0("pos_", colnames(data.pos)[2:ncol
 #### NEG
 ```{r map features neg, eval = params$run.neg}
 
-if ( grepl(".xlsx", params$path.datatable.neg) ){
-  
-  datatable.neg <-
-    readxl::read_excel( params$path.datatable.neg)
-  
-  feature.neg <- 
-    readxl::read_excel( params$path.datatable.neg, sheet = 2)
-  
-} else if (is.list(params$path.datatable.neg)){
+ if (is.list(params$path.datatable.neg)){
   
   datatable.pos <-
     params$path.datatable.neg[[1]]
   
   feature.pos <- 
     params$path.datatable.neg[[2]]
+  
+} else if ( grepl(".xlsx", params$path.datatable.neg) ){
+  
+  datatable.neg <-
+    readxl::read_excel( params$path.datatable.neg)
+  
+  feature.neg <- 
+    readxl::read_excel( params$path.datatable.neg, sheet = 2)
   
 } else {
   

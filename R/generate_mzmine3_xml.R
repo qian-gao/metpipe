@@ -7,8 +7,7 @@
 #' @param params = NULL,
 #' @param output_file = NULL
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#' @return A data frame object
 #' @examples
 #'
 #' @export
