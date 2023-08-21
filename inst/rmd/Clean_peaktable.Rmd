@@ -117,7 +117,7 @@ peaks.temp <-
   dplyr::rename( mz = 1,
                  rt = 2,
                  Identity = 3) %>%
-  mutate(  Identity = if_else( grepl(": 0.", Identity, fixed = TRUE),
+  mutate(  Identity = ifelse( grepl(": 0.", Identity, fixed = TRUE),
                                substr(Identity, 1, regexpr("\\:[^\\:]*$", Identity)-1),
                                Identity),
            Identity = ifelse( is.na(Identity),
@@ -356,7 +356,7 @@ f.info <-
   dplyr::rename( Identity = 1,
                  mz = 2,
                  rt = 3) %>%
-  mutate(  Identity = if_else( grepl(": 0.", Identity, fixed = TRUE),
+  mutate(  Identity = ifelse( grepl(": 0.", Identity, fixed = TRUE),
                                substr(Identity, 1, regexpr("\\:[^\\:]*$", Identity)-1),
                                Identity),
            Identity = ifelse( is.na(Identity),
