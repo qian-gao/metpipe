@@ -38,7 +38,7 @@ path.output <-
 
 if (!dir.exists(path.output)) dir.create(path.output)
 
-if (is.null(params$path.peaktable.pos) | is.null(params$path.peaktable.neg)){
+if (is.null(params$mz_col_nr)){
 
   params$mz_col_nr <- 2
   params$rt_col_nr <- 3
