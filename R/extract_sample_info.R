@@ -233,7 +233,7 @@ extract_sample_info <-
                                           pattern = "-",
                                           n = Inf)[, 1],
           Sample.type = dplyr::case_when( #Sample.temp %in% po.sample.type           ~ "PO",
-                                          Sample.temp %in% qc.sample.type           ~ Sample.temp,
+                                          Sample.temp %in% qc.sample.type           ~ Sample,
                                           Sample.temp %in% calibration.sample.type  ~ "CA",
                                           TRUE                                      ~ "Sample")) %>%
         select( -Sample.temp )
