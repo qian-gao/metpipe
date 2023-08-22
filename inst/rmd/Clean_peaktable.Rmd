@@ -507,7 +507,7 @@ data.is <- data.impute.is$x
 ```
 
 #### 5 Remove duplicate internal standard
-```{r remove dup is neg, eval = params$run.pos}
+```{r remove dup is neg, eval = params$run.neg}
 
 features.is.keep <-
   features.is %>%
