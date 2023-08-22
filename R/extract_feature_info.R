@@ -47,7 +47,7 @@ extract_feature_info <-
                 Identity = ifelse( n > 1,
                                    paste0(Identity, "_iso", row_number()),
                                    Identity),
-                Identity = stringi::stri_unescape_unicode(gsub("<U\\+(....)>", "\\\\u\\1", Identity)),
+                #Identity = stringi::stri_unescape_unicode(gsub("<U\\+(....)>", "\\\\u\\1", Identity)),
                 m_name = make.names(Identity) ) %>%
         ungroup() %>%
         select( -n) %>%
