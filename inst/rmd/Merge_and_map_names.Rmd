@@ -70,7 +70,7 @@ if (is.list(params$path.datatable.pos)){
               sep = params$datatable.sep,
               check.names = FALSE)
   
-  feature.pos <- data.frame(Identity = "")
+  feature.pos <- data.frame(mz = "", rt = "", Identity = "", m_name = "")
 
   
 }
@@ -111,7 +111,9 @@ feature.info.pos <-
   mutate( Compound.name = ifelse( is.na(Compound.name),
                                   Identity,
                                   Compound.name)) %>%
-  left_join(feature.pos[, c("mz", "rt", match("Identity", names(feature.pos)),
+  left_join(feature.pos[, c(match("mz", names(feature.pos)),
+                            match("rt", names(feature.pos)),
+                            match("Identity", names(feature.pos)),
                             match("m_name", names(feature.pos)):ncol(feature.pos))], by = c("Identity_orig" = "Identity"))
 
 
@@ -149,7 +151,7 @@ colnames(data.pos)[2:ncol(data.pos)] <- paste0("pos_", colnames(data.pos)[2:ncol
               sep = params$datatable.sep,
               check.names = FALSE)
   
-  feature.neg <- data.frame(Identity = "")
+  feature.neg <- data.frame(mz = "", rt = "", Identity = "", m_name = "")
   
 }
 
@@ -190,7 +192,9 @@ feature.info.neg <-
   mutate( Compound.name = ifelse( is.na(Compound.name),
                                   Identity,
                                   Compound.name)) %>%
-  left_join(feature.neg[, c("mz", "rt", match("Identity", names(feature.neg)),
+  left_join(feature.neg[, c(match("mz", names(feature.neg)),
+                            match("rt", names(feature.neg)),
+                            match("Identity", names(feature.neg)),
                             match("m_name", names(feature.neg)):ncol(feature.neg))], by = c("Identity_orig" = "Identity"))
 
 data.neg <-

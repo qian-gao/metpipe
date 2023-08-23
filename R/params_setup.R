@@ -202,7 +202,11 @@ params_setup <-
     if (!dir.exists(params$path.result)) dir.create(params$path.result)
 
     # Generate sample info
-    if ( !"No_data" %in% params$path.mzml.pos ){
+    if (is.data.frame(sample.info.pos)){
+
+      params$sample.info.pos <- sample.info.pos
+
+    } else if ( !"No_data" %in% params$path.mzml.pos ){
 
       sample.info.pos <-
         extract_sample_info( path = params$path.mzml.pos,
@@ -219,7 +223,11 @@ params_setup <-
       params$sample.info.pos <- sample.info.pos
     }
 
-    if ( !"No_data" %in% params$path.mzml.neg ){
+    if (is.data.frame(sample.info.neg)){
+
+      params$sample.info.neg <- sample.info.neg
+
+    } else if ( !"No_data" %in% params$path.mzml.neg ){
 
       sample.info.neg <-
         extract_sample_info( path = params$path.mzml.neg,
@@ -236,8 +244,6 @@ params_setup <-
       params$sample.info.neg <- sample.info.neg
 
     }
-
-
 
     params$run.pos <- exists("sample.info.pos")
     params$run.neg <- exists("sample.info.neg")
