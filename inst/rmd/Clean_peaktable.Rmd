@@ -88,8 +88,12 @@ print(params$path.peaktable.pos, quote = FALSE)
 peaks.names <-
   paste0(params$sample.info.pos$Sample.name, params$peaktable.sample.pattern)
  
+peaks.sample <-
+  peaktable[, peaks.names] %>%
+  mutate_if(is.character, as.numeric)
+
 peaks.all <-
-  cbind(peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)], peaktable[, peaks.names])
+  cbind(peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)], peaks.sample)
 
 f.info <- 
   peaktable[, c(params$identity_col_nr, params$mz_col_nr, params$rt_col_nr, params$others), drop = FALSE] %>%
@@ -135,11 +139,11 @@ peaks.temp <-
 
 peaks.is <-
   peaks.temp %>%
-  filter(grepl("^[0-9][0-9]", substr(Identity, 1, 3)))
+  filter(grepl("^[0-9][0-9]\\.", substr(Identity, 1, 3)))
 
 peaks <-
   peaks.temp %>%
-  filter(!grepl("^[0-9][0-9]", substr(Identity, 1, 3)))
+  filter(!grepl("^[0-9][0-9]\\.", substr(Identity, 1, 3)))
 
 ```
 
@@ -348,8 +352,12 @@ print(params$path.peaktable.neg, quote = FALSE)
 peaks.names <-
   paste0(params$sample.info.neg$Sample.name, params$peaktable.sample.pattern)
   
+peaks.sample <-
+  peaktable[, peaks.names] %>%
+  mutate_if(is.character, as.numeric)
+
 peaks.all <-
-  cbind(peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)], peaktable[, peaks.names])
+  cbind(peaktable[, c(params$mz_col_nr, params$rt_col_nr, params$identity_col_nr)], peaks.sample)
 
 f.info <- 
   peaktable[, c(params$identity_col_nr, params$mz_col_nr, params$rt_col_nr, params$others), drop = FALSE] %>%
@@ -395,11 +403,11 @@ peaks.temp <-
 
 peaks.is <-
   peaks.temp %>%
-  filter(grepl("^[0-9][0-9]", substr(Identity, 1, 3)))
+  filter(grepl("^[0-9][0-9]\\.", substr(Identity, 1, 3)))
 
 peaks <-
   peaks.temp %>%
-  filter(!grepl("^[0-9][0-9]", substr(Identity, 1, 3)))
+  filter(!grepl("^[0-9][0-9]\\.", substr(Identity, 1, 3)))
 
 ```
 
