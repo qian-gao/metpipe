@@ -259,7 +259,11 @@ extract_sample_info <-
               Run.order = ifelse( Batch == "No batch",
                                   Run.order,
                                   paste0( substr(Batch, 7, nchar(Batch)), "_", Run.order)),
-              Sample.unique =  paste( sep = "_", Sample, Sample.id))
+              Sample.unique =  paste( sep = "_", Sample, Sample.id)) %>%
+      group_by(Sample) %>%
+      mutate(Sample = ifelse( n() > 1,
+                              paste0(Sample, "_rep", row_number()),
+                              Sample))
 
     ### export
 
