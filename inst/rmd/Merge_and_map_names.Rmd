@@ -111,7 +111,7 @@ feature.info.pos <-
   mutate( Compound.name = ifelse( is.na(Compound.name),
                                   Identity,
                                   Compound.name)) %>%
-  left_join(feature.pos[, c(match("Identity", names(feature.pos)),
+  left_join(feature.pos[, c("mz", "rt", match("Identity", names(feature.pos)),
                             match("m_name", names(feature.pos)):ncol(feature.pos))], by = c("Identity_orig" = "Identity"))
 
 
@@ -190,7 +190,7 @@ feature.info.neg <-
   mutate( Compound.name = ifelse( is.na(Compound.name),
                                   Identity,
                                   Compound.name)) %>%
-  left_join(feature.neg[, c(match("Identity", names(feature.neg)),
+  left_join(feature.neg[, c("mz", "rt", match("Identity", names(feature.neg)),
                             match("m_name", names(feature.neg)):ncol(feature.neg))], by = c("Identity_orig" = "Identity"))
 
 data.neg <-
