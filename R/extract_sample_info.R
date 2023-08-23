@@ -263,7 +263,8 @@ extract_sample_info <-
       group_by(Sample) %>%
       mutate(Sample = ifelse( n() > 1,
                               paste0(Sample, "_rep", row_number()),
-                              Sample))
+                              Sample)) %>%
+      ungroup()
 
     ### export
 
