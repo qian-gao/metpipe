@@ -261,10 +261,12 @@ extract_sample_info <-
                                   paste0( substr(Batch, 7, nchar(Batch)), "_", Run.order)),
               Sample.unique =  paste( sep = "_", Sample, Sample.id)) %>%
       group_by(Sample) %>%
-      mutate(Sample = ifelse( n() > 1,
+      mutate(Sample.temp = ifelse( n() > 1,
                               paste0(Sample, "_rep", row_number()),
                               Sample)) %>%
-      ungroup()
+      ungroup() %>%
+      mutate(Sample = Sample.temp) %>%
+      select(-Sample.temp)
 
     ### export
 
