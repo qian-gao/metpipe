@@ -180,7 +180,7 @@ normalize_various_methods <-
 
         # Make some BMIS evaluations here based on the Internal Standards
 
-        mat.norm <- melt(mat, id = c('Sample', 'Metabolite'))
+        mat.norm <- reshape2::melt(mat, id = c('Sample', 'Metabolite'))
         RSD <- mat.norm %>%
                  group_by(Metabolite, variable) %>%
                  dplyr::summarise(RSD = sd(value, na.rm = TRUE)/mean(value, na.rm = TRUE))

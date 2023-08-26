@@ -25,7 +25,7 @@
 #                  library_file)
 
 match_library <-
-  function( feature_info = NULL,
+  function( feature_info = NULL, # contains mz and rt
             rt_tolerance = 0.1,
             mz_tolerance = 0.01,
             library_file = NULL,
@@ -35,14 +35,12 @@ match_library <-
     if (!is.data.frame(feature_info)){
       x <-
         openxlsx::read.xlsx(feature_info, sheet = 1) %>%
-        dplyr::rename(id = 1, rt = 2, mz = 3) %>%
         mutate(rt = as.numeric(rt),
                mz = as.numeric(mz),
                identifier = row_number())
     } else {
       x <-
         feature_info %>%
-        dplyr::rename(id = 1, rt = 2, mz = 3) %>%
         mutate(rt = as.numeric(rt),
                mz = as.numeric(mz),
                identifier = row_number())

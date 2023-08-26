@@ -258,7 +258,7 @@ extract_sample_info <-
       mutate( Sample.id = as.character(dplyr::row_number()),
               Run.order = ifelse( Batch == "No batch",
                                   Run.order,
-                                  paste0( substr(Batch, 7, nchar(Batch)), "_", Run.order)),
+                                  paste0( Batch, "_", Run.order)),
               Sample.unique =  paste( sep = "_", Sample, Sample.id)) %>%
       group_by(Sample) %>%
       mutate(n = n(),

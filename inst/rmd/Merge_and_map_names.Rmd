@@ -119,7 +119,7 @@ feature.info.pos <-
 
 data.pos <-
   cbind(sample.pos[, c("Sample.type", "Sample")], datatable.pos) %>%
-  filter(Sample.type == "Sample") %>%
+  #filter(Sample.type == "Sample") %>%
   select(-c(Sample.type, Sample.name))
 
 colnames(data.pos)[2:ncol(data.pos)] <- paste0("pos_", colnames(data.pos)[2:ncol(data.pos)])
@@ -199,7 +199,7 @@ feature.info.neg <-
 
 data.neg <-
   cbind(sample.neg[, c("Sample.type", "Sample")], datatable.neg) %>%
-  filter(Sample.type == "Sample") %>%
+  #filter(Sample.type == "Sample") %>%
   select(-c(Sample.type, Sample.name))
 
 colnames(data.neg)[2:ncol(data.neg)] <- paste0("neg_", colnames(data.neg)[2:ncol(data.neg)])
