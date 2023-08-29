@@ -47,7 +47,7 @@ prepare_datalist <-
       paste0(sample.info$Sample.name, sample.pattern)
 
     data <-
-      data.frame(t(peaktable[, sample.names]))
+      data.frame(t(peaktable[, sample.names, drop = FALSE]))
 
     rownames(data) <- sample.info$Sample.name
     colnames(data) <- feature.info$Identity
@@ -61,16 +61,16 @@ prepare_datalist <-
     rownames(feature.info.istd) <- feature.info.istd$m_name
 
     data.istd <-
-      data.frame(t(peaktable.IS[, sample.names]))
+      data.frame(t(peaktable.IS[, sample.names, drop = FALSE]))
 
     rownames(data.istd) <- sample.info$Sample.name
     colnames(data.istd) <- feature.info.istd$Identity
 
     ### Remove certain sample type
     index <- !sample.info$Sample.type %in% type.to.remove
-    data <- data[index, ]
-    data.istd <- data.istd[index, ]
-    sample.info <- sample.info[index, ]
+    data <- data[index, , drop = FALSE]
+    data.istd <- data.istd[index, , drop = FALSE]
+    sample.info <- sample.info[index, , drop = FALSE]
 
     ### Set data structure
 
