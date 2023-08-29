@@ -24,7 +24,7 @@ filter_by_missing <-
       nsample <- nrow(x)
       feature.keep <- missings < nsample*threshold/100
 
-      x.filter <- x[ , feature.keep]
+      x.filter <- x[ , feature.keep, drop = FALSE]
       result <- list(x = x.filter, index = feature.keep)
 
       print( paste0( "Only keep features having missings less than ", threshold, "% : ",
@@ -37,7 +37,7 @@ filter_by_missing <-
       nfeature <- ncol(x)
       sample.keep <- missings < nfeature*threshold/100
 
-      x.filter <- x[ sample.keep, ]
+      x.filter <- x[ sample.keep, , drop = FALSE]
       result <- list(x = x.filter, index = sample.keep)
 
       print( paste0( "Only keep sampless having missings less than ", threshold, "% : ",

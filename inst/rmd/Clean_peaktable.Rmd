@@ -135,7 +135,8 @@ peaks.temp <-
                              Identity)) %>%
   ungroup() %>%
   arrange(Feature.id) %>%
-  select( -c(n, Feature.id) )
+  select( -c(n, Feature.id) ) %>%
+  mutate( Identity = ifelse(nchar(Identity) > 1000, substr(Identity, 1, 1000), Identity)) 
 
 peaks.is <-
   peaks.temp %>%
@@ -179,8 +180,8 @@ mzrt.is.filtered <-
   filter_peaks( peaktable = peaks.is,
                 sample.type = params$sample.info.pos$Sample.type,
                 bl.thres = c(),
-                rsd.po.thres = params$rsd.po.thres,
-                mean.po.thres = params$mean.po.thres,
+                rsd.po.thres = c(),
+                mean.po.thres = c(),
                 rt.range = params$rt.range,
                 mean.thres = c())
 
@@ -399,7 +400,8 @@ peaks.temp <-
                              Identity)) %>%
   ungroup() %>%
   arrange(Feature.id) %>%
-  select( -c(n, Feature.id) )
+  select( -c(n, Feature.id) ) %>%
+  mutate( Identity = ifelse(nchar(Identity) > 1000, substr(Identity, 1, 1000), Identity)) 
 
 peaks.is <-
   peaks.temp %>%
@@ -443,8 +445,8 @@ mzrt.is.filtered <-
   filter_peaks( peaktable = peaks.is,
                 sample.type = params$sample.info.neg$Sample.type,
                 bl.thres = c(),
-                rsd.po.thres = params$rsd.po.thres,
-                mean.po.thres = params$mean.po.thres,
+                rsd.po.thres = c(),
+                mean.po.thres = c(),
                 rt.range = params$rt.range,
                 mean.thres = c())
 
