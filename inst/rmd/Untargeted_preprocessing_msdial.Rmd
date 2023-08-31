@@ -154,7 +154,7 @@ if (!file.exists(paste0(path.output, "/MSDIAL_parameters_pos.txt"))){
   prepare_msdial_txt(
       target = params$target, # Metabolomics, Lipidomics
       mode = 'Positive',
-      path_lib = library.file,
+      path_lib = "", #library.file
       path_msp = msp.file,
       path_ri = path_ri,
       mz_tol = mz_tol_pos,
@@ -215,7 +215,27 @@ output_data <-
          sample.info.pos$Sample.name) %>%
   dplyr::rename( rt = "Average Rt(min)",
                  mz = "Average Mz",
-                 Library.name = "Metabolite name") %>%
+                 Metabolite.name = "Metabolite name") 
+
+
+match_table <-
+  match_library( feature_info = output_data[, c("mz", "rt")],
+                 rt_tolerance = params$rt_tolerance,
+                 mz_tolerance = params$mz_tolerance,
+                 library_file = params$lib[[params$method]][["pos"]],
+                 mode = "pos",
+                 output.file = NULL ) %>%
+  filter(!grepl("Unknown", Library.name)) %>%
+  mutate(Library.name = paste0(Library.name, ";"))
+
+
+final <- 
+  output_data %>%
+  left_join(match_table[, c("mz", "rt", "Library.name")], by = c("mz", "rt")) %>%
+  relocate(Library.name, .before = Metabolite.name) %>%
+  mutate(in_house = !is.na(Library.name) & Library.name == Metabolite.name,
+         Library.name = ifelse( is.na(Library.name) | Library.name != Metabolite.name,
+                                Metabolite.name, Library.name)) %>%
   group_by(Library.name) %>%
   mutate( Library.name = trimws(Library.name),
           Library.name = ifelse( Library.name == "Unknown", 
@@ -223,28 +243,27 @@ output_data <-
                                     ifelse(substr(Library.name, nchar(Library.name), nchar(Library.name)) == ";",
                                           substr(Library.name, 1, nchar(Library.name) -1),
                                           Library.name)),
-          Library.name = ifelse( `Annotation tag (VS1.0)` %in% c("430"), 
-                                   paste0( "w MS2:", Library.name), 
-                                   Library.name),
-          Library.name = ifelse( `Annotation tag (VS1.0)` %in% c("annotated by user-defined text library") & `MS/MS matched` == TRUE, 
-                                   paste0( "m MS2:", Library.name), 
-                                   Library.name)) %>%
+          Library.name = case_when(in_house & `MS/MS matched` == TRUE  ~ paste0( "in_wi MS2:", Library.name),
+                                   in_house & `MS/MS matched` == FALSE  ~ paste0( "in_wo MS2:", Library.name),
+                                   !in_house & `MS/MS matched` == TRUE ~ paste0( "w MS2:", Library.name),
+                                   TRUE                                ~ Library.name)) %>%
   ungroup() %>%
   filter(!grepl("[(d)]", Library.name, fixed = TRUE)) %>%
-  mutate( `Adduct type` = trimws(`Adduct type`))
+  mutate( `Adduct type` = trimws(`Adduct type`)) %>%
+  select(-c(in_house))
 
-write.table(output_data,
+write.table(final,
           file = output.file.pos,
           sep = ";",
           row.names = FALSE)
 
 if (params$extract_precursor){
   
-  output_data <-
-    output_data %>%
-    mutate( Library.rt = ifelse( `Annotation tag (VS1.0)` %in% c("annotated by user-defined text library"), 99, NA))
+  final <-
+    final %>%
+    mutate( Library.rt = ifelse( substr(Library.name, 1, 10) %in% c("in_wi MS2:", "in_wo MS2:"), 99, NA))
     
-  saveRDS( output_data,
+  saveRDS( final,
            file = paste0(path.output, "precursor_annotation_pos.rds") )
   
 }
@@ -361,39 +380,55 @@ output_data <-
          sample.info.neg$Sample.name) %>%
   dplyr::rename( rt = "Average Rt(min)",
                  mz = "Average Mz",
-                 Library.name = "Metabolite name") %>%
+                 Metabolite.name = "Metabolite name") 
+
+
+match_table <-
+  match_library( feature_info = output_data[, c("mz", "rt")],
+                 rt_tolerance = params$rt_tolerance,
+                 mz_tolerance = params$mz_tolerance,
+                 library_file = params$lib[[params$method]][["neg"]],
+                 mode = "neg",
+                 output.file = NULL ) %>%
+  filter(!grepl("Unknown", Library.name)) %>%
+  mutate(Library.name = paste0(Library.name, ";"))
+
+
+final <- 
+  output_data %>%
+  left_join(match_table[, c("mz", "rt", "Library.name")], by = c("mz", "rt")) %>%
+  relocate(Library.name, .before = Metabolite.name) %>%
+  mutate(in_house = !is.na(Library.name) & Library.name == Metabolite.name,
+         Library.name = ifelse( is.na(Library.name) | Library.name != Metabolite.name,
+                                Metabolite.name, Library.name)) %>%
   group_by(Library.name) %>%
   mutate( Library.name = trimws(Library.name),
           Library.name = ifelse( Library.name == "Unknown", 
                                     paste0("Unknown_neg_", row_number()),
                                     ifelse(substr(Library.name, nchar(Library.name), nchar(Library.name)) == ";",
-                                           substr(Library.name, 1, nchar(Library.name) -1),
-                                           Library.name)),
-          Library.name = ifelse( `Annotation tag (VS1.0)` %in% c("430"), 
-                                   paste0( "w MS2:", Library.name), 
-                                   Library.name),
-          Library.name = ifelse( `Annotation tag (VS1.0)` %in% c("annotated by user-defined text library") & `MS/MS matched` == TRUE, 
-                                   paste0( "m MS2:", Library.name), 
-                                   Library.name)) %>%
+                                          substr(Library.name, 1, nchar(Library.name) -1),
+                                          Library.name)),
+          Library.name = case_when(in_house & `MS/MS matched` == TRUE  ~ paste0( "in_wi MS2:", Library.name),
+                                   in_house & `MS/MS matched` == FALSE  ~ paste0( "in_wo MS2:", Library.name),
+                                   !in_house & `MS/MS matched` == TRUE ~ paste0( "w MS2:", Library.name),
+                                   TRUE                                ~ Library.name)) %>%
   ungroup() %>%
   filter(!grepl("[(d)]", Library.name, fixed = TRUE)) %>%
-  mutate( `Adduct type` = trimws(`Adduct type`))
+  mutate( `Adduct type` = trimws(`Adduct type`)) %>%
+  select(-c(in_house))
 
-write.table(output_data,
+write.table(final,
           file = output.file.neg,
           sep = ";",
           row.names = FALSE)
 
 if (params$extract_precursor){
   
-  output_data <-
-    output_data %>%
-    mutate( Library.rt = ifelse( `Annotation tag (VS1.0)` %in% c("annotated by user-defined text library"), 99, NA),
-            Library.name = ifelse( `Annotation tag (VS1.0)` %in% c("430"), 
-                                   paste0( "w MS2:", Library.name), 
-                                   Library.name))
-  
-  saveRDS( output_data,
+  final <-
+    final %>%
+    mutate( Library.rt = ifelse( substr(Library.name, 1, 10) %in% c("in_wi MS2:", "in_wo MS2:"), 99, NA))
+    
+  saveRDS( final,
            file = paste0(path.output, "precursor_annotation_neg.rds") )
   
 }

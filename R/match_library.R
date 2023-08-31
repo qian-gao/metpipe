@@ -75,12 +75,18 @@ match_library <-
     result <-
       x %>%
         left_join(match.from.y, by = "identifier") %>%
-        select(-identifier) %>%
+        #select(-identifier) %>%
         group_by(Library.name) %>%
         mutate( Library.name = ifelse( is.na(Library.name),
                                      paste0("Unknown_", ifelse(is.null(mode), "", mode), "_", row_number()),
                                      Library.name) ) %>%
-        ungroup()
+        ungroup() %>%
+        mutate( mz_diff = ifelse(!is.na(mz) & !is.na(Library.mz), abs(mz - Library.mz), NA)) %>%
+        group_by(identifier) %>%
+        arrange(mz_diff) %>%
+        filter( row_number() == 1) %>%
+        ungroup() %>%
+        select(-c(mz_diff, identifier))
 
     output <-
       result %>%
