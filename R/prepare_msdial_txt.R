@@ -56,15 +56,11 @@ prepare_msdial_txt <-
 
     if ( tolower(mode) %in% c('pos', 'positive')) {
       params_msdial$mode='Positive'
-      params_msdial$ion <-
-        paste( "[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+", "[M+H-H2O]+",
-               collapse = "\n" )
+      params_msdial$ion <- "Adduct list: [M+H]+,[M+NH4]+,[M+Na]+,[M+K]+,[M+H-H2O]+"
 
     } else if (tolower(mode) %in% c('neg', 'negative')) {
       params_msdial$mode='Negative'
-      params_msdial$ion <-
-        paste( "[M-H]-", "[M+HCOOH-H]-",
-               collapse = "\n" )
+      params_msdial$ion <- "Adduct list: [M-H]-,[M+HCOOH-H]-"
 
     }
 

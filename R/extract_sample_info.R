@@ -49,8 +49,8 @@ extract_sample_info <-
         files <-
           list.files( path = path,
                       pattern = sample.pattern,
-                      recursive = T,
-                      full.names = T )
+                      recursive = FALSE,
+                      full.names = TRUE )
       } else {
 
         files <- path
