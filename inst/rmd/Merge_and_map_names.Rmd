@@ -97,10 +97,10 @@ feature.info.pos <-
   mutate( Identity_orig = Identity,
           Identity = strsplit( Identity, "-iso")[[1]][1]) %>%
   ungroup() %>%
-  mutate( Source = case_when( grepl("in_house:", Identity)                              ~ "in_house_MS1_matched",
-                              grepl("w MS2:", Identity)                                  ~ "public_db_MS2_matched", 
+  mutate( Source = case_when( grepl("Unknown_", Identity)                                ~ as.character(NA),
+                              grepl("w MS2:", Identity)                                  ~ "public_db_MS2_matched",
                               grepl("w/o MS2:", Identity)                                ~ "public_db_mz_matched", 
-                              TRUE                                                       ~ as.character(NA)),
+                              TRUE                                                       ~ "in_house_MS1_matched"),
           Identity = gsub("w/o MS2:", "", 
                           gsub("w MS2:", "", 
                                gsub("m MS2:", "", Identity))),
@@ -177,10 +177,10 @@ feature.info.neg <-
   mutate( Identity_orig = Identity,
           Identity = strsplit( Identity, "-iso")[[1]][1]) %>%
   ungroup() %>%
-  mutate( Source = case_when( grepl("in_house:", Identity)                              ~ "in_house_MS1_matched",
-                              grepl("w MS2:", Identity)                                  ~ "public_db_MS2_matched", 
+  mutate( Source = case_when( grepl("Unknown_", Identity)                                ~ as.character(NA),
+                              grepl("w MS2:", Identity)                                  ~ "public_db_MS2_matched",
                               grepl("w/o MS2:", Identity)                                ~ "public_db_mz_matched", 
-                              TRUE                                                       ~ as.character(NA)),
+                              TRUE                                                       ~ "in_house_MS1_matched"),
           Identity = gsub("w/o MS2:", "", 
                           gsub("w MS2:", "", 
                                gsub("m MS2:", "", Identity))),
