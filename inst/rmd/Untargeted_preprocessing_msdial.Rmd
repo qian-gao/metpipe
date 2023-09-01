@@ -355,14 +355,14 @@ output_data <-
          "Metabolite name", "Adduct type", "Formula", 
          "Annotation tag (VS1.0)", "MS/MS assigned", "MS/MS matched", 
          "Total score", "RT similarity", "Dot product", "Fragment presence %", "S/N average",
-         sample.info.pos$Sample.name) %>%
+         sample.info.neg$Sample.name) %>%
   dplyr::rename( rt = "Average Rt(min)",
                  mz = "Average Mz",
                  Library.name = "Metabolite name") %>%
   group_by(Library.name) %>%
   mutate( Library.name = trimws(Library.name),
           Library.name = ifelse( Library.name == "Unknown", 
-                                    paste0("Unknown_pos_", row_number()),
+                                    paste0("Unknown_neg_", row_number()),
                                     ifelse(substr(Library.name, nchar(Library.name), nchar(Library.name)) == ";",
                                           substr(Library.name, 1, nchar(Library.name) -1),
                                           Library.name)),
@@ -374,7 +374,7 @@ output_data <-
   mutate( `Adduct type` = trimws(`Adduct type`))
 
 write.table(output_data,
-          file = output.file.pos,
+          file = output.file.neg,
           sep = ";",
           row.names = FALSE)
 
