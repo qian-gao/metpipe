@@ -223,7 +223,7 @@ output_data <-
                                     ifelse(substr(Library.name, nchar(Library.name), nchar(Library.name)) == ";",
                                           substr(Library.name, 1, nchar(Library.name) -1),
                                           Library.name)),
-          Library.name = case_when(`Annotation tag (VS1.0)` == "annotated by user-defined text library"  ~ paste0( "in_house:", Library.name),
+          Library.name = case_when(`Annotation tag (VS1.0)` == "annotated by user-defined text library"  ~ Library.name,
                                    `Annotation tag (VS1.0)` %in% c("410", "420", "430")                  ~ paste0( "w MS2:", Library.name),
                                    TRUE                                ~ Library.name)) %>%
   ungroup() %>%
@@ -366,7 +366,7 @@ output_data <-
                                     ifelse(substr(Library.name, nchar(Library.name), nchar(Library.name)) == ";",
                                           substr(Library.name, 1, nchar(Library.name) -1),
                                           Library.name)),
-          Library.name = case_when(`Annotation tag (VS1.0)` == "annotated by user-defined text library"  ~ paste0( "in_house:", Library.name),
+          Library.name = case_when(`Annotation tag (VS1.0)` == "annotated by user-defined text library"  ~ Library.name,
                                    `Annotation tag (VS1.0)` %in% c("410", "420", "430")                  ~ paste0( "w MS2:", Library.name),
                                    TRUE                                ~ Library.name)) %>%
   ungroup() %>%
