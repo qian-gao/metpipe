@@ -176,28 +176,29 @@ data <-
 colnames(data) <- features$Identity
 
 # IS
-mzrt.is.filtered <-
-  filter_peaks( peaktable = peaks.is,
-                sample.type = params$sample.info.pos$Sample.type,
-                bl.thres = c(),
-                rsd.po.thres = c(),
-                mean.po.thres = c(),
-                rt.range = params$rt.range,
-                mean.thres = c())
-
-peaks.is.filtered <- 
-  mzrt.is.filtered$peaktable
-
-
-features.is <- 
-  cbind( peaks.is.filtered[, c("mz", "rt", "Identity")], mzrt.is.filtered$summary[, -1])
-
-data.is <- 
-  t(peaks.is.filtered[, !colnames(peaks.is.filtered) %in% c("mz", "rt", "Identity")]) %>%
-  as.data.frame()
-
-colnames(data.is) <- features.is$Identity
-
+if (nrow(peaks.is > 0)){
+  mzrt.is.filtered <-
+    filter_peaks( peaktable = peaks.is,
+                  sample.type = params$sample.info.pos$Sample.type,
+                  bl.thres = c(),
+                  rsd.po.thres = c(),
+                  mean.po.thres = c(),
+                  rt.range = params$rt.range,
+                  mean.thres = c())
+  
+  peaks.is.filtered <- 
+    mzrt.is.filtered$peaktable
+  
+  
+  features.is <- 
+    cbind( peaks.is.filtered[, c("mz", "rt", "Identity")], mzrt.is.filtered$summary[, -1])
+  
+  data.is <- 
+    t(peaks.is.filtered[, !colnames(peaks.is.filtered) %in% c("mz", "rt", "Identity")]) %>%
+    as.data.frame()
+  
+  colnames(data.is) <- features.is$Identity
+}
 ```
 
 
@@ -218,16 +219,19 @@ features <-
 
 
 # IS by feature
-feature_filter.is <- 
-  filter_by_missing( data.is, 
-                     method = 'feature',                        #feature or sample
-                     threshold = params$filter_by_missing_feature_pct  #Percentage
-  )
+if (nrow(peaks.is > 0)){
 
-data.is <- feature_filter.is$x
-features.is <- 
-  features.is[feature_filter.is$index, ] %>%
-  left_join(f.info, by = "Identity")
+  feature_filter.is <- 
+    filter_by_missing( data.is, 
+                       method = 'feature',                        #feature or sample
+                       threshold = params$filter_by_missing_feature_pct  #Percentage
+    )
+  
+  data.is <- feature_filter.is$x
+  features.is <- 
+    features.is[feature_filter.is$index, ] %>%
+    left_join(f.info, by = "Identity")
+}
 
 ```
 
@@ -243,30 +247,35 @@ data.impute <-
 data <- data.impute$x
 
 # IS
-data.impute.is <- 
-  impute_various_methods( data.is,
-                          method = params$missing.impute.method
-  )
+if (nrow(peaks.is > 0)){
 
-data.is <- data.impute.is$x
-
+  data.impute.is <- 
+    impute_various_methods( data.is,
+                            method = params$missing.impute.method
+    )
+  
+  data.is <- data.impute.is$x
+}
 ```
 
 #### 5 Remove duplicate internal standard
 ```{r remove dup is, eval = params$run.pos}
 
-features.is.keep <-
-  features.is %>%
-  rowwise() %>%
-  mutate(Identity_new = strsplit(Identity, "-iso")[[1]][1]) %>%
-  group_by(Identity_new) %>%
-  arrange(Identity_new, desc(get(make.names(paste0("mean.", params$po.sample.to.use))))) %>%
-  filter(row_number() == 1) %>%
-  ungroup() %>%
-  select(-Identity_new)
+if (nrow(peaks.is > 0)){
 
-data.is.keep <-
-  data.is[, features.is.keep$Identity]
+  features.is.keep <-
+    features.is %>%
+    rowwise() %>%
+    mutate(Identity_new = strsplit(Identity, "-iso")[[1]][1]) %>%
+    group_by(Identity_new) %>%
+    arrange(Identity_new, desc(get(make.names(paste0("mean.", params$po.sample.to.use))))) %>%
+    filter(row_number() == 1) %>%
+    ungroup() %>%
+    select(-Identity_new)
+  
+  data.is.keep <-
+    data.is[, features.is.keep$Identity]
+}
 
 ```
 
@@ -287,24 +296,32 @@ peaktable.cleaned <-
   ungroup() %>%
   select( -n )
 
-peaktable.is.cleaned <-
-  cbind( features.is.keep[, c("mz", "rt", "Identity", names(f.info)[-1])], 
-         t(data.is.keep)) %>%
-  rowwise() %>% 
-  mutate( Identity = strsplit( Identity, "-iso")[[1]][1] ) %>%
-  group_by(Identity) %>%
-  mutate( n = n(), 
-          Identity = ifelse( n > 1, 
-                             paste0(Identity, "-iso", row_number()),
-                             Identity)) %>%
-  ungroup() %>%
-  select( -n )
-
 features$Identity_orig <- features$Identity
 features$Identity <- peaktable.cleaned$Identity
 
-features.is.keep$Identity_orig <- features.is.keep$Identity
-features.is.keep$Identity <- peaktable.is.cleaned$Identity
+if (nrow(peaks.is > 0)){
+
+  peaktable.is.cleaned <-
+    cbind( features.is.keep[, c("mz", "rt", "Identity", names(f.info)[-1])], 
+           t(data.is.keep)) %>%
+    rowwise() %>% 
+    mutate( Identity = strsplit( Identity, "-iso")[[1]][1] ) %>%
+    group_by(Identity) %>%
+    mutate( n = n(), 
+            Identity = ifelse( n > 1, 
+                               paste0(Identity, "-iso", row_number()),
+                               Identity)) %>%
+    ungroup() %>%
+    select( -n )
+  
+  features.is.keep$Identity_orig <- features.is.keep$Identity
+  features.is.keep$Identity <- peaktable.is.cleaned$Identity
+  
+} else {
+
+  peaktable.is.cleaned <- data.frame()
+  features.is.keep <- data.frame()
+}
 
 peaktable.cleaned <-
   bind_rows(peaktable.cleaned, peaktable.is.cleaned)
@@ -441,28 +458,30 @@ data <-
 colnames(data) <- features$Identity
 
 # IS
-mzrt.is.filtered <-
-  filter_peaks( peaktable = peaks.is,
-                sample.type = params$sample.info.neg$Sample.type,
-                bl.thres = c(),
-                rsd.po.thres = c(),
-                mean.po.thres = c(),
-                rt.range = params$rt.range,
-                mean.thres = c())
+if (nrow(peaks.is > 0)){
 
-peaks.is.filtered <- 
-  mzrt.is.filtered$peaktable
-
-
-features.is <- 
-  cbind( peaks.is.filtered[, c("mz", "rt", "Identity")], mzrt.is.filtered$summary[, -1])
-
-data.is <- 
-  t(peaks.is.filtered[, !colnames(peaks.is.filtered) %in% c("mz", "rt", "Identity")]) %>%
-  as.data.frame()
-
-colnames(data.is) <- features.is$Identity
-
+  mzrt.is.filtered <-
+    filter_peaks( peaktable = peaks.is,
+                  sample.type = params$sample.info.neg$Sample.type,
+                  bl.thres = c(),
+                  rsd.po.thres = c(),
+                  mean.po.thres = c(),
+                  rt.range = params$rt.range,
+                  mean.thres = c())
+  
+  peaks.is.filtered <- 
+    mzrt.is.filtered$peaktable
+  
+  
+  features.is <- 
+    cbind( peaks.is.filtered[, c("mz", "rt", "Identity")], mzrt.is.filtered$summary[, -1])
+  
+  data.is <- 
+    t(peaks.is.filtered[, !colnames(peaks.is.filtered) %in% c("mz", "rt", "Identity")]) %>%
+    as.data.frame()
+  
+  colnames(data.is) <- features.is$Identity
+}
 ```
 
 
@@ -482,17 +501,19 @@ features <-
   left_join(f.info, by = "Identity")
 
 # IS by feature
-feature_filter.is <- 
-  filter_by_missing( data.is, 
-                     method = 'feature',                        #feature or sample
-                     threshold = params$filter_by_missing_feature_pct  #Percentage
-  )
+if (nrow(peaks.is > 0)){
 
-data.is <- feature_filter.is$x
-features.is <- 
-  features.is[feature_filter.is$index, ] %>%
-  left_join(f.info, by = "Identity")
-
+  feature_filter.is <- 
+    filter_by_missing( data.is, 
+                       method = 'feature',                        #feature or sample
+                       threshold = params$filter_by_missing_feature_pct  #Percentage
+    )
+  
+  data.is <- feature_filter.is$x
+  features.is <- 
+    features.is[feature_filter.is$index, ] %>%
+    left_join(f.info, by = "Identity")
+}
 ```
 
 #### 4 Missing imputation
@@ -507,31 +528,36 @@ data.impute <-
 data <- data.impute$x
 
 # IS
-data.impute.is <- 
-  impute_various_methods( data.is,
-                          method = params$missing.impute.method
-  )
+if (nrow(peaks.is > 0)){
 
-data.is <- data.impute.is$x
+  data.impute.is <- 
+    impute_various_methods( data.is,
+                            method = params$missing.impute.method
+    )
+  
+  data.is <- data.impute.is$x
+}
 
 ```
 
 #### 5 Remove duplicate internal standard
 ```{r remove dup is neg, eval = params$run.neg}
 
-features.is.keep <-
-  features.is %>%
-  rowwise() %>%
-  mutate(Identity_new = strsplit(Identity, "-iso")[[1]][1]) %>%
-  group_by(Identity_new) %>%
-  arrange(Identity_new, desc(get(make.names(paste0("mean.", params$po.sample.to.use))))) %>%
-  filter(row_number() == 1) %>%
-  ungroup() %>%
-  select(-Identity_new)
+if (nrow(peaks.is > 0)){
 
-data.is.keep <-
-  data.is[, features.is.keep$Identity]
-
+  features.is.keep <-
+    features.is %>%
+    rowwise() %>%
+    mutate(Identity_new = strsplit(Identity, "-iso")[[1]][1]) %>%
+    group_by(Identity_new) %>%
+    arrange(Identity_new, desc(get(make.names(paste0("mean.", params$po.sample.to.use))))) %>%
+    filter(row_number() == 1) %>%
+    ungroup() %>%
+    select(-Identity_new)
+  
+  data.is.keep <-
+    data.is[, features.is.keep$Identity]
+}
 ```
 
 ```{r export neg, eval = params$run.neg}
@@ -551,24 +577,31 @@ peaktable.cleaned <-
   ungroup() %>%
   select( -n )
 
-peaktable.is.cleaned <-
-  cbind( features.is.keep[, c("mz", "rt", "Identity", names(f.info)[-1])], 
-         t(data.is.keep)) %>%
-  rowwise() %>% 
-  mutate( Identity = strsplit( Identity, "-iso")[[1]][1] ) %>%
-  group_by(Identity) %>%
-  mutate( n = n(), 
-          Identity = ifelse( n > 1, 
-                             paste0(Identity, "-iso", row_number()),
-                             Identity)) %>%
-  ungroup() %>%
-  select( -n )
-
 features$Identity_orig <- features$Identity
 features$Identity <- peaktable.cleaned$Identity
 
-features.is.keep$Identity_orig <- features.is.keep$Identity
-features.is.keep$Identity <- peaktable.is.cleaned$Identity
+if (nrow(peaks.is > 0)){
+
+  peaktable.is.cleaned <-
+    cbind( features.is.keep[, c("mz", "rt", "Identity", names(f.info)[-1])], 
+           t(data.is.keep)) %>%
+    rowwise() %>% 
+    mutate( Identity = strsplit( Identity, "-iso")[[1]][1] ) %>%
+    group_by(Identity) %>%
+    mutate( n = n(), 
+            Identity = ifelse( n > 1, 
+                               paste0(Identity, "-iso", row_number()),
+                               Identity)) %>%
+    ungroup() %>%
+    select( -n )
+  
+  features.is.keep$Identity_orig <- features.is.keep$Identity
+  features.is.keep$Identity <- peaktable.is.cleaned$Identity
+
+} else {
+  peaktable.is.cleaned <- data.frame()
+  features.is.keep <- data.frame()
+}
 
 peaktable.cleaned <-
   bind_rows(peaktable.cleaned, peaktable.is.cleaned)

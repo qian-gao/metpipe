@@ -336,8 +336,10 @@ ggbiplot <-
         data.frame(sweep(circle %*% chol(sigma) * ed, 2,
                          mu, FUN = "+"), groups = x$groups[1])
       })
-      names(ell)[1:2] <- c("xvar", "yvar")
-      g <- g + geom_path(data = ell, aes(color = groups, group = groups))
+      if (nrow(x) > 2){
+        names(ell)[1:2] <- c("xvar", "yvar")
+        g <- g + geom_path(data = ell, aes(color = groups, group = groups))
+      }
     }
     if (var.axes) {
       g <- g + geom_text(data = df.v, aes(label = varname,
