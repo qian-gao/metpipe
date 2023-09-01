@@ -320,6 +320,7 @@ params_setup <-
         "path.mzmine",
 
         "preprocessing.is",
+        "precursor.include",
         "mzmine.mz.tol.pos",
         "mzmine.rt.tol.pos",
         "mzmine.mz.tol.neg",

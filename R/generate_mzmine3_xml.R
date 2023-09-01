@@ -23,7 +23,7 @@ generate_mzmine3_xml <-
     params$RAW_FILES <-
       paste( paste0( "<file>",
                      list.files( params$P_RAWPATH, pattern = ".mzML",
-                                 recursive = TRUE, full.names = TRUE, include.dirs = TRUE),
+                                 recursive = FALSE, full.names = TRUE, include.dirs = TRUE),
                      "</file>" ),
              collapse = "" )
 

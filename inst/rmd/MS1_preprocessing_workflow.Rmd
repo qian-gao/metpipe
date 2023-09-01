@@ -148,6 +148,9 @@ render_rmarkdown(
 
 ```{r 03_01_Preprocessing_IS, eval = FALSE}
 
+params$preprocessing.is <- TRUE
+params$precursor.include <- FALSE
+
 params$mzmine.mz.tol.pos <- params$mz_tolerance
 params$mzmine.rt.tol.pos <- params$rt_tolerance
 params$mzmine.min.peaks.in.row.pos <- 1
