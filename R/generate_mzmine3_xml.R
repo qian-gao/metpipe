@@ -20,10 +20,16 @@ generate_mzmine3_xml <-
     output_file = NULL
   ){
 
+    files <-
+      list.files( params$P_RAWPATH, pattern = ".mzML",
+                  recursive = FALSE, full.names = TRUE, include.dirs = TRUE)
+
+    files.ms1 <-
+      files[!grepl("ms2", tolower(files))]
+
     params$RAW_FILES <-
       paste( paste0( "<file>",
-                     list.files( params$P_RAWPATH, pattern = ".mzML",
-                                 recursive = FALSE, full.names = TRUE, include.dirs = TRUE),
+                     files.ms1,
                      "</file>" ),
              collapse = "" )
 
