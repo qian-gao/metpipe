@@ -95,9 +95,9 @@ if ( params$precursor.include & file.exists(precursor.file) ){
 
   prec.lib <-
     readRDS( precursor.file) %>%
-    filter( is.na(Library.rt) ) %>%
     mutate( Library.rt = rt,
             Library.mz = mz ) %>%
+    filter( is.na(Library.rt) | grepl("w MS2:", Library.name) | grepl("w/o MS2:", Library.name)) %>%
     select( Library.mz, Library.rt, Library.name)
 
   print( paste0("POS: Precursors were used for preprocessing, ", gsub(".rds", ".xlsx", precursor.file)) )
@@ -188,9 +188,9 @@ if ( params$precursor.include & file.exists(precursor.file) ){
 
   prec.lib <-
     readRDS( precursor.file) %>%
-    filter( is.na(Library.rt) ) %>%
     mutate( Library.rt = rt,
             Library.mz = mz ) %>%
+    filter( is.na(Library.rt) | grepl("w MS2:", Library.name) | grepl("w/o MS2:", Library.name)) %>%
     select( Library.mz, Library.rt, Library.name)
 
   print( paste0("NEG: Precursors were used for preprocessing, ", gsub(".rds", ".xlsx", precursor.file)) )

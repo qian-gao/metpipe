@@ -216,6 +216,7 @@ output_data <-
   dplyr::rename( rt = "Average Rt(min)",
                  mz = "Average Mz",
                  Library.name = "Metabolite name") %>%
+  filter(`S/N average` > 10) %>%
   group_by(Library.name) %>%
   mutate( Library.name = trimws(Library.name),
           Library.name = ifelse( Library.name == "Unknown", 
@@ -359,6 +360,7 @@ output_data <-
   dplyr::rename( rt = "Average Rt(min)",
                  mz = "Average Mz",
                  Library.name = "Metabolite name") %>%
+  filter(`S/N average` > 10) %>%
   group_by(Library.name) %>%
   mutate( Library.name = trimws(Library.name),
           Library.name = ifelse( Library.name == "Unknown", 
