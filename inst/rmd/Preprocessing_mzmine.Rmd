@@ -165,15 +165,16 @@ prepare_mzmine_xml(
 
 if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
   
-  system( paste0( 'cd /home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/; ./MZmine -batch ', path.output, mzmine.param.pos) )
+  system( paste0( 'cd /home/projects/ku_00007/apps/MZmine/MZmine-2.53-Linux/bin/; ./MZmine ', path.output, mzmine.param.pos) )
+  # system( paste0( 'cd /home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/; ./MZmine -batch ', path.output, mzmine.param.pos) )
   
 } else if ( !file.exists(output.file)){
   
-  # system("cmd.exe", input = paste0( params$path.mzmine,
-  #                                   ' "', paste0(path.output, "MZMine_parameters_pos.xml"), '"'))
-  
   system("cmd.exe", input = paste0( params$path.mzmine,
-                                    ' -batch "', paste0(path.output, mzmine.param.pos), '"' ))
+                                    ' "', paste0(path.output, mzmine.param.pos), '"'))
+  
+  # system("cmd.exe", input = paste0( params$path.mzmine,
+  #                                   ' -batch "', paste0(path.output, mzmine.param.pos), '"' ))
   
 }
 
@@ -257,15 +258,17 @@ prepare_mzmine_xml(
 
 if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
   
-  system( paste0( 'cd /home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/; ./MZmine -batch ', path.output, mzmine.param.neg) )
+  system( paste0( 'cd /home/projects/ku_00007/apps/MZmine/MZmine-2.53-Linux/bin/; ./MZmine ', path.output, mzmine.param.neg) )
+  
+  # system( paste0( 'cd /home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/; ./MZmine -batch ', path.output, mzmine.param.neg) )
   
 } else if ( !file.exists(output.file)){
   
-  # system("cmd.exe", input = paste0( params$path.mzmine,
-  #                                   ' "', paste0(path.output, "MZMine_parameters_neg.xml"), '"'))
-  
   system("cmd.exe", input = paste0( params$path.mzmine,
-                                    ' -batch "', paste0(path.output, mzmine.param.neg), '"' ))
+                                    ' "', paste0(path.output, mzmine.param.neg), '"'))
+  
+  # system("cmd.exe", input = paste0( params$path.mzmine,
+  #                                   ' -batch "', paste0(path.output, mzmine.param.neg), '"' ))
   
 }
 

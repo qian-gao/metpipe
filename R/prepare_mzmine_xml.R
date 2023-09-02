@@ -144,13 +144,13 @@ prepare_mzmine_xml <-
 
     ### Generate MZMine xml file ###
 
-    template <- readRDS(system.file("template", "mzmine3.template.rds", package="metpipe"))
+    template <- readRDS(system.file("template", "mzmine2.template.rds", package="metpipe"))
 
     if (type == "is"){
 
       template.use <- template$is
 
-      generate_mzmine3_xml(
+      generate_mzmine2_xml(
         template = template.use,
         params = params_mzmine,
         output_file = paste0(path_output, "MZMine_parameters_IS_", mode, ".xml") )
@@ -159,7 +159,7 @@ prepare_mzmine_xml <-
 
       template.use <- template$peak
 
-      generate_mzmine3_xml(
+      generate_mzmine2_xml(
         template = template.use,
         params = params_mzmine,
         output_file = paste0(path_output, "MZMine_parameters_", mode, ".xml") )

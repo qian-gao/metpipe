@@ -41,9 +41,9 @@ extract_is <-
     # colnames.mz <- grep(".Feature.m.z", colnames(peaktable.is))
     # colnames.rt <- grep(".Feature.RT", colnames(peaktable.is))
 
-    colnames.peak.area <- grep("Peak.area", colnames(peaktable.is))
-    colnames.mz <- grep("Feature.m.z", colnames(peaktable.is))
-    colnames.rt <- grep("Feature.RT", colnames(peaktable.is))
+    colnames.peak.area <- grep("Peak.area", colnames(peaktable.is)) # mzmine2
+    colnames.mz <- grep(".m.z", colnames(peaktable.is))
+    colnames.rt <- grep(".RT", colnames(peaktable.is))
 
     all_file <- data.frame()
     for (i in 1:length(colnames.mz)) {
