@@ -95,13 +95,13 @@ params_setup <-
 
     } else if ( file.exists( "/home/projects/ku_00007/" )){
 
-      #params$path.mzmine = "/home/projects/ku_00007/apps/MZmine/MZmine-2.53-Linux/bin/start_mzmine2"
-      params$path.mzmine = "/home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/start_mzmine3"
+      params$path.mzmine = "/home/projects/ku_00007/apps/MZmine/MZmine-2.53-Linux/bin/start_mzmine2"
+      #params$path.mzmine = "/home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/start_mzmine3"
 
     } else {
 
-      #params$path.mzmine = "C:/Users/Public/Documents/MZmine-2.53/startMZmine-Windows.bat"
-      params$path.mzmine = "C:/Users/Public/Documents/MZmine-3.4.27/MZmine_console.exe"
+      params$path.mzmine = "C:/Users/Public/Documents/MZmine-2.53/startMZmine-Windows.bat"
+      #params$path.mzmine = "C:/Users/Public/Documents/MZmine-3.4.27/MZmine_console.exe"
 
     }
 
