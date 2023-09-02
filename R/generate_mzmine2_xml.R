@@ -55,13 +55,13 @@ generate_mzmine2_xml <-
 
     if ('true' %in% c(params$P_PF_DURATION, params$P_PF_AREA, params$P_PF_HEIGHT, params$P_PF_DATA_POINTS, params$P_PF_FWHM, params$P_PF_TAILING, params$P_PF_ASYMMETRY) ) modules <- c(modules, "PeakFilter")
 
-    params$P_MIN_PEAK_IN_ROW <- params$P_RF1_MIN_PEAK_IN_ROW
-    params$P_MIN_PEAK_IN_ISO <- params$P_RF1_MIN_PEAK_IN_ISO
-
-    if (!is.null(params$P_MIN_PEAK_IN_ROW)) params$P_PEAK_IN_ROW <- 'true' else params$P_PEAK_IN_ROW <- 'false'
-    if (!is.null(params$P_MIN_PEAK_IN_ISO)) params$P_PEAK_IN_ISO <- 'true' else params$P_PEAK_IN_ISO <- 'false'
-
-    if ('true' %in% c(params$P_PEAK_IN_ROW, params$P_PEAK_IN_ISO) ) modules <- c(modules, "RowsFilter")
+    # params$P_MIN_PEAK_IN_ROW <- params$P_RF1_MIN_PEAK_IN_ROW
+    # params$P_MIN_PEAK_IN_ISO <- params$P_RF1_MIN_PEAK_IN_ISO
+    #
+    # if (!is.null(params$P_MIN_PEAK_IN_ROW)) params$P_PEAK_IN_ROW <- 'true' else params$P_PEAK_IN_ROW <- 'false'
+    # if (!is.null(params$P_MIN_PEAK_IN_ISO)) params$P_PEAK_IN_ISO <- 'true' else params$P_PEAK_IN_ISO <- 'false'
+    #
+    # if ('true' %in% c(params$P_PEAK_IN_ROW, params$P_PEAK_IN_ISO) ) modules <- c(modules, "RowsFilter")
 
     if (!is.null(params$P_SM_FILTER_WIDTH)) modules <- c(modules, "Smoothing")
 
@@ -84,8 +84,8 @@ generate_mzmine2_xml <-
 
     modules <- c()
 
-    params$P_MIN_PEAK_IN_ROW <- params$P_RF2_MIN_PEAK_IN_ROW
-    params$P_MIN_PEAK_IN_ISO <- params$P_RF2_MIN_PEAK_IN_ISO
+    # params$P_MIN_PEAK_IN_ROW <- params$P_RF2_MIN_PEAK_IN_ROW
+    # params$P_MIN_PEAK_IN_ISO <- params$P_RF2_MIN_PEAK_IN_ISO
 
     if (!is.null(params$P_MIN_PEAK_IN_ROW)) params$P_PEAK_IN_ROW <- 'true' else params$P_PEAK_IN_ROW <- 'false'
     if (!is.null(params$P_MIN_PEAK_IN_ISO)) params$P_PEAK_IN_ISO <- 'true' else params$P_PEAK_IN_ISO <- 'false'
