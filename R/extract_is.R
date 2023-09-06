@@ -32,18 +32,19 @@ extract_is <-
                      Theoretical.mz = Library.mz)
 
     peaktable.is <-
-      read.csv( path.peaktable.IS, sep = ";", stringsAsFactors = FALSE ) %>%
-      dplyr::rename( mz = row.m.z,
-                     rt = row.retention.time,
-                     ISTD = row.identity..main.ID.)
+      read.csv( path.peaktable.IS, sep = ";", stringsAsFactors = FALSE, check.names = FALSE ) %>%
+      select_if(colSums(!is.na(.)) > 0) %>%
+      dplyr::rename( mz = "row m/z",
+                     rt = "row retention time",
+                     ISTD = "row identity (main ID)" )
 
-    colnames.peak.area <- grep(".Peak.area", colnames(peaktable.is)) # mzmine3
-    colnames.mz <- grep(".Feature.m.z", colnames(peaktable.is))
-    colnames.rt <- grep(".Feature.RT", colnames(peaktable.is))
+    colnames.peak.area <- grep("Peak area", colnames(peaktable.is)) # mzmine3
+    colnames.mz <- grep("Feature m/z|Peak m/z", colnames(peaktable.is))
+    colnames.rt <- grep("Feature RT|Peak RT", colnames(peaktable.is))
 
-    # colnames.peak.area <- grep("Peak.area", colnames(peaktable.is)) # mzmine2
-    # colnames.mz <- grep("Peak.m.z", colnames(peaktable.is))
-    # colnames.rt <- grep("Peak.RT", colnames(peaktable.is))
+    # colnames.peak.area <- grep("Peak area", colnames(peaktable.is)) # mzmine2
+    # colnames.mz <- grep("Peak m/z", colnames(peaktable.is))
+    # colnames.rt <- grep("Peak RT", colnames(peaktable.is))
 
     all_file <- data.frame()
     for (i in 1:length(colnames.mz)) {
@@ -54,9 +55,11 @@ extract_is <-
                 colnames.rt[i],
                 ISTD,
                 colnames.peak.area[i]) %>%
-        mutate( ISTD = substr(ISTD, 1, regexpr("\\:[^\\:]*$", ISTD)-1)) # mzmine3
+        mutate( ISTD = ifelse( grepl("\\:[^\\:]*$", ISTD),
+                               substr(ISTD, 1, regexpr("\\:[^\\:]*$", ISTD)-1),
+                               ISTD)) # mzmine3
 
-      Sample.name <- gsub( ".mzML.Feature.m.z", "", colnames(sample)[1]) # mzmine3
+      Sample.name <- gsub( ".mzML Feature m/z|.mzML Peak m/z", "", colnames(sample)[1]) # mzmine3
       #Sample.name <- gsub( ".mzML.Peak.m.z", "", colnames(sample)[1])  # mzmine2
 
       sample <-
@@ -72,7 +75,7 @@ extract_is <-
 
     data.plot <-
       all_file %>%
-      mutate( Sample.name = gsub("[.]", "-", Sample.name)) %>%
+      #mutate( Sample.name = gsub("[.]", "-", Sample.name)) %>%
       left_join(sample.info, by = "Sample.name") %>%
       filter(!Sample.type %in% c("Met", "sol"))
 

@@ -85,7 +85,7 @@ params_setup <-
 
   ){
 
-    if (is.null(params)) params <- list()
+    params <- list()
 
     # system
 
