@@ -1,4 +1,4 @@
-#' @title extract_is
+#' @title extract_is_memine2
 #'
 #' @description Extract internal standard measurements from MZmine3 output
 #'
