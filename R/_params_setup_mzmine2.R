@@ -1,4 +1,4 @@
-#' @title params_setup
+#' @title params_setup_mzmine2
 #'
 #' @description Set up preprocessing parameters
 #'

@@ -1,4 +1,4 @@
-#' @title prepare_mzmine_xml
+#' @title prepare_mzmine_xml_mzmine2
 #'
 #' @description Prepare MZmine xml file
 #'
