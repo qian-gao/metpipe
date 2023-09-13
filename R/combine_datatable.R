@@ -1,19 +1,22 @@
 combine_datatable <-
   function( list = NULL,
+            list_df = NULL,
             sample_name_col_nr = NULL,
             feature_col_nr = NULL){
 
-    names <- names(list)
-    list_df <-
-      lapply( list, function(x){
+    if (is.null(list_df)) {
+      names <- names(list)
+      list_df <-
+        lapply( list, function(x){
 
-        df <- readxl::read_excel(x)
-        df <- df[, c(sample_name_col_nr, feature_col_nr:ncol(df))]
-        colnames(df)[1] <- "Sample"
-        return(df)
-      })
+          df <- readxl::read_excel(x)
+          df <- df[, c(sample_name_col_nr, feature_col_nr:ncol(df))]
+          colnames(df)[1] <- "Sample"
+          return(df)
+        })
 
-    names(list_df) <- names
+      names(list_df) <- names
+    }
 
     rsd_df <-
       data.table::rbindlist(
