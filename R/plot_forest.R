@@ -75,14 +75,14 @@ plot_forest <-
 
   if (is.null(coef.to.sort)){
 
-    contrast.to.sort <- coef.to.use
+    coef.to.sort <- coef.to.use
   }
 
   if (!is.null(top.nr)){
 
     sig.var <-
       data.plot %>%
-      filter(contrast %in% contrast.to.sort) %>%
+      filter(contrast %in% c(contrast.to.sort, coef.to.sort)) %>%
       arrange(adj.p.value) %>%
       select(variable) %>%
       unique() %>%
@@ -92,7 +92,7 @@ plot_forest <-
 
     sig.var <-
       data.plot %>%
-      filter(contrast %in% contrast.to.sort) %>%
+      filter(contrast %in% c(contrast.to.sort, coef.to.sort)) %>%
       select(variable)
 
   }
