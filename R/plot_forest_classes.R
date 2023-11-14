@@ -14,7 +14,7 @@
 #' @return A plot
 #' @examples
 #' @export
-#' @import dplyr
+#' @import dplyr ggplot2
 
 plot_forest_classes <-
   function(data = NULL,
