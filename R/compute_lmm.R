@@ -23,8 +23,9 @@ compute_lmm <-
            interaction = NULL,
            random.effect = NULL,
            dv = NULL,
-           path.result = NULL,
-           map.names = NULL
+           output.file = NULL,
+           map.names = NULL,
+           scaling = TRUE
            ){
 
     library(tidyverse)
@@ -42,7 +43,7 @@ compute_lmm <-
     design.data <- droplevels(design.data)
 
     data.test <- data[ind, dv, drop = FALSE]
-    data.test <- scale(data.test)
+    if (scaling) data.test <- scale(data.test)
     data.test <- t(data.test)
 
     if (is.null(map.names)){
@@ -191,7 +192,7 @@ compute_lmm <-
         openxlsx::writeData(wb, "Contrast", ph.tbl.all)
 
         openxlsx::saveWorkbook( wb,
-                                file = paste0(path.result, "/coefficient_table.xlsx"),
+                                file = output.file,
                                 overwrite = TRUE)
 
       }
@@ -211,7 +212,7 @@ compute_lmm <-
         openxlsx::writeData(wb, "Coefficient", coef.tbl.all)
 
         openxlsx::saveWorkbook( wb,
-                                file = paste0(path.result, "/coefficient_table.xlsx"),
+                                file = output.file,
                                 overwrite = TRUE)
 
       }

@@ -56,10 +56,10 @@ plot_forest_classes <-
     if (!"Significance" %in% names(data.plot)){
       data.plot <-
         data.plot %>%
-        mutate(Significance = case_when(adj.p.value < cut.off.label ~ as.character(cut.off.label),
-                                        adj.p.value < cut.off.2 ~ as.character(cut.off.2),
+        mutate(Significance = case_when(adj.p.value < cut.off.2 ~ as.character(cut.off.2),
                                         adj.p.value < cut.off.1 ~ as.character(cut.off.1),
-                                        TRUE           ~ "None"))
+                                        TRUE           ~ "None"),
+               Label = ifelse(adj.p.value < cut.off.label, as.character(cut.off.label), "None"))
     }
 
     if (format.adjust){
@@ -115,9 +115,9 @@ plot_forest_classes <-
                    aes(col= Class), shape = 1, alpha = alpha, size = 1.3, show.legend = FALSE) +
         geom_point(data = data.plot[data.plot$Significance == as.character(cut.off.1), ],
                    aes(col= Class), alpha = alpha, size = 1.5, show.legend = FALSE) +
-        geom_pointrange(data = data.plot[data.plot$Significance %in% c(as.character(cut.off.2), as.character(cut.off.label)), ],
+        geom_pointrange(data = data.plot[data.plot$Significance %in% c(as.character(cut.off.2)), ],
                         aes(col= Class), alpha = alpha, size = 0.4, fatten = 3, show.legend = FALSE) +
-        ggrepel::geom_text_repel(data = data.plot[data.plot$Significance == as.character(cut.off.label), ],
+        ggrepel::geom_text_repel(data = data.plot[data.plot$Label == as.character(cut.off.label), ],
                                  aes(label = dv), size = 2,
                                  max.overlaps = max.overlaps) +
         geom_hline(yintercept =0, linetype=2) +
