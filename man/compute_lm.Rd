@@ -12,7 +12,8 @@ compute_lm(
   random.effect = NULL,
   dv = NULL,
   path.result = NULL,
-  map.names = NULL
+  map.names = NULL,
+  scaling = TRUE
 )
 }
 \arguments{

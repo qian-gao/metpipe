@@ -12,7 +12,7 @@
 #'     can later be converted to a TeX output using \code{overview_print}
 #' @examples
 #' @export
-#' @import IPO
+#'
 #'
 optim_para <-
   function( files = NULL,
@@ -21,6 +21,7 @@ optim_para <-
             BPPARAM = NULL
   ){
 
+    #library(IPO)
     if ( file.exists(paste0(path.result, "XCMS_parameters_obiwarp_", mode, ".rds")) ){
 
       para <-

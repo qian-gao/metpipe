@@ -10,8 +10,9 @@ compute_lmm(
   interaction = NULL,
   random.effect = NULL,
   dv = NULL,
-  path.result = NULL,
-  map.names = NULL
+  output.file = NULL,
+  map.names = NULL,
+  scaling = TRUE
 )
 }
 \arguments{
@@ -25,11 +26,11 @@ compute_lmm(
 
 \item{dv}{= NULL,}
 
-\item{path.result}{= NULL,}
-
 \item{map.names}{= NULL}
 
 \item{covariates}{= NULL,}
+
+\item{path.result}{= NULL,}
 }
 \value{
 A dataframe

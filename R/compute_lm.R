@@ -50,27 +50,28 @@ compute_lm <-
             random.effect = NULL,
             dv = NULL,
             path.result = NULL,
-            map.names = NULL
+            map.names = NULL,
+            scaling = TRUE
   ){
 
+
+    library(tidyverse)
+
+    iv <- strsplit(formula, "[*+ ~]")[[1]]
+    iv <- iv[iv != ""]
+
     design.data <-
-      data.frame( data[ , c( interaction,
-                             covariates,
-                             random.effect ),
-                        drop = FALSE ] )
+      data.frame(data[, c(iv, random.effect), drop = FALSE])
 
-    tmp <-
-      apply( X = !is.na( design.data ),
-             MAR = 1,
-             FUN = all )
+    ind <- apply(!is.na(design.data), 1, all)
 
-    design.data <- design.data[ tmp, , drop = FALSE ]
+    design.data <- design.data[ind, , drop = FALSE]
 
-    design.data <- droplevels( design.data )
+    design.data <- droplevels(design.data)
 
-    data.test <- data[ tmp, dv]
-    data.test <- scale( data.test )
-    data.test <- t( data.test )
+    data.test <- data[ind, dv, drop = FALSE]
+    if (scaling) data.test <- scale(data.test)
+    data.test <- t(data.test)
 
     if (is.null(map.names)){
 
