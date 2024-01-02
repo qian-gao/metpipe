@@ -33,3 +33,5 @@ devtools::install_github("https://github.com/qian-gao/metpipe",
 #' @export
 #' @importFrom dplyr "%>%" mutate left_join arrange select
 
+pack <- available.packages()
+pack["ggplot2","Depends"]

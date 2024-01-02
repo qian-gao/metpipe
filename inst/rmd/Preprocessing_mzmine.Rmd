@@ -91,7 +91,7 @@ mzmine_min_peaks_in_row_neg_percent = params$mzmine.min.peaks.in.row.neg.percent
 
 precursor.file <- paste0(params$path.result, "02_Extract_precursor/precursor_annotation_pos.rds")
 
-if ( params$precursor.include & file.exists(precursor.file) ){
+if ( params$precursor.include && file.exists(precursor.file) ){
 
   prec.lib <-
     readRDS( precursor.file) %>%
@@ -185,7 +185,7 @@ if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
 
 precursor.file <- paste0(params$path.result, "02_Extract_precursor/precursor_annotation_neg.rds")
 
-if ( params$precursor.include & file.exists(precursor.file) ){
+if ( params$precursor.include && file.exists(precursor.file) ){
 
   prec.lib <-
     readRDS( precursor.file) %>%
