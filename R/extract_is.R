@@ -76,7 +76,7 @@ extract_is <-
     data.plot <-
       all_file %>%
       #mutate( Sample.name = gsub("[.]", "-", Sample.name)) %>%
-      left_join(sample.info, by = "Sample.name") %>%
+      inner_join(sample.info, by = "Sample.name") %>%
       filter(!Sample.type %in% c("Met", "sol"))
 
     # Remove not detected IS
