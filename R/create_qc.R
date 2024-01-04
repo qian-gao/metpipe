@@ -16,7 +16,7 @@
 #'
 create_qc <-
   function(sampled_data = NULL,
-           figure_height = NULL
+           figure_height = NULL,
            figure_width = 600) {
 
     sample_nr <- max(sampled_data$Order, na.rm = TRUE)
