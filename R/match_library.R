@@ -98,7 +98,8 @@ match_library <-
       #          file = gsub(".csv", ".rds", output.file))
 
       write.table( output, sep = ";",
-                   file = output.file)
+                   file = output.file,
+                   row.names = FALSE)
 
     }
 
