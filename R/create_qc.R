@@ -4,6 +4,7 @@
 #'
 #' @param sampled_data A dataframe containing IS in samples
 #' @param figure_height Figure height for plot
+#' @param figure_width Figure width for plot
 #'
 #' @return A list qc figures
 #'
@@ -15,14 +16,15 @@
 #'
 create_qc <-
   function(sampled_data = NULL,
-           figure_height = NULL) {
+           figure_height = NULL
+           figure_width = 600) {
 
     sample_nr <- max(sampled_data$Order, na.rm = TRUE)
-    figure_width <- sample_nr*40
-
-    if (figure_width < 600) {
-      figure_width <- 600
-    }
+    # figure_width <- sample_nr*40
+    #
+    # if (figure_width < 600) {
+    #   figure_width <- 600
+    # }
 
     plt <- htmltools::tagList()
     plt[[1]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Order, rt, color = ISTD, text = Sample.name)) +
