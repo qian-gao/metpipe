@@ -90,7 +90,7 @@ match_library <-
 
     output <-
       result %>%
-      dplyr::relocate(colnames(x)[4:ncol(x)-1], .after = last_col())
+      dplyr::relocate(colnames(x)[4:(ncol(x)-1)], .after = last_col())
 
     if (!is.null(output.file)){
 
