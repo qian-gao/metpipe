@@ -43,17 +43,19 @@ if (params$extract_precursor){
   output.file.pos <- paste0(path.output, "precursor_annotation_pos.csv")
   output.file.neg <- paste0(path.output, "precursor_annotation_neg.csv")
   
+  file.name.pos <- list.files(path.mzml.pos, pattern = "mzML")
   sample.info.pos <-
     extract_sample_info( path = params$path.mzml.pos,
                          sample.pattern = params$sample.pattern,
                          standard.name = FALSE) %>%
-    filter(File.batch == "subset")
+    filter(File.name %in% file.name.pos)
   
+  file.name.neg <- list.files(path.mzml.neg, pattern = "mzML")
   sample.info.neg <-
     extract_sample_info( path = params$path.mzml.neg,
                          sample.pattern = params$sample.pattern,
                          standard.name = FALSE) %>%
-    filter(File.batch == "subset")
+    filter(File.name %in% file.name.neg)
     
 } else {
   
