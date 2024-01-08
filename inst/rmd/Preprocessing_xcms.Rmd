@@ -97,7 +97,10 @@ sample.info.pos.sel <-
 
 if (params$extract_precursor){
   
-  sample.info.pos <- sample.info.pos.sel
+  file.name.pos <- list.files(path.mzml.pos, pattern = "mzML")
+  sample.info.pos <- 
+    params$sample.info.pos %>%
+    filter(File.name %in% file.name.pos)
   
 } else {
   
@@ -147,7 +150,10 @@ sample.info.neg.sel <-
 
 if (params$extract_precursor){
 
-  sample.info.neg <- sample.info.neg.sel
+  file.name.neg <- list.files(path.mzml.neg, pattern = "mzML")
+  sample.info.neg <- 
+    params$sample.info.neg %>%
+    filter(File.name %in% file.name.neg)
   
 } else {
   
