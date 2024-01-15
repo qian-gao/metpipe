@@ -85,8 +85,9 @@ extract_is <-
 
     # Combine with theoretical ISTD
     combined_file <-
-      inner_join(data.plot, istd, by= "ISTD") %>%
       arrange(Batch, Run.order) %>%
+      mutate(Order = row_number()) %>%
+      inner_join(data.plot, istd, by= "ISTD") %>%
       group_by(Sample.name, ISTD) %>%
       mutate( n = n(),
               ISTD = ifelse( n > 1,
@@ -97,8 +98,7 @@ extract_is <-
         median.rt        = median(rt,  na.rm = TRUE),
         median.mz        = median(mz, na.rm = TRUE),
         median.intensity = median(Intensity, na.rm = TRUE),
-        RSD.intensity    = sd(Intensity, na.rm = TRUE) / mean(Intensity, na.rm = TRUE)*100,
-        Order = row_number()) %>%
+        RSD.intensity    = sd(Intensity, na.rm = TRUE) / mean(Intensity, na.rm = TRUE)*100) %>%
       ungroup() %>%
       arrange(Sample.name, ISTD)
 
