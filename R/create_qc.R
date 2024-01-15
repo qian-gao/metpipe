@@ -35,7 +35,7 @@ create_qc <-
                                        x = "",
                                        y = "RT (min)",
                                        color = "Internal standard", shape ="") +
-                                     scale_x_continuous(limits = c(0, sample_nr), breaks = integer_breaks(sample_nr))
+                                     scale_x_continuous(limits = c(0, sample_nr))#, breaks = integer_breaks(sample_nr))
 
                                    , width = figure_width, height = figure_height
     ))
@@ -48,7 +48,7 @@ create_qc <-
                                        x = "Running order",
                                        y = "Deviation: RT (min)",
                                        color = "", shape ="") +
-                                     scale_x_continuous(limits = c(0, sample_nr), breaks = integer_breaks(sample_nr))
+                                     scale_x_continuous(limits = c(0, sample_nr)) #, breaks = integer_breaks(sample_nr))
 
                                    , width = figure_width, height = figure_height
     ))
@@ -62,7 +62,7 @@ create_qc <-
                                        x = "",
                                        y = "m/z",
                                        color = "Internal standard", shape ="") +
-                                     scale_x_continuous(limits = c(0, sample_nr), breaks = integer_breaks(sample_nr))
+                                     scale_x_continuous(limits = c(0, sample_nr)) #, breaks = integer_breaks(sample_nr))
 
                                    , width = figure_width, height = figure_height
     ))
@@ -75,7 +75,7 @@ create_qc <-
                                        x = "Running order",
                                        y = "Deviation: m/z (ppm)",
                                        color = "", shape ="") +
-                                     scale_x_continuous(limits = c(0, sample_nr), breaks = integer_breaks(sample_nr))
+                                     scale_x_continuous(limits = c(0, sample_nr)) #, breaks = integer_breaks(sample_nr))
 
                                    , width = figure_width, height = figure_height
     ))
@@ -89,7 +89,7 @@ create_qc <-
                                        x = "Running order",
                                        y = "Peak area",
                                        color = "Internal standard", shape ="") +
-                                     scale_x_continuous(limits = c(0, sample_nr), breaks = integer_breaks(sample_nr))
+                                     scale_x_continuous(limits = c(0, sample_nr)) #, breaks = integer_breaks(sample_nr))
 
                                    , width = figure_width, height = figure_height
     ))
@@ -102,7 +102,7 @@ create_qc <-
                                        x = "Running order",
                                        y = "Deviation: Peak area (%)",
                                        color = "", shape ="") +
-                                     scale_x_continuous(limits = c(0, sample_nr), breaks = integer_breaks(sample_nr))
+                                     scale_x_continuous(limits = c(0, sample_nr)) #, breaks = integer_breaks(sample_nr))
 
                                    , width = figure_width, height = figure_height
     ))
