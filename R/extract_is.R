@@ -85,9 +85,10 @@ extract_is <-
 
     # Combine with theoretical ISTD
     combined_file <-
+      data.plot %>%
       arrange(Batch, Run.order) %>%
       mutate(Order = row_number()) %>%
-      inner_join(data.plot, istd, by= "ISTD") %>%
+      inner_join(istd, by= "ISTD") %>%
       group_by(Sample.name, ISTD) %>%
       mutate( n = n(),
               ISTD = ifelse( n > 1,
