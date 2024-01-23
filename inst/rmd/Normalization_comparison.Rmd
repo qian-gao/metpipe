@@ -208,7 +208,7 @@ plt.eval <-
   plot_eval( x = process.list,
              type = datalist$sample.info$Sample.type)
 
-save(pca.plot, pca.plot.type, plt.eval, file = paste0(path.result, "data/normalization_pos.RData"))
+save(pca.plot, pca.plot.type, plt.eval, file = paste0(params$path.result, "data/normalization_pos.RData"))
 
 ```
 
@@ -563,7 +563,7 @@ plt.eval <-
   plot_eval( x = process.list,
              type = datalist$sample.info$Sample.type)
 
-save(pca.plot, pca.plot.type, plt.eval, file = paste0(path.result, "data/normalization_neg.RData"))
+save(pca.plot, pca.plot.type, plt.eval, file = paste0(params$path.result, "data/normalization_neg.RData"))
 ```
 
 ##### PCA {.tabset}
