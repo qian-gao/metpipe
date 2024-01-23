@@ -78,8 +78,14 @@ plt <- create_qc(sampled_data = combined_file,
 summary <- 
   combined_file %>%
   select(ISTD, Theoretical.rt, median.rt, Theoretical.mz, median.mz, median.intensity, RSD.intensity) %>%
-  unique()
+  unique() %>% 
+  mutate(rt.diff = median.rt - Theoretical.rt,
+         mz.diff = median.mz - Theoretical.mz) %>% 
+  relocate(rt.diff, .after = median.rt) %>% 
+  relocate(mz.diff, .after = median.mz)
 
+
+save(combined_file, plt, summary, file = paste0(path.result, "data/QC_IS_pos.RData"))
 ```
 
 #### Overall
@@ -152,8 +158,13 @@ plt <- create_qc(sampled_data = combined_file,
 summary <- 
   combined_file %>%
   select(ISTD, Theoretical.rt, median.rt, Theoretical.mz, median.mz, median.intensity, RSD.intensity) %>%
-  unique()
+  unique() %>% 
+  mutate(rt.diff = median.rt - Theoretical.rt,
+         mz.diff = median.mz - Theoretical.mz) %>% 
+  relocate(rt.diff, .after = median.rt) %>% 
+  relocate(mz.diff, .after = median.mz)
 
+save(combined_file, plt, summary, file = paste0(path.result, "data/QC_IS_pos.RData"))
 ```
 
 #### Overall
