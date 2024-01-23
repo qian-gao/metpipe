@@ -84,8 +84,11 @@ summary <-
   relocate(rt.diff, .after = median.rt) %>% 
   relocate(mz.diff, .after = median.mz)
 
+qc_is_pos <- list(combined_file = combined_file,
+                  plt = plt,
+                  summary = summary)
 
-save(combined_file, plt, summary, file = paste0(params$path.result, "data/QC_IS_pos.RData"))
+saveRDS(qc_is_pos, file = paste0(params$path.result, "data/QC_IS_pos.rds"))
 ```
 
 #### Overall
@@ -164,7 +167,11 @@ summary <-
   relocate(rt.diff, .after = median.rt) %>% 
   relocate(mz.diff, .after = median.mz)
 
-save(combined_file, plt, summary, file = paste0(params$path.result, "data/QC_IS_neg.RData"))
+qc_is_neg <- list(combined_file = combined_file,
+                  plt = plt,
+                  summary = summary)
+
+saveRDS(qc_is_neg, file = paste0(params$path.result, "data/QC_IS_neg.rds"))
 ```
 
 #### Overall
