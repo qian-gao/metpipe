@@ -208,7 +208,7 @@ plt.eval <-
   plot_eval( x = process.list,
              type = datalist$sample.info$Sample.type)
 
-norm_pos <- list(process.list = process.list,
+norm_pos <- list(#process.list = process.list,
                  pca.plot = pca.plot,
                   pca.plot.type = pca.plot.type,
                   plt.eval = plt.eval)
@@ -567,7 +567,7 @@ plt.eval <-
   plot_eval( x = process.list,
              type = datalist$sample.info$Sample.type)
 
-norm_neg <- list(process.list = process.list,
+norm_neg <- list(#process.list = process.list,
                  pca.plot = pca.plot,
                   pca.plot.type = pca.plot.type,
                   plt.eval = plt.eval)
