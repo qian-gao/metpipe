@@ -302,4 +302,8 @@ write.xlsx( sample.info, file = paste0(params$path.result, "metadata.xlsx"))
 
 print(paste0("Metadata was saved as ", params$path.result, "metadata.xlsx"), quote = FALSE)
 
+data_merge <- list(data = out.table,
+                   feature.info = feature.info.keep,
+                   sample.info = sample.info)
+saveRDS(data_merge, file = paste0(params$path.result, "/data/data_merge.rds"))
 ```

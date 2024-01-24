@@ -208,11 +208,12 @@ plt.eval <-
   plot_eval( x = process.list,
              type = datalist$sample.info$Sample.type)
 
-norm_pos <- list(pca.plot = pca.plot,
+norm_pos <- list(process.list = process.list,
+                 pca.plot = pca.plot,
                   pca.plot.type = pca.plot.type,
                   plt.eval = plt.eval)
 
-saveRDS(norm_pos, file = paste0(params$path.result, "data/normalization_pos.rds"))
+saveRDS(norm_pos, file = paste0(params$path.result, "/data/data_norm_pos.rds"))
 ```
 
 ##### PCA {.tabset}
@@ -566,11 +567,12 @@ plt.eval <-
   plot_eval( x = process.list,
              type = datalist$sample.info$Sample.type)
 
-norm_neg <- list(pca.plot = pca.plot,
+norm_neg <- list(process.list = process.list,
+                 pca.plot = pca.plot,
                   pca.plot.type = pca.plot.type,
                   plt.eval = plt.eval)
 
-saveRDS(norm_neg, file = paste0(params$path.result, "data/normalization_neg.rds"))
+saveRDS(norm_neg, file = paste0(params$path.result, "/data/data_norm_neg.rds"))
 ```
 
 ##### PCA {.tabset}

@@ -27,11 +27,11 @@ filter_peaks <-
   function( XCMSnExp = NULL,
             peaktable = NULL,
             sample.type = NULL,
-            bl.thres = NULL,
-            rsd.po.thres = NULL,
-            mean.po.thres = NULL,
+            #bl.thres = NULL,
+            rsd.filter = NULL,
+            #mean.po.thres = NULL,
             rt.range = NULL,
-            mean.thres = NULL
+            mean.filter = NULL
   ){
 
     if ( !is.null(XCMSnExp) ){
@@ -72,68 +72,121 @@ filter_peaks <-
     index.list <- list()
 
     # Filter based on BL and RSD
-    if (!is.null(bl.thres)){
+    # if (!is.null(mean.filter)){
+    #
+    #   index <-
+    #     apply( mzrt$type.mean,
+    #            MAR = 1,
+    #            function(x){ eval( parse( text = paste0( mean.filter[1], "*", x[mean.filter[2]], mean.filter[3], x[mean.filter[4]]) ))
+    #            })
+    #
+    #   index.list$index.mean.filter <- index
+    #
+    #   mzrt <-
+    #     mzrt_filter( mzrt = mzrt,
+    #                  index = index)
+    #
+    #   print( paste0( "Only keep features having mean intensity ",
+    #                  mean.filter[1], "*", mean.filter[2], " ", mean.filter[3], " ", mean.filter[4],
+    #                  ": ", sum(!index), " features have been removed" ),
+    #          quote = FALSE)
+    #
+    # }
 
-      index <-
-        apply( mzrt$type.mean,
-               MAR = 1,
-               function(x){ eval( parse( text = paste0( bl.thres[1], "*", x[bl.thres[2]], bl.thres[3], x[bl.thres[4]]) ))
-               })
+    if (!is.null(mean.filter)){
 
-      index.list$index.bl.thres <- index
+      for (i in 1:ifelse(is.list(mean.filter), length(mean.filter), 1)){
 
-      mzrt <-
-        mzrt_filter( mzrt = mzrt,
-                     index = index)
+        if (i == 1 & !is.list(mean.filter)){
+          m.thres <- mean.filter
+        } else {
+          m.thres <- mean.filter[[i]]
+        }
 
-      print( paste0( "Only keep features having mean intensity ",
-                     bl.thres[1], "*", bl.thres[2], " ", bl.thres[3], " ", bl.thres[4],
-                     ": ", sum(!index), " features have been removed" ),
-             quote = FALSE)
+        index <-
+          apply( mzrt$type.mean,
+                 MAR = 1,
+                 function(x){
+                   if (!is.na(as.numeric(m.thres[4]))){
+                     eval( parse( text = paste0( m.thres[1], "*", x[m.thres[2]], m.thres[3], m.thres[4]) ))
+                   } else {
+                     eval( parse( text = paste0( m.thres[1], "*", x[m.thres[2]], m.thres[3], x[m.thres[4]]) ))
+                   }
+                 })
+
+        index[is.na(index)] <- FALSE
+        index.list$mean.filter[[i]] <- c(index)
+
+        mzrt <-
+          mzrt_filter( mzrt = mzrt,
+                       index = index)
+
+        print( paste0( "Only keep features having mean intensity ",
+                       m.thres[1], "*", m.thres[2], " ", m.thres[3], " ", m.thres[4],
+                       ": ", sum(!index), " features have been removed" ),
+               quote = FALSE)
+
+      }
+
+    }
+
+    if (!is.null(rsd.filter)){
+
+      for (i in 1:ifelse(is.list(rsd.filter), length(rsd.filter), 1)){
+
+        if (i == 1 & !is.list(rsd.filter)){
+          m.thres <- rsd.filter
+        } else {
+          m.thres <- rsd.filter[[i]]
+        }
+
+        index <-
+          apply( mzrt$type.rsd,
+                 MAR = 1,
+                 function(x){
+                   if (!is.na(as.numeric(m.thres[4]))){
+                     eval( parse( text = paste0( m.thres[1], "*", x[m.thres[2]], m.thres[3], m.thres[4]) ))
+                   } else {
+                     eval( parse( text = paste0( m.thres[1], "*", x[m.thres[2]], m.thres[3], x[m.thres[4]]) ))
+                   }
+                 })
+
+        index[is.na(index)] <- FALSE
+        index.list$rsd.filter[[i]] <- c(index)
+
+        mzrt <-
+          mzrt_filter( mzrt = mzrt,
+                       index = index)
+
+        print( paste0( "Only keep features having RSD in ",
+                       m.thres[1], "*", m.thres[2], " ", m.thres[3], " ", m.thres[4],
+                       ": ", sum(!index), " features have been removed" ),
+               quote = FALSE)
+
+      }
 
     }
 
-    if (!is.null(rsd.po.thres)){
-
-      index <-
-        apply( mzrt$type.rsd,
-               MAR = 1,
-               function(x){ eval( parse( text = paste0( x[rsd.po.thres[1]], rsd.po.thres[2], rsd.po.thres[3], "/100") ))
-               })
-
-      index.list$index.rsd.po.thres <- index
-
-      mzrt <-
-        mzrt_filter( mzrt = mzrt,
-                     index = index)
-
-      print( paste0( "Only keep features having RSD in ",
-                     rsd.po.thres[1], " ", rsd.po.thres[2], " ", rsd.po.thres[3],
-                     "% : ", sum(!index), " features have been removed" ),
-             quote = FALSE)
-
-    }
-
-    if (!is.null(mean.po.thres)){
-
-      index <-
-        apply( mzrt$type.mean,
-               MAR = 1,
-               function(x){ eval( parse( text = paste0( x[mean.po.thres[1]], mean.po.thres[2], mean.po.thres[3]) ))
-               })
-
-      index.list$index.mean.po.thres <- index
-
-      mzrt <-
-        mzrt_filter( mzrt = mzrt,
-                     index = index)
-
-      print( paste0( "Only keep features having mean in ",
-                     mean.po.thres[1], " ", mean.po.thres[2], " ", mean.po.thres[3],
-                     ": ", sum(!index), " features have been removed" ),
-             quote = FALSE)
-
-    }
+    # if (!is.null(mean.po.thres)){
+    #
+    #   index <-
+    #     apply( mzrt$type.mean,
+    #            MAR = 1,
+    #            function(x){ eval( parse( text = paste0( x[mean.po.thres[1]], mean.po.thres[2], mean.po.thres[3]) ))
+    #            })
+    #
+    #   index.list$index.mean.po.thres <- index
+    #
+    #   mzrt <-
+    #     mzrt_filter( mzrt = mzrt,
+    #                  index = index)
+    #
+    #   print( paste0( "Only keep features having mean in ",
+    #                  mean.po.thres[1], " ", mean.po.thres[2], " ", mean.po.thres[3],
+    #                  ": ", sum(!index), " features have been removed" ),
+    #          quote = FALSE)
+    #
+    # }
 
     if (!is.null(rt.range)){
 
@@ -150,34 +203,6 @@ filter_peaks <-
                      rt.range[1], " - ", rt.range[2], " min",
                      ": ", sum(!index), " features have been removed" ),
              quote = FALSE)
-
-    }
-
-
-    if (!is.null(mean.thres)){
-
-      for (i in 1:length(mean.thres)){
-
-        m.thres <- mean.thres[[i]]
-
-        index <-
-          apply( mzrt$type.mean,
-                 MAR = 1,
-                 function(x){ eval( parse( text = paste0( x[m.thres[1]], m.thres[2], m.thres[3], "*", x[m.thres[4]]) ))
-                 })
-
-        index.list$mean.thres[[i]] <- c(index)
-
-        mzrt <-
-          mzrt_filter( mzrt = mzrt,
-                       index = index)
-
-        print( paste0( "Only keep features having mean intensity ",
-                       mean.thres[[i]][1], " ", mean.thres[[i]][2], " ", mean.thres[[i]][3], "*", mean.thres[[i]][4],
-                       ": ", sum(!index), " features have been removed" ),
-               quote = FALSE)
-
-      }
 
     }
 

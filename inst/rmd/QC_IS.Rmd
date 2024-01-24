@@ -12,6 +12,8 @@ knit: ( function(inputFile, encoding) {
 output:
   html_document:
     toc: yes
+    toc_float:
+      collapsed: false
     toc_depth: '4'
     df_print: paged
   html_notebook:
@@ -56,8 +58,6 @@ if (is.null(params$sample.info.neg.qc)){
   params$sample.info.neg.qc <- params$sample.info.neg
 }
 
-
-
 ```
 
 ### 2 POS Overview {.tabset}
@@ -70,14 +70,17 @@ combined_file <-
               reference.type = params$reference.type,
               lib.istd = params$lib.is[[params$method]]$pos,
               path.peaktable.IS = params$path.peaktable.IS.pos,
-              path.result = params$path.result)
+              path.result = params$path.result) %>% 
+  filter(!ISTD %in% params$istd.remove.pos) %>% 
+  mutate(ISTD = gsub("-iso1", "", ISTD))
 
 plt <- create_qc(sampled_data = combined_file,
-                 figure_height = params$figure_height)
+                 figure_height = params$figure_height,
+                 figure_width = params$figure_width)
 
 summary <- 
   combined_file %>%
-  select(ISTD, Theoretical.rt, median.rt, Theoretical.mz, median.mz, median.intensity, RSD.intensity) %>%
+  select(ISTD, Theoretical.rt, median.rt, Theoretical.mz, median.mz, median.intensity) %>%
   unique() %>% 
   mutate(rt.diff = median.rt - Theoretical.rt,
          mz.diff = median.mz - Theoretical.mz) %>% 
@@ -88,7 +91,7 @@ qc_is_pos <- list(combined_file = combined_file,
                   plt = plt,
                   summary = summary)
 
-saveRDS(qc_is_pos, file = paste0(params$path.result, "data/QC_IS_pos.rds"))
+saveRDS(qc_is_pos, file = paste0(params$path.result, "/data/QC_IS_pos.rds"))
 ```
 
 #### Overall
@@ -153,14 +156,17 @@ combined_file <-
               reference.type = params$reference.type,
               lib.istd = params$lib.is[[params$method]]$neg,
               path.peaktable.IS = params$path.peaktable.IS.neg,
-              path.result = params$path.result)
+              path.result = params$path.result) %>% 
+  filter(!ISTD %in% params$istd.remove.neg) %>% 
+  mutate(ISTD = gsub("-iso1", "", ISTD))
 
 plt <- create_qc(sampled_data = combined_file,
-                 figure_height = params$figure_height)
+                 figure_height = params$figure_height,
+                 figure_width = params$figure_width)
 
 summary <- 
   combined_file %>%
-  select(ISTD, Theoretical.rt, median.rt, Theoretical.mz, median.mz, median.intensity, RSD.intensity) %>%
+  select(ISTD, Theoretical.rt, median.rt, Theoretical.mz, median.mz, median.intensity) %>%
   unique() %>% 
   mutate(rt.diff = median.rt - Theoretical.rt,
          mz.diff = median.mz - Theoretical.mz) %>% 
@@ -171,7 +177,7 @@ qc_is_neg <- list(combined_file = combined_file,
                   plt = plt,
                   summary = summary)
 
-saveRDS(qc_is_neg, file = paste0(params$path.result, "data/QC_IS_neg.rds"))
+saveRDS(qc_is_neg, file = paste0(params$path.result, "/data/QC_IS_neg.rds"))
 ```
 
 #### Overall

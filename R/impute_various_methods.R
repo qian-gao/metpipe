@@ -16,21 +16,17 @@
 impute_various_methods <-
   function(
     x,
-    method = NULL,
-    verbose = FALSE
+    method = NULL
   ) {
-
-    if ( verbose ) {
-
-      print( "impute_various_method was created by Qian Gao" )
-      print( "qian.gao@sund.ku.dk" )
-      print( "2021-06-03" )
-
-    }
 
     missings_nr <- sum( is.na(x) | x <= 0 )
 
-    if (method == 'HF') {
+    if (is.null(method)) {
+
+      x_imputed <- x
+      method <- "no imputation"
+
+    } else if (method == 'HF') {
 
       x_imputed <- apply(x, 2, function(x){
                                  miss <- which( is.na(x) | x <= 0 )
@@ -89,7 +85,7 @@ impute_various_methods <-
     result <- list( x = x_imputed,
                     method = method)
 
-    print(paste(missings_nr, "missing values are found and imputed using method ", method))
+    print(paste(missings_nr, "missing values are found and imputed using method: ", method))
 
     return( result )
     }
