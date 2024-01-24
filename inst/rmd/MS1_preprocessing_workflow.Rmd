@@ -300,17 +300,18 @@ params$others <- c()
 ### Peak cleaning setup
 
 # Feature filtering
-params$bl.thres <- c( 3, "BL", "<", "PO")            # 3, mean in PO should be > 3 times BL
-params$rsd.po.thres <- c( "PO", "<", 40)        # 50, RSD in PO should be < 50%
-params$mean.po.thres <- c( "PO", ">", 1000) 
-params$rt.range <- c(0.8, 30)         # c(0, 30), only keep peaks in 0 - 30 min
-params$mean.thres <- c()
+params$mean.filter <- list(c( 3, "BL", "<", "PO100"), # mean in PO should be > 3 times BL
+                           c( 1, "PO100", ">", 500))
+                           
+params$rsd.filter <- c(1, "PO100", "<", 0.4)        # 0.3, RSD in PO should be < 30%
+params$rt.range <- c(0.6, 30)         # c(0, 30), only keep peaks in 0 - 30 min 
 
 # Filter based on missings
 params$filter_by_missing_feature_pct <- 50
 
 # Missing imputation
 params$missing.impute.method <- "LoD"  # "LoD", "HF", "median", "min", "mean"
+params$missing.is.impute.method <- "LoD"
 
 render_rmarkdown(
     file = system.file("rmd", "Clean_peaktable.Rmd", package="metpipe"),
