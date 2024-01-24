@@ -465,12 +465,7 @@ if (nrow(peaks.is > 0)){
 
   mzrt.is.filtered <-
     filter_peaks( peaktable = peaks.is,
-                  sample.type = params$sample.info.neg$Sample.type,
-                  bl.thres = c(),
-                  rsd.po.thres = c(),
-                  mean.po.thres = c(),
-                  rt.range = c(),
-                  mean.thres = c())
+                  sample.type = params$sample.info.neg$Sample.type)
   
   peaks.is.filtered <- 
     mzrt.is.filtered$peaktable
