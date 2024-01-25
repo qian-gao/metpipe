@@ -153,12 +153,11 @@ datalist <- list(peaks.raw = peaks,
 
 ```
 
-
+#### 2 Feature filtering
+```{r filtering, eval = params$run.pos}
 #### 2 Feature filtering
 ##### 2.1 Feature inspection
 ##### 2.2 Filtering
-```{r filtering, eval = params$run.pos}
-
 # Peaks
 mzrt.filtered <-
   filter_peaks( peaktable = peaks,
@@ -200,12 +199,11 @@ if (nrow(peaks.is > 0)){
 }
 ```
 
-
+#### 3 Filter based on missings
+```{r filter, eval = params$run.pos}
 #### 3 Missing imputation
 ##### 3.1 Missing inspection
 ##### 3.2 Filtering
-```{r filter, eval = params$run.pos}
-
 # By feature
 feature_filter <- 
   filter_by_missing( data, 
@@ -236,9 +234,9 @@ if (nrow(peaks.is > 0)){
 
 ```
 
-##### 3.3 Missing imputation
+#### 4 Missing imputation
 ```{r impute, eval = params$run.pos}
-
+##### 3.3 Missing imputation
 # Peaks
 data.impute <- 
   impute_various_methods( data,
@@ -259,9 +257,10 @@ if (nrow(peaks.is > 0)){
 }
 ```
 
-#### 4 Remove duplicate internal standard
-```{r remove dup is, eval = params$run.pos}
 
+#### 5 Remove duplicate internal standard
+```{r remove dup is, eval = params$run.pos}
+#### 4 Remove duplicate internal standard
 if (nrow(peaks.is > 0)){
 
   features.is.keep <-

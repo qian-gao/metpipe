@@ -202,7 +202,7 @@ params_setup <-
 
     # Path setup
     if (!dir.exists(params$path.result)) dir.create(params$path.result)
-    path.data <- paste0(params$path.result, "/data/")
+    params$path.data <- paste0(params$path.result, "/data/")
     if (!dir.exists(params$path.data)) dir.create(params$path.data)
 
     # Generate sample info
