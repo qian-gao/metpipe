@@ -270,7 +270,8 @@ map.names <- feature.info.keep$Compound.name
 names(map.names) <- feature.info.keep$Identifier
 
 datatable.keep <-
-  datatable[, colnames(datatable) %in% c("Sample", feature.info.keep$Identifier)]
+  datatable[, match(c("Sample", feature.info.keep$Identifier), colnames(datatable))]
+  #datatable[, colnames(datatable) %in% c("Sample", feature.info.keep$Identifier)]
 
 colnames(datatable.keep)[-1] <- map.names[colnames(datatable.keep)[-1]]
 
