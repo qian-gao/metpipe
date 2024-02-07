@@ -427,11 +427,9 @@ params_setup <-
         "rt_col_nr",
         "identity_col_nr",
         "others",
-        "bl.thres",
-        "rsd.po.thres",
-        "mean.po.thres",
+        "rsd.filter",
+        "mean.filter",
         "rt.range",
-        "mean.thres",
         "filter_by_missing_feature_pct",
         "missing.impute.method"
       )
