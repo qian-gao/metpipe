@@ -87,9 +87,8 @@ extract_is <-
     combined_file <-
       data.plot %>%
       arrange(Batch, Run.order) %>%
+      mutate(Order = as.integer(factor(Sample.name))) %>%
       inner_join(istd, by= "ISTD") %>%
-      group_by(ISTD) %>%
-      mutate(Order = row_number()) %>%
       group_by(Sample.name, ISTD) %>%
       mutate( n = n(),
               ISTD = ifelse( n > 1,
