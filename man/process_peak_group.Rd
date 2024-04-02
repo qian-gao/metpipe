@@ -5,7 +5,6 @@
 \title{process_peak_group}
 \usage{
 process_peak_group(
-  files = NULL,
   para = NULL,
   sample.info = NULL,
   mode = NULL,
@@ -14,23 +13,19 @@ process_peak_group(
 )
 }
 \arguments{
-\item{files}{= NULL,}
+\item{para}{A list of parameters used for preprocessing}
 
-\item{para}{= NULL,}
+\item{sample.info}{Sample information used for preprocessing}
 
-\item{sample.info}{= NULL,}
+\item{mode}{Polarity, 'pos' or 'neg'}
 
-\item{mode}{= NULL,}
+\item{path.result}{Path to output folder}
 
-\item{path.result}{= NULL}
-
-\item{BPPARAM}{= NULL}
+\item{BPPARAM}{Parallel processing setup}
 }
 \value{
-A data frame object that contains a summary of a sample that
-    can later be converted to a TeX output using \code{overview_print}
+A XCMSnExp object from XCMS
 }
 \description{
-Provides an overview table for the time and scope conditions of
-    a data set
+Preprocessing with XCMS
 }

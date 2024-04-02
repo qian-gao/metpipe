@@ -7,17 +7,14 @@
 match_library_id(peaklist = NULL, lib = NULL)
 }
 \arguments{
-\item{dat}{A data set object}
+\item{peaklist}{A xlsx of features with column "Identity}
 
-\item{id}{Scope (e.g., country codes or individual IDs)}
-
-\item{time}{Time (e.g., time periods are given by years, months, ...)}
+\item{lib}{A library file in dataframe format. It must contain a column named 
+"Library.name"}
 }
 \value{
-A data frame object that contains a summary of a sample that
-    can later be converted to a TeX output using \code{overview_print}
+A data frame of features matched with library
 }
 \description{
-Provides an overview table for the time and scope conditions of
-    a data set
+Match features with library based on identity
 }

@@ -4,20 +4,29 @@
 \alias{select_precursor}
 \title{select_precursor}
 \usage{
-select_precursor(XCMSnExp = NULL, mode = NULL, path.result = NULL)
+select_precursor(
+  XCMSnExp = NULL,
+  method = NULL,
+  mode = NULL,
+  remove_frag_addu = FALSE,
+  path.result = NULL
+)
 }
 \arguments{
-\item{XCMSnExp}{= NULL,}
+\item{XCMSnExp}{A XCMSnExp object from XCMS}
 
-\item{mode}{= NULL,}
+\item{method}{The method for annotate and group features, 'camera' or 'pmd'}
 
-\item{path.result}{= NULL}
+\item{mode}{Polarity, 'pos' or 'neg'}
+
+\item{remove_frag_addu}{Indicator for removing the fragments and adducts. TRUE or FALSE}
+
+\item{path.result}{Path to output folder}
 }
 \value{
-A data frame object that contains a summary of a sample that
-    can later be converted to a TeX output using \code{overview_print}
+A data frame object that contains the precusors extracted from the 
+   XCMSnExp object
 }
 \description{
-Provides an overview table for the time and scope conditions of
-    a data set
+Select precursors from a XCMSnExp object
 }

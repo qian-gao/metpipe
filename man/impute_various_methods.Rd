@@ -4,7 +4,7 @@
 \alias{impute_various_methods}
 \title{impute_various_methods}
 \usage{
-impute_various_methods(x, method = NULL, verbose = FALSE)
+impute_various_methods(x, method = NULL)
 }
 \arguments{
 \item{x}{Input data frame}

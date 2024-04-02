@@ -14,17 +14,22 @@ match_library(
 )
 }
 \arguments{
-\item{dat}{A data set object}
+\item{feature_info}{A dataframe or xlsx of features with column mz and rt}
 
-\item{id}{Scope (e.g., country codes or individual IDs)}
+\item{rt_tolerance}{Retention time tolerance for matching, default is 0.1}
 
-\item{time}{Time (e.g., time periods are given by years, months, ...)}
+\item{mz_tolerance}{m/z tolerance for matching, default is 0.01}
+
+\item{library_file}{A library file in dataframe or xlsx format. mz, rt and 
+compound names are in 1st, 2nd and 2rd column.}
+
+\item{mode}{Polarity, 'pos' or 'neg'}
+
+\item{output.file}{Path and name for the output file}
 }
 \value{
-A data frame object that contains a summary of a sample that
-    can later be converted to a TeX output using \code{overview_print}
+A data frame contains featured annotated with library
 }
 \description{
-Provides an overview table for the time and scope conditions of
-    a data set
+Match features with library based on m/z and RT
 }

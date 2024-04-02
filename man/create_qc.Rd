@@ -4,12 +4,14 @@
 \alias{create_qc}
 \title{create_qc}
 \usage{
-create_qc(sampled_data = NULL, figure_height = NULL)
+create_qc(sampled_data = NULL, figure_height = NULL, figure_width = 600)
 }
 \arguments{
 \item{sampled_data}{A dataframe containing IS in samples}
 
 \item{figure_height}{Figure height for plot}
+
+\item{figure_width}{Figure width for plot}
 }
 \value{
 A list qc figures

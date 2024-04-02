@@ -8,11 +8,9 @@ filter_peaks(
   XCMSnExp = NULL,
   peaktable = NULL,
   sample.type = NULL,
-  bl.thres = NULL,
-  rsd.po.thres = NULL,
-  mean.po.thres = NULL,
+  rsd.filter = NULL,
   rt.range = NULL,
-  mean.thres = NULL
+  mean.filter = NULL
 )
 }
 \arguments{
@@ -23,6 +21,8 @@ should be mandatory}
 
 \item{sample.type}{A vector indicating sample types}
 
+\item{rt.range}{Retention time range for keeping features}
+
 \item{bl.thres}{Threshold for keeping features based on their values in one
 type of sample compared to blanks. e.g. c( 3, "BL", "<", "PO")}
 
@@ -31,8 +31,6 @@ e.g. c( "PO", "<", 40)}
 
 \item{mean.po.thres}{Threshold for keeping features based on their mean in pools.
 e.g. c( "PO", ">", 1000)}
-
-\item{rt.range}{Retention time range for keeping features}
 
 \item{mean.thres}{Threshold for keeping features based on their mean values in
 certain types. e.g. list( c( "PO100", ">", 1, "PO25"),

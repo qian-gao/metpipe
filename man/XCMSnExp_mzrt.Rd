@@ -13,21 +13,24 @@ XCMSnExp_mzrt(
 )
 }
 \arguments{
-\item{XCMSnExp}{XCMS object?}
+\item{XCMSnExp}{A XCMSnExp object}
 
-\item{method}{= "medret",}
+\item{method}{XCMS featureValues parameter for feature values: specifying the 
+method to resolve multipeak mappings within the same sample. "medret", report 
+the value for the chromatographic peak closest to the feature's median 
+retention time.}
 
-\item{value}{= "into",}
+\item{value}{XCMS featureValues parameter: defining which value should be reported
+for each feature in each sample. Can be any column of the chromPeaks matrix.
+Defaults "into", the integrated peak area is reported}
 
-\item{mzdigit}{= 4,}
+\item{mzdigit}{Number of digits to keep for m/z}
 
-\item{rtdigit}{= 1}
+\item{rtdigit}{Number of digits to keep for rt}
 }
 \value{
-A data frame object that contains a summary of a sample that
-    can later be converted to a TeX output using \code{overview_print}
+A list of m/z, rt
 }
 \description{
-Provides an overview table for the time and scope conditions of
-    a data set
+Extract m/z, rt from a XCMSnExp object
 }

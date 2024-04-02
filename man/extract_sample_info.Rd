@@ -20,13 +20,13 @@ extract_sample_info(
 )
 }
 \arguments{
-\item{path}{Path to files}
+\item{path}{Path to converted data files}
 
-\item{files}{File names}
+\item{files}{converted data file names}
 
 \item{sample.pattern}{Sample file format, e.g. ".mzML"}
 
-\item{standard.name}{If standardized sample names are used}
+\item{standard.name}{If standardized sample names are used, TRUE/FALSE}
 
 \item{path.meta}{Metadata file, which should have a key column to match with
 sample names}
@@ -47,5 +47,6 @@ sample names}
 A data frame object that contains sample names and related information
 }
 \description{
-Extract sample information from the standardized sample names
+Extract sample information from the standardized sample names or 
+   metadata and generate sample list
 }
