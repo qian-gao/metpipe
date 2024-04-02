@@ -1,23 +1,21 @@
 #' @title prepare_mzmine_xml
 #'
-#' @description Prepare MZmine xml file
+#' @description General MZmine xml file
 #'
-#' @param type = NULL,
-#' @param path_mzML = NULL,
-#' @param path_output = NULL,
-#' @param mode = NULL,
-#' @param path_lib = NULL,
-#' @param mzmine_mz_tol = NULL,
-#' @param mzmine_mz_tol_bigger = NULL,
-#' @param mzmine_rt_tol = NULL,
-#' @param mzmine_rt_tol_bigger = NULL,
-#' @param mzmine_min_peaks_in_row = NULL,
-#' @param mzmine_min_peaks_in_row_percent = NULL
+#' @param type The type of preprocessing the xml will do. "is" or "peak" for preprocessing
+#'        internal standards or all metabolites.
+#' @param path_mzML Path to the folder containing mzML files
+#' @param path_output Path to the output folder
+#' @param mode Polarity, 'pos' or 'neg'
+#' @param path_lib Path to the library file
+#' @param mzmine_mz_tol m/z tolerance for feature detection
+#' @param mzmine_mz_tol_bigger m/z tolerance for alignment
+#' @param mzmine_rt_tol Retention time tolerance for feature detection
+#' @param mzmine_rt_tol_bigger Retention time tolerance for alignment
+#' @param mzmine_min_peaks_in_row Minimum number of samples containing the peak
+#' @param mzmine_min_peaks_in_row_percent Minimum percentage of samples containing the peak
 #'
-#' @return A list of summaries for all types of samples
-#'
-#' @examples
-#'
+#' @return A xml file for MZMine processing
 #' @export
 
 prepare_mzmine_xml <-
@@ -165,7 +163,4 @@ prepare_mzmine_xml <-
         output_file = paste0(path_output, "MZMine_parameters_", mode, ".xml") )
 
     }
-
-
-
   }

@@ -1,19 +1,23 @@
 #' @title XCMSnExp_mzrt
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Extract m/z, rt from a XCMSnExp object
 #'
-#' @param XCMSnExp XCMS object?
-#' @param method = "medret",
-#' @param value = "into",
-#' @param mzdigit = 4,
-#' @param rtdigit = 1
+#' @param XCMSnExp A XCMSnExp object
+#' @param method XCMS featureValues parameter for feature values: specifying the 
+#'    method to resolve multipeak mappings within the same sample. "medret", report 
+#'    the value for the chromatographic peak closest to the feature's median 
+#'    retention time.
+#' @param value XCMS featureValues parameter: defining which value should be reported
+#'    for each feature in each sample. Can be any column of the chromPeaks matrix.
+#'    Defaults "into", the integrated peak area is reported
+#'    
+#' @param mzdigit Number of digits to keep for m/z
+#' @param rtdigit Number of digits to keep for rt
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
-#' @examples
-#'
+#' @return A list of m/z, rt
+#'     
 #' @export
+#' @import xcms
 
 XCMSnExp_mzrt <-
   function ( XCMSnExp,

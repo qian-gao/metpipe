@@ -1,17 +1,20 @@
 #' @title match_library
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Match features with library based on m/z and RT
+#'     
+#' @param feature_info A dataframe or xlsx of features with column mz and rt
+#' @param rt_tolerance Retention time tolerance for matching, default is 0.1
+#' @param mz_tolerance m/z tolerance for matching, default is 0.01
+#' @param library_file A library file in dataframe or xlsx format. mz, rt and 
+#'    compound names are in 1st, 2nd and 2rd column. 
+#' @param mode Polarity, 'pos' or 'neg'
+#' @param output.file Path and name for the output file
 #'
-#' @param dat A data set object
-#' @param id Scope (e.g., country codes or individual IDs)
-#' @param time Time (e.g., time periods are given by years, months, ...)
-#'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#' @return A data frame contains featured annotated with library
 #' @examples
 #'
 #' @export
+#' @impor openxlsx
 #' @importFrom dplyr "%>%" mutate left_join select
 #'
 # Usage
@@ -93,9 +96,6 @@ match_library <-
       dplyr::relocate(colnames(x)[4:(ncol(x)-1)], .after = last_col())
 
     if (!is.null(output.file)){
-
-      # saveRDS( output,
-      #          file = gsub(".csv", ".rds", output.file))
 
       write.table( output, sep = ";",
                    file = output.file,

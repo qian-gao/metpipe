@@ -56,11 +56,6 @@ if (params$extract_precursor){
 
 if (!dir.exists(path.output)) dir.create(path.output)
 
-```
-
-### 1 Data import
-```{r sample info}
-
 print( "Raw data was imported from the following folder:", quote = FALSE)
 print( paste0("POS: ", params$path.mzml.pos), quote = FALSE)
 print( paste0("NEG: ", params$path.mzml.neg), quote = FALSE)
@@ -71,36 +66,20 @@ print( paste0("NEG: ", params$path.meta.neg), quote = FALSE)
 print( "Result is stored in the following folder:", quote = FALSE)
 print( path.output, quote = FALSE)
 
-
 ```
 
-
-### 2 Optimize XCMS parameters
-```{r optimize xcms pos, eval = params$run.pos}
-
-if ( !is.null(params$type.use.to.optimize)){
-  
-  sample.info.pos.sel <- 
-    params$sample.info.pos[params$sample.info.pos$Sample.type %in% params$type.use.to.optimize, ]
-  
-} else {
-  
-  sample.info.pos.sel <- 
-    params$sample.info.pos[!params$sample.info.pos$Sample.type %in% c("Met", "CA", "IQ", "sol", "BL"), ]
-  
-}
-
-sample.info.pos.sel <- 
-  sample.info.pos.sel[sample( c(1:nrow(sample.info.pos.sel)), 
-                              size=ifelse(nrow(sample.info.pos.sel) > 3, 3, nrow(sample.info.pos.sel)), 
-                              replace=F), ]
+### 1 Data import
+```{r sample info pos, eval = params$run.pos}
 
 if (params$extract_precursor){
   
-  file.name.pos <- list.files(path.mzml.pos, pattern = "mzML")
-  sample.info.pos <- 
-    params$sample.info.pos %>%
-    filter(File.name %in% file.name.pos)
+  #file.name.pos <- list.files(path.mzml.pos, pattern = "mzML")
+  sample.info.pos <-
+    extract_sample_info( path = path.mzml.pos,
+                         sample.pattern = params$sample.pattern,
+                         standard.name = FALSE) %>%
+    filter( !grepl("ms2p", tolower(Sample.name)))
+    #filter(File.name %in% file.name.pos)
   
 } else {
   
@@ -109,51 +88,27 @@ if (params$extract_precursor){
   
 }
 
-if ( params$optimize.xcms.parameters ){
-
-  params$para.pos <-
-    optim_para( files = sample.info.pos.sel$File.path,
-                mode = "pos",
-                path.result = path.output,
-                BPPARAM = params$BPPARAM_set )
-  
-} else {
-  
-  ### Save parameters
-    
-  saveRDS( params$para.pos, 
-           file = paste0(path.output, "XCMS_parameters_", "pos", ".rds"))
-  
-}
+### Save parameters
+saveRDS( params$para.pos, 
+         file = paste0(path.output, "XCMS_parameters_", "pos", ".rds"))
 
 print( "POS:", quote = FALSE)
-print( paste0("Optimize XCMS parameters: ", params$optimize.xcms.parameters) , quote = FALSE)
 print( "The following XCMS parameters have been used for extracting precursors:", quote = FALSE)
 print( params$para.pos, quote = FALSE)
 
 ```
 
-```{r optimize xcms neg, eval = params$run.neg}
-
-if ( !is.null(params$type.use.to.optimize)){
-  sample.info.neg.sel <- 
-    params$sample.info.neg[params$sample.info.neg$Sample.type %in% params$type.use.to.optimize, ]
-} else {
-  sample.info.neg.sel <- 
-    params$sample.info.neg[!params$sample.info.neg$Sample.type %in% c("Met", "CA", "IQ", "sol", "BL"), ]  
-}
-
-sample.info.neg.sel <- 
-  sample.info.neg.sel[sample( c(1:nrow(sample.info.neg.sel)), 
-                              size=ifelse(nrow(sample.info.neg.sel) > 3, 3, nrow(sample.info.neg.sel)), 
-                              replace=F), ]
+```{r sample info neg, eval = params$run.neg}
 
 if (params$extract_precursor){
 
-  file.name.neg <- list.files(path.mzml.neg, pattern = "mzML")
-  sample.info.neg <- 
-    params$sample.info.neg %>%
-    filter(File.name %in% file.name.neg)
+  #file.name.neg <- list.files(path.mzml.neg, pattern = "mzML")
+  sample.info.neg <-
+    extract_sample_info( path = path.mzml.neg,
+                         sample.pattern = params$sample.pattern,
+                         standard.name = FALSE) %>%
+    filter( !grepl("ms2n", tolower(Sample.name)))
+    #filter(File.name %in% file.name.neg)
   
 } else {
   
@@ -162,25 +117,11 @@ if (params$extract_precursor){
   
 }
 
-if ( params$optimize.xcms.parameters ){
-
-  params$para.neg <-
-    optim_para( files = sample.info.neg.sel$File.path,
-                mode = "neg",
-                path.result = path.output,
-                BPPARAM = params$BPPARAM_set )
-  
-} else {
-  
-  ### Save parameters
-    
-  saveRDS( params$para.neg, 
-           file = paste0(path.output, "XCMS_parameters_", "neg", ".rds"))
-  
-}
+### Save parameters    
+saveRDS( params$para.neg, 
+         file = paste0(path.output, "XCMS_parameters_", "neg", ".rds"))
 
 print( "NEG:", quote = FALSE)
-print( paste0("Optimize XCMS parameters: ", params$optimize.xcms.parameters) , quote = FALSE)
 print( "The following XCMS parameters have been used for extracting precursors:", quote = FALSE)
 print( params$para.neg, quote = FALSE)
 
@@ -191,19 +132,7 @@ print( params$para.neg, quote = FALSE)
 
 ### Preprocessing
 
-if (params$optimize.xcms.parameters){
-
-  peaks.pos <-
-    process_obiwarp( files = sample.info.pos$File.path,
-                     para = params$para.pos,
-                     sample.info = sample.info.pos,
-                     mode = "pos",
-                     path.result = path.output,
-                     BPPARAM = params$BPPARAM_set )
-    
-} else {
-
-  peaks.pos <-
+peaks.pos <-
     process_peak_group( files = sample.info.pos$File.path,
                         para = params$para.pos,
                         sample.info = sample.info.pos,
@@ -211,38 +140,35 @@ if (params$optimize.xcms.parameters){
                         path.result = path.output,
                         BPPARAM = params$BPPARAM_set)
 
-}
-
-
 ### Precursor selection
-
-precursor.pos <-
-  select_precursor( XCMSnExp = peaks.pos,
-                    mode = "pos",
-                    path.result = path.output )
-  
-
+if (params$extract_precursor){
+  precursor.pos <-
+    select_precursor( XCMSnExp = peaks.pos,
+                      mode = "pos",
+                      path.result = path.output,
+                      remove_frag_addu = TRUE )
+} else {
+  precursor.pos <-
+    select_precursor( XCMSnExp = peaks.pos,
+                      mode = "pos",
+                      path.result = path.output,
+                      remove_frag_addu = FALSE )  
+}
 ```
 
 ```{r match library pos, eval = params$run.pos}
 
 print( paste0( "POS: ", nrow(precursor.pos), " precursors has been selected in raw data"), quote = FALSE)
 
-# annotate_with_library( precursor = precursor.pos,
-#                        method = params$method,
-#                        mode = "pos",
-#                        rt_tolerance = params$rt_tolerance,
-#                        mz_tolerance = params$mz_tolerance,
-#                        lib = params$lib,
-#                        output.file = output.file.pos )
+precursor.pos.annotated <- 
+  match_library( feature_info = precursor.pos,
+                 rt_tolerance = params$rt_tolerance,
+                 mz_tolerance = params$mz_tolerance,
+                 library_file = params$lib[[params$method]][["pos"]],
+                 mode = "pos",
+                 output.file = output.file.pos ) 
 
-match_library( feature_info = precursor.pos,
-               rt_tolerance = params$rt_tolerance,
-               mz_tolerance = params$mz_tolerance,
-               library_file = params$lib[[params$method]][["pos"]],
-               mode = "pos",
-               output.file = output.file.pos ) 
-    
+saveRDS(precursor.pos.annotated, file = paste0(path.output, "/precursor_annotation_pos.rds"))   
 print( paste0("POS preprocessed data were saved as: ", output.file.pos), quote = FALSE)
 
 ```
@@ -252,19 +178,7 @@ print( paste0("POS preprocessed data were saved as: ", output.file.pos), quote =
 
 ### Preprocessing
 
-if (params$optimize.xcms.parameters){
-
-  peaks.neg <-
-    process_obiwarp( files = sample.info.neg$File.path,
-                     para = params$para.neg,
-                     sample.info = sample.info.neg,
-                     mode = "neg",
-                     path.result = path.output,
-                     BPPARAM = params$BPPARAM_set )
-    
-} else {
-
-  peaks.neg <-
+peaks.neg <-
     process_peak_group( files = sample.info.neg$File.path,
                         para = params$para.neg,
                         sample.info = sample.info.neg,
@@ -272,39 +186,36 @@ if (params$optimize.xcms.parameters){
                         path.result = path.output,
                         BPPARAM = params$BPPARAM_set )
 
-}
-
-
 ### Precursor selection
+if (params$extract_precursor){
+  precursor.neg <-
+    select_precursor( XCMSnExp = peaks.neg,
+                      mode = "neg",
+                      path.result = path.output,
+                      remove_frag_addu = TRUE )
+} else {
+  precursor.neg <-
+    select_precursor( XCMSnExp = peaks.neg,
+                      mode = "neg",
+                      path.result = path.output,
+                      remove_frag_addu = FALSE )  
+}
   
-precursor.neg <-
-  select_precursor( XCMSnExp = peaks.neg,
-                    mode = "neg",
-                    path.result = path.output )
-  
-
 ```
 
 
 ```{r match library neg, eval = params$run.neg}
   
 print( paste0( "NEG: ", nrow(precursor.neg), " precursors has been selected in raw data"), quote = FALSE)
+precursor.neg.annotated <- 
+  match_library( feature_info = precursor.neg,
+                 rt_tolerance = params$rt_tolerance,
+                 mz_tolerance = params$mz_tolerance,
+                 library_file = params$lib[[params$method]][["neg"]],
+                 mode = "neg",
+                 output.file = output.file.neg ) 
 
-# annotate_with_library( precursor = precursor.neg,
-#                        method = params$method,
-#                        mode = "neg",
-#                        rt_tolerance = params$rt_tolerance,
-#                        mz_tolerance = params$mz_tolerance,
-#                        lib = params$lib,
-#                        output.file = output.file.neg )
-
-match_library( feature_info = precursor.neg,
-               rt_tolerance = params$rt_tolerance,
-               mz_tolerance = params$mz_tolerance,
-               library_file = params$lib[[params$method]][["neg"]],
-               mode = "neg",
-               output.file = output.file.neg ) 
-
+saveRDS(precursor.neg.annotated, file = paste0(path.output, "/precursor_annotation_neg.rds"))
 print( paste0("NEG preprocessed data were saved as: ", output.file.neg), quote = FALSE)
 
 ```

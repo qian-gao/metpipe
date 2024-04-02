@@ -44,21 +44,23 @@ if (params$extract_precursor){
   output.file.neg <- paste0(path.output, "precursor_annotation_neg.csv")
   
   if (params$run.pos) {
-    file.name.pos <- list.files(path.mzml.pos, pattern = "mzML")
+    #file.name.pos <- list.files(path.mzml.pos, pattern = "mzML")
     sample.info.pos <-
-      extract_sample_info( path = params$path.mzml.pos,
+      extract_sample_info( path = path.mzml.pos,
                            sample.pattern = params$sample.pattern,
                            standard.name = FALSE) %>%
-      filter(File.name %in% file.name.pos)
+      filter( !grepl("ms2p", tolower(Sample.name)))
+      #filter(File.name %in% file.name.pos)
   }
   
   if (params$run.neg) {  
-    file.name.neg <- list.files(path.mzml.neg, pattern = "mzML")
+    #file.name.neg <- list.files(path.mzml.neg, pattern = "mzML")
     sample.info.neg <-
-      extract_sample_info( path = params$path.mzml.neg,
+      extract_sample_info( path = path.mzml.neg,
                            sample.pattern = params$sample.pattern,
                            standard.name = FALSE) %>%
-      filter(File.name %in% file.name.neg)
+      filter( !grepl("ms2n", tolower(Sample.name)))
+      #filter(File.name %in% file.name.neg)
   }
   
 } else {
@@ -150,7 +152,7 @@ print( paste0("rt_tol_bigger_pos = ", rt_tol_bigger_pos), quote = FALSE)
 ```{r generate parameters pos, echo = TRUE, eval = params$run.pos}
 
 ref.samples <-
-  params$sample.info.pos %>%
+  sample.info.pos %>%
   filter(Sample.type == params$po.sample.to.use) %>%
   pull(File.path)
 
@@ -297,7 +299,7 @@ print( paste0("rt_tol_bigger_neg = ", rt_tol_bigger_neg), quote = FALSE)
 ```{r generate parameters neg, echo = TRUE, eval = params$run.neg}
 
 ref.samples <-
-  params$sample.info.neg %>%
+  sample.info.neg %>%
   filter(Sample.type == params$po.sample.to.use) %>%
   pull(File.path)
 

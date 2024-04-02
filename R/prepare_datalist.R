@@ -21,7 +21,7 @@ prepare_datalist <-
 
     peaks.temp <-
       peaks %>%
-      mutate( peaks.type = ifelse( grepl("^[0-9][0-9]", substr(Identity, 1, 3)), "IS", ""))
+      mutate( peaks.type = ifelse( grepl("^[0-9][0-9].", substr(Identity, 1, 3)), "IS", ""))
 
     peaktable <-
       peaks.temp %>%

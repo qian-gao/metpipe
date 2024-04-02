@@ -1,24 +1,20 @@
 #' @title process_peak_group
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Preprocessing with XCMS
+#'     
+#' @param para A list of parameters used for preprocessing
+#' @param sample.info Sample information used for preprocessing
+#' @param mode Polarity, 'pos' or 'neg'
+#' @param path.result Path to output folder
+#' @param BPPARAM Parallel processing setup
 #'
-#' @param files = NULL,
-#' @param para = NULL,
-#' @param sample.info = NULL,
-#' @param mode = NULL,
-#' @param path.result = NULL
-#' @param BPPARAM = NULL
-#'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
-#' @examples
+#' @return A XCMSnExp object from XCMS
+#'    
 #' @export
-#' @import xcms
+#' @import xcms MSnbase
 #'
 process_peak_group <-
-  function( files = NULL,
-            para = NULL,
+  function( para = NULL,
             sample.info = NULL,
             mode = NULL,
             path.result = NULL,

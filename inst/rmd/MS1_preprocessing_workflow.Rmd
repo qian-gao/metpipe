@@ -45,13 +45,12 @@ knitr::opts_chunk$set(
 params <-
   params_setup( 
     
-    path.mzml = "J:/CBMR/SUN-CBMR-Metabolomics/Projects/AMP_test_project/mzML/TE_LIP_MS1/",
+    path.mzml = "J:/CBMR/SUN-CBMR-Metabolomics/Projects/AMP_test_project/mzML/TE_RPS_MS1/",
     
     standard.name = TRUE,  # TRUE, FALSE
     
     # Metadata
-    path.meta.pos = NULL,
-    path.meta.neg = NULL,
+    path.meta = NULL,
     
     meta.match.col = "Sample", # "Sample" for standard.name = TRUE, "Sample.name" for 
     
@@ -69,27 +68,21 @@ params <-
     path.result = NULL,
     sample.pattern = ".mzML",
     
-    # Sample path
-    # Put "No_data" if not preprocessing the mode
-    path.mzml.pos = NULL,
-    path.mzml.neg = NULL,
-    
     # Library path
     path.lib = "J:/CBMR/SUN-CBMR-Metabolomics/Workflow/library/library.MS1.rds",
     path.lib.is = "J:/CBMR/SUN-CBMR-Metabolomics/Workflow/library/library.MS1.IS.rds",
     path.msp = "J:/CBMR/SUN-CBMR-Metabolomics/Workflow/library/msdial.library.MS1.rds"
 
 )
+
+params$author <- "xxx (xxx@sund.ku.dk)"
 ```
 
 ```{r 02_01_Extract_precursor xcms, eval = FALSE}
 
 params$extract_precursor <- TRUE
 
-### XCMS setup
-params$optimize.xcms.parameters <- FALSE  # TRUE, FALSE
-
-# If not optimize parameters, the following parameters are used:
+### XCMS parameters
 params$para.pos <-
   list( # para.peak.picking
         max_peakwidth = 0.7*60,
@@ -118,7 +111,7 @@ params$para.neg <-
 render_rmarkdown(
     file = system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
     #file = "Preprocessing_xcms.Rmd",
-    params = params[params$Extract_precursor],
+    params = params,
     output = paste0( params$path.result, '02_01_Extract_precursor_xcms')
   )
 

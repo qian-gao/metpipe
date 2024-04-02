@@ -1,11 +1,12 @@
 #' @title extract_sample_info
 #'
-#' @description Extract sample information from the standardized sample names
+#' @description Extract sample information from the standardized sample names or 
+#'    metadata and generate sample list
 #'
-#' @param path Path to files
-#' @param files File names
+#' @param path Path to converted data files
+#' @param files converted data file names
 #' @param sample.pattern Sample file format, e.g. ".mzML"
-#' @param standard.name If standardized sample names are used
+#' @param standard.name If standardized sample names are used, TRUE/FALSE
 #' @param path.meta Metadata file, which should have a key column to match with
 #'    sample names
 #' @param meta.match.col Column used as key column for matching
@@ -15,15 +16,12 @@
 #' @param export.rds rds name to export
 #' @param export.xlsx xlsx name to export
 #'
-#'
 #' @return A data frame object that contains sample names and related information
-#'
-#' @examples
-#'
-#'
+#' 
 #' @export
 #' @importFrom dplyr "%>%" mutate left_join arrange select
-#'
+#' @import stringr openxlsx
+
 extract_sample_info <-
   function( path = NULL,
             files = NULL,

@@ -1,15 +1,12 @@
 #' @title match_library_id
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Match features with library based on identity
 #'
-#' @param dat A data set object
-#' @param id Scope (e.g., country codes or individual IDs)
-#' @param time Time (e.g., time periods are given by years, months, ...)
+#' @param peaklist A xlsx of features with column "Identity
+#' @param lib A library file in dataframe format. It must contain a column named 
+#'      "Library.name"
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
-#' @examples
+#' @return A data frame of features matched with library
 #'
 #' @export
 #' @importFrom dplyr "%>%" left_join
