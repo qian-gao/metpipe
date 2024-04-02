@@ -45,7 +45,7 @@ knitr::opts_chunk$set(
 params <-
   params_setup( 
     
-    path.mzml = "J:/CBMR/SUN-CBMR-Metabolomics/Projects/AMP_test_project/mzML/TE_RPS_MS1/",
+    path.mzml = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/mzML/TE_RPS_MS1/",
     
     standard.name = TRUE,  # TRUE, FALSE
     
@@ -69,14 +69,49 @@ params <-
     sample.pattern = ".mzML",
     
     # Library path
-    path.lib = "J:/CBMR/SUN-CBMR-Metabolomics/Workflow/library/library.MS1.rds",
-    path.lib.is = "J:/CBMR/SUN-CBMR-Metabolomics/Workflow/library/library.MS1.IS.rds",
-    path.msp = "J:/CBMR/SUN-CBMR-Metabolomics/Workflow/library/msdial.library.MS1.rds"
+    path.lib = "N:/SUN-CBMR-Metabolomics/Workflow/library/library.MS1.rds",
+    path.lib.is = "N:/SUN-CBMR-Metabolomics/Workflow/library/library.MS1.IS.rds",
+    path.msp = "N:/SUN-CBMR-Metabolomics/Workflow/library/msdial.library.MS1.rds"
 
 )
 
 params$author <- "xxx (xxx@sund.ku.dk)"
 ```
+
+```{r 03_01_Preprocessing_IS, eval = FALSE}
+
+params$mzmine.mz.tol.pos <- 0.4
+params$mzmine.rt.tol.pos <- 0.01
+
+params$mzmine.mz.tol.neg <- 0.4
+params$mzmine.rt.tol.neg <- 0.01
+
+run_module(module = "Preprocessing_IS",
+           params = params)
+
+```
+
+```{r 03_02_QC_IS, eval = FALSE}
+
+params$reference.type <- "reference" # reference or median
+params$figure_height <- 900
+
+params$path.peaktable.IS.pos <- NULL
+params$path.peaktable.IS.neg <- NULL
+
+run_module(module = "QC_IS",
+           params = params)
+
+# render_rmarkdown(
+#     file = system.file("rmd", "QC_IS.Rmd", package="metpipe"),
+#     #file = "QC_IS.Rmd",
+#     params = params[params$QC_IS],
+#     output = paste0( params$path.result, '03_02_QC_IS')
+#     
+#   )
+
+```
+
 
 ```{r 02_01_Extract_precursor xcms, eval = FALSE}
 
@@ -139,51 +174,9 @@ render_rmarkdown(
 ```
 
 
-```{r 03_01_Preprocessing_IS, eval = FALSE}
 
-params$preprocessing.is <- TRUE
-params$precursor.include <- FALSE
 
-params$mzmine.mz.tol.pos <- params$mz_tolerance
-params$mzmine.rt.tol.pos <- params$rt_tolerance
-params$mzmine.min.peaks.in.row.pos <- 1
-params$mzmine.min.peaks.in.row.pos.percent <- 0
 
-params$mzmine.mz.tol.neg <- params$mzmine.mz.tol.pos
-params$mzmine.rt.tol.neg <- params$mzmine.rt.tol.pos
-params$mzmine.min.peaks.in.row.neg <- params$mzmine.min.peaks.in.row.pos
-params$mzmine.min.peaks.in.row.neg.percent <- params$mzmine.min.peaks.in.row.pos.percent
-
-render_rmarkdown(
-    file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
-    #file = "Preprocessing_mzmine.Rmd",
-    params = params[params$Preprocessing_IS],
-    output = paste0( params$path.result, '03_01_Preprocessing_IS')
-    
-  )
-
-```
-
-```{r 03_02_QC_IS, eval = FALSE}
-
-params$reference.type <- "reference" # reference or median
-params$figure_height <- 900
-
-params$path.peaktable.IS.pos <- NULL
-params$path.peaktable.IS.neg <- NULL
-
-params$sample.info.pos.qc <- NULL
-params$sample.info.neg.qc <- NULL
-
-render_rmarkdown(
-    file = system.file("rmd", "QC_IS.Rmd", package="metpipe"),
-    #file = "QC_IS.Rmd",
-    params = params[params$QC_IS],
-    output = paste0( params$path.result, '03_02_QC_IS')
-    
-  )
-
-```
 
 ```{r 04_01_Preprocessing mzmine, eval = TRUE}
 

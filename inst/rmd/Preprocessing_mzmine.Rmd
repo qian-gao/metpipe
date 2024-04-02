@@ -142,7 +142,7 @@ print( paste0("mzmine_min_peaks_in_row_pos_percent = ", mzmine_min_peaks_in_row_
 ```
 
 
-```{r generate xml pos, echo = TRUE, eval = params$run.pos}
+```{r generate xml pos, eval = params$run.pos}
 
 prepare_mzmine_xml(
     type = ifelse(params$preprocessing.is, "is", "peak"),
@@ -236,7 +236,7 @@ print( paste0("mzmine_min_peaks_in_row_neg_percent = ", mzmine_min_peaks_in_row_
 ```
 
 
-```{r generate xml neg, echo = TRUE, eval = params$run.neg}
+```{r generate xml neg, eval = params$run.neg}
 
 prepare_mzmine_xml(
     type = ifelse(params$preprocessing.is, "is", "peak"),

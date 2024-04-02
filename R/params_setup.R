@@ -75,6 +75,129 @@ params_setup <-
 
     params <- list()
 
+    ##### Only modify if not standard workflow
+    ### method
+    if (is.null(method)) {
+      params$method = toupper(strsplit(strsplit(path.mzml, "mzML/")[[1]][2], "_")[[1]][2])
+    } else {
+      params$method = toupper(method)
+    }
+    
+    ### path.result
+    if (is.null(path.result)) {
+      params$path.result = gsub("mzML", "peaktable", path.mzml)
+    } else {
+      params$path.result = path.result
+    }
+    
+    ### sample pattern
+    params$sample.pattern = sample.pattern
+    
+    ### path setup
+    if (!dir.exists(params$path.result)) dir.create(params$path.result)
+    params$path.data <- paste0(params$path.result, "/data/")
+    if (!dir.exists(params$path.data)) dir.create(params$path.data)
+    
+    ### import MS1 library
+    if ( grepl(".xlsx", path.lib) ){
+      
+      lib <- list()
+      
+      lib[[params$method]]$pos <- openxlsx::read.xlsx( path.lib, "POS" )
+      lib[[params$method]]$neg <- openxlsx::read.xlsx( path.lib, "NEG" )
+      
+    } else {
+      
+      lib <- readRDS(path.lib)
+      
+    }
+    
+    if ( grepl(".xlsx", path.lib.is) ){
+      
+      lib.is <- list()
+      
+      lib.is[[params$method]]$pos <- openxlsx::read.xlsx( path.lib.is, "POS" )
+      lib.is[[params$method]]$neg <- openxlsx::read.xlsx( path.lib.is, "NEG" )
+      
+    } else {
+      
+      lib.is <- readRDS(path.lib.is)
+      
+    }
+    
+    params$lib <- lib
+    params$lib.is <- lib.is
+    
+    
+    ### Import MS2 database
+    if (!is.null(path.msp)) params$msp <- readRDS(path.msp)
+    if (!is.null(path.msp.pos)) params$msp[[params$target]]$pos <- path.msp.pos
+    if (!is.null(path.msp.neg)) params$msp[[params$target]]$neg <- path.msp.neg
+    
+    ### Path to preprocessing software
+    ## mzmine
+    if (!is.null(path.mzmine)){
+      
+      params$path.mzmine = path.mzmine
+      
+    } else if ( file.exists( "/home/projects/ku_00007/" )){
+      
+      #params$path.mzmine = "/home/projects/ku_00007/apps/MZmine/MZmine-2.53-Linux/bin/start_mzmine2"
+      params$path.mzmine = "/home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/start_mzmine3"
+      
+    } else {
+      
+      #params$path.mzmine = "C:/Users/Public/Documents/MZmine-2.53/startMZmine-Windows.bat"
+      params$path.mzmine = "C:/Users/Public/Documents/MZmine-3.4.27/MZmine_console.exe"
+      
+    }
+    
+    ## msdial
+    if (!is.null(path.msdial)){
+      
+      params$path.msdial = path.msdial
+      
+    } else if ( file.exists( "/home/projects/ku_00007/" )){
+      
+      params$path.msdial = "/home/projects/ku_00007/apps/MSDIAL/MSDIAL_ver.4.9/MsdialConsoleApp"
+      
+    } else {
+      
+      params$path.msdial = "C:/Users/Public/Documents/MSDIAL_v4.9/MsdialConsoleApp.exe"
+      
+    }
+    
+    # target for msdial setting
+    if (params$method == "LIP"){
+      params$target = "Lipidomics"
+    } else if (params$method == "GC"){
+      params$target = "GC"
+    } else {
+      params$target = "Metabolomics"
+    }
+    if (params$target == "GC") {
+      params$run.neg <- FALSE
+      params$path.mzml.pos = path.mzml
+    }
+    
+    ### parallel processing
+    if (is.null(BPPARAM_set)){
+      
+      params$BPPARAM_set = switch( Sys.info()["sysname"],
+                                   Windows = BiocParallel::SnowParam(max(1, min(4, parallel::detectCores()-1)), progressbar = TRUE),
+                                   BiocParallel::MulticoreParam(max(1, min(4, parallel::detectCores()-1)), progressbar = TRUE))
+      
+    } else {
+      params$BPPARAM_set = BPPARAM_set
+    }
+    
+    ### Parameters for preprocessing
+    params$rt_tolerance = rt_tolerance
+    params$mz_tolerance = mz_tolerance
+    params$type.use.to.optimize = type.use.to.optimize
+    params$po.sample.to.use = po.sample.to.use
+    
+    ##### Generate sample info
     ### Path to data files
     # mzML files
     params$path.mzml <- path.mzml
@@ -138,128 +261,6 @@ params_setup <-
     
     params$run.pos <- exists("sample.info.pos")
     params$run.neg <- exists("sample.info.neg")
-    
-    ### Only modify if not standard workflow
-    # method
-    if (is.null(method)) {
-      params$method = toupper(strsplit(strsplit(path.mzml, "mzML/")[[1]][2], "_")[[1]][2])
-    } else {
-      params$method = toupper(method)
-    }
-    
-    # path.result
-    if (is.null(path.result)) {
-      params$path.result = gsub("mzML", "peaktable", path.mzml)
-    } else {
-      params$path.result = path.result
-    }
-    
-    # sample pattern
-    params$sample.pattern = sample.pattern
-    
-    # path setup
-    if (!dir.exists(params$path.result)) dir.create(params$path.result)
-    params$path.data <- paste0(params$path.result, "/data/")
-    if (!dir.exists(params$path.data)) dir.create(params$path.data)
-    
-    # import MS1 library
-    if ( grepl(".xlsx", path.lib) ){
-      
-      lib <- list()
-      
-      lib[[params$method]]$pos <- openxlsx::read.xlsx( path.lib, "POS" )
-      lib[[params$method]]$neg <- openxlsx::read.xlsx( path.lib, "NEG" )
-      
-    } else {
-      
-      lib <- readRDS(path.lib)
-      
-    }
-    
-    if ( grepl(".xlsx", path.lib.is) ){
-      
-      lib.is <- list()
-      
-      lib.is[[params$method]]$pos <- openxlsx::read.xlsx( path.lib.is, "POS" )
-      lib.is[[params$method]]$neg <- openxlsx::read.xlsx( path.lib.is, "NEG" )
-      
-    } else {
-      
-      lib.is <- readRDS(path.lib.is)
-      
-    }
-    
-    params$lib <- lib
-    params$lib.is <- lib.is
-    
-    
-    # Import MS2 database
-    if (!is.null(path.msp)) params$msp <- readRDS(path.msp)
-    if (!is.null(path.msp.pos)) params$msp[[params$target]]$pos <- path.msp.pos
-    if (!is.null(path.msp.neg)) params$msp[[params$target]]$neg <- path.msp.neg
-    
-    ### Path to preprocessing software
-    ## mzmine
-    if (!is.null(path.mzmine)){
-
-      params$path.mzmine = path.mzmine
-
-    } else if ( file.exists( "/home/projects/ku_00007/" )){
-
-      #params$path.mzmine = "/home/projects/ku_00007/apps/MZmine/MZmine-2.53-Linux/bin/start_mzmine2"
-      params$path.mzmine = "/home/projects/ku_00007/apps/MZmine/MZmine-3.4.27-Linux/bin/start_mzmine3"
-
-    } else {
-
-      #params$path.mzmine = "C:/Users/Public/Documents/MZmine-2.53/startMZmine-Windows.bat"
-      params$path.mzmine = "C:/Users/Public/Documents/MZmine-3.4.27/MZmine_console.exe"
-
-    }
-
-    ## msdial
-    if (!is.null(path.msdial)){
-
-      params$path.msdial = path.msdial
-
-    } else if ( file.exists( "/home/projects/ku_00007/" )){
-
-      params$path.msdial = "/home/projects/ku_00007/apps/MSDIAL/MSDIAL_ver.4.9/MsdialConsoleApp"
-
-    } else {
-
-      params$path.msdial = "C:/Users/Public/Documents/MSDIAL_v4.9/MsdialConsoleApp.exe"
-
-    }
-
-    # target for msdial setting
-    if (params$method == "LIP"){
-      params$target = "Lipidomics"
-    } else if (params$method == "GC"){
-      params$target = "GC"
-    } else {
-      params$target = "Metabolomics"
-    }
-    if (params$target == "GC") {
-      params$run.neg <- FALSE
-      params$path.mzml.pos = path.mzml
-    }
-    
-    # parallel processing
-    if (is.null(BPPARAM_set)){
-
-      params$BPPARAM_set = switch( Sys.info()["sysname"],
-                                   Windows = BiocParallel::SnowParam(max(1, min(4, parallel::detectCores()-1)), progressbar = TRUE),
-                                   BiocParallel::MulticoreParam(max(1, min(4, parallel::detectCores()-1)), progressbar = TRUE))
-
-    } else {
-      params$BPPARAM_set = BPPARAM_set
-    }
-
-    ### Parameters for preprocessing
-    params$rt_tolerance = rt_tolerance
-    params$mz_tolerance = mz_tolerance
-    params$type.use.to.optimize = type.use.to.optimize
-    params$po.sample.to.use = po.sample.to.use
 
     return(params)
   }
