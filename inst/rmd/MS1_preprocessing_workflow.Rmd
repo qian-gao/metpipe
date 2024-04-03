@@ -65,7 +65,7 @@ params <-
     
     ### Only modify if not standard workflow
     method = NULL,
-    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/TE_RPS_MS1_tar/",
+    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/TE_RPS_MS1_tar_untar/",
     sample.pattern = ".mzML",
     
     # Library path
@@ -124,70 +124,8 @@ run_module(module = "Targeted",
 
 ```
 
-```{r 02_01_Extract_precursor xcms, eval = FALSE}
-
-params$extract_precursor <- TRUE
-
-### XCMS parameters
-params$para.pos <-
-  list( # para.peak.picking
-        max_peakwidth = 0.7*60,
-        min_peakwidth = 0.1*60,
-        ppm = 10,
-        snthresh = 10,
-        noise = 500,
-        prefilter = 3,
-        value_of_prefilter = 500, 
-        
-        # para.peak.group
-        bw = 0.2*60,
-        minFraction.1 = 0.5,
-        minFraction.2 = 0.7,
-        binSize = 0.01,
-        
-        # para.adjust.rt
-        span = 0.6,
-        minFraction.ref = 0.8,
-        extraPeaks = 2
-  )
-
-params$para.neg <-
-  params$para.pos
-
-render_rmarkdown(
-    file = system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
-    #file = "Preprocessing_xcms.Rmd",
-    params = params,
-    output = paste0( params$path.result, '02_01_Extract_precursor_xcms')
-  )
-
-```
-
-```{r 02_02_Extract_precursor msdial, eval = TRUE}
-
-params$extract_precursor <- TRUE
-
-params$mz_tol_pos <- params$mz_tolerance
-params$rt_tol_pos <- params$rt_tolerance
-params$mz_tol_neg <- params$mz_tol_pos
-params$rt_tol_neg <- params$rt_tol_pos
-
-params$ri_tol <- NULL
-params$ri_tol_bigger <- NULL
-
-render_rmarkdown(
-    file = system.file("rmd", "Untargeted_preprocessing_msdial.Rmd", package="metpipe"),
-    #file = "Untargeted_preprocessing_msdial.Rmd",
-    params = params[params$Untargeted_preprocessing],
-    output = paste0( params$path.result, '02_02_Extract_precursor_msdial')
-  )
-
-```
-
-
-
-
-```{r 04_02_Untargeted_preprocessing xcms, eval = FALSE}
+### 2.2 Untargeted preprocessing - XCMS
+```{r 02_02_Untargeted_preprocessing xcms, eval = FALSE}
 
 params$extract_precursor <- FALSE
 
@@ -228,9 +166,10 @@ render_rmarkdown(
   )
 
 ```
+### 2.3 Untargeted preprocessing - MZMine
 
-
-```{r 04_03_Untargeted_preprocessing msdial, eval = FALSE}
+### 2.4 Untargeted preprocessing - msdial
+```{r 02_04_Untargeted_preprocessing msdial, eval = FALSE}
 
 params$extract_precursor <- FALSE
 
@@ -249,6 +188,71 @@ render_rmarkdown(
     output = paste0( params$path.result, '04_03_Untargeted_preprocessing')
   )
 
+
+```
+
+### 2.5 Targeted-untargeted preprocessing - xcms
+```{r 02_05_Targeted-untargeted with xcms, eval = FALSE}
+params$extract_precursor <- TRUE
+
+### XCMS parameters
+params$para.pos <-
+  list( # para.peak.picking
+        max_peakwidth = 0.7*60,
+        min_peakwidth = 0.1*60,
+        ppm = 10,
+        snthresh = 10,
+        noise = 500,
+        prefilter = 3,
+        value_of_prefilter = 500, 
+        
+        # para.peak.group
+        bw = 0.2*60,
+        minFraction.1 = 0.5,
+        minFraction.2 = 0.7,
+        binSize = 0.01,
+        
+        # para.adjust.rt
+        span = 0.6,
+        minFraction.ref = 0.8,
+        extraPeaks = 2
+  )
+
+params$para.neg <-
+  params$para.pos
+
+render_rmarkdown(
+    file = system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
+    #file = "Preprocessing_xcms.Rmd",
+    params = params,
+    output = paste0( params$path.result, '02_01_Extract_precursor_xcms')
+  )
+
+```
+
+### 2.6 Targeted-untargeted preprocessing - msdial
+```{r 02_06_Targeted-untargeted with msdial, eval = TRUE}
+
+params$mz_tol_pos <- params$mz_tolerance
+params$rt_tol_pos <- params$rt_tolerance
+params$mz_tol_neg <- params$mz_tol_pos
+params$rt_tol_neg <- params$rt_tol_pos
+
+params$ri_tol <- NULL
+params$ri_tol_bigger <- NULL
+
+params$mzmine.mz.tol.pos <- params$mz_tolerance
+params$mzmine.rt.tol.pos <- params$rt_tolerance
+params$mzmine.min.peaks.in.row.pos <- 1
+params$mzmine.min.peaks.in.row.pos.percent <- 0
+
+params$mzmine.mz.tol.neg <- params$mzmine.mz.tol.pos
+params$mzmine.rt.tol.neg <- params$mzmine.rt.tol.pos
+params$mzmine.min.peaks.in.row.neg <- params$mzmine.min.peaks.in.row.pos
+params$mzmine.min.peaks.in.row.neg.percent <- params$mzmine.min.peaks.in.row.pos.percent
+
+run_module(module = "tar_untar_msdial",
+           params = params)
 
 ```
 

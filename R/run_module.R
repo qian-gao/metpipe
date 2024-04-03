@@ -69,6 +69,25 @@ run_module <-
         output = paste0( params$path.result, '05_Merge_and_map_names')
       )
       
+    } else if (tolower(module) == "tar_untar_msdial"){
+      params$extract_precursor <- TRUE
+      params$precursor.include <- TRUE
+      params$preprocessing.is <- FALSE
+      
+      render_rmarkdown(
+        file = system.file("rmd", "Preprocessing_msdial.Rmd", package="metpipe"),
+        #file = "Untargeted_preprocessing_msdial.Rmd",
+        params = params,
+        output = paste0( params$path.result, '02_06_01_Extract_precursor_msdial')
+      )
+      
+      render_rmarkdown(
+        file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+        #file = "Preprocessing_mzmine.Rmd",
+        params = params,
+        output = paste0( params$path.result, '02_06_02_Targeted_untargeted_preprocessing')
+      )
+      
     }
     
 
