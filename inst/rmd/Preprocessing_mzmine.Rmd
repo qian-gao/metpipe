@@ -36,12 +36,12 @@ knitr::opts_chunk$set(
 if (params$preprocessing.is){
   
   path.output <-
-    paste0(params$path.result, "03_01_Preprocessing_IS/")
+    paste0(params$path.result, "01_01_Preprocessing_IS/")
   
   path_lib_pos = paste0(path.output, "library_MS1_IS_", params$method, "_pos.csv")
   path_lib_neg = paste0(path.output, "library_MS1_IS_", params$method, "_neg.csv")
   
-  output.file.prefix <- paste0(path.output, "peaktable_targeted_IS")
+  output.file.prefix <- paste0(path.output, "peaktable_IS")
   library.file.prefix <- paste0(path.output, "library_MS1_IS_", params$method)
   
   mzmine.param.pos <- "MZMine_parameters_IS_pos.xml"
@@ -50,12 +50,12 @@ if (params$preprocessing.is){
 } else {
   
   path.output <-
-  paste0(params$path.result, "04_Preprocessing/")
+  paste0(params$path.result, "02_Preprocessing/")
   
   path_lib_pos = paste0(path.output, "library_MS1_", params$method, "_pos.csv")
   path_lib_neg = paste0(path.output, "library_MS1_", params$method, "_neg.csv")
   
-  output.file.prefix <- paste0(path.output, "peaktable_targeted")
+  output.file.prefix <- paste0(path.output, "peaktable")
   library.file.prefix <- paste0(path.output, "library_MS1_", params$method)
   
   mzmine.param.pos <- "MZMine_parameters_pos.xml"

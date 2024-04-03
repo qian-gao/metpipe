@@ -66,12 +66,12 @@ if (params$extract_precursor){
 } else {
   
   path.output <-
-    paste0(params$path.result, "04_Preprocessing/")
+    paste0(params$path.result, "02_Preprocessing/")
   
   path.mzml.pos <- params$path.mzml.pos
   path.mzml.neg <- params$path.mzml.neg
-  output.file.pos <- paste0(path.output, "peaktable_targeted_pos.csv")
-  output.file.neg <- paste0(path.output, "peaktable_targeted_neg.csv")
+  output.file.pos <- paste0(path.output, "peaktable_pos.csv")
+  output.file.neg <- paste0(path.output, "peaktable_neg.csv")
   
   sample.info.pos <- params$sample.info.pos
   sample.info.neg <- params$sample.info.neg

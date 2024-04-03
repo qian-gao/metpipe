@@ -20,7 +20,8 @@ run_module <-
         file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
         #file = "Preprocessing_mzmine.Rmd",
         params = params,
-        output = paste0( params$path.result, '01_01_Preprocessing_IS'))
+        output = paste0( params$path.result, '01_01_Preprocessing_IS')
+        )
 
     } else if (tolower(module) == "qc_is"){
       params$sample.info.pos.qc <- NULL
@@ -30,9 +31,47 @@ run_module <-
         file = system.file("rmd", "QC_IS.Rmd", package="metpipe"),
         #file = "QC_IS.Rmd",
         params = params,
-        output = paste0( params$path.result, '01_02_QC_IS'))
+        output = paste0( params$path.result, '01_02_QC_IS')
+        )
         
+    } else if (tolower(module) == "targeted"){
+      params$precursor.include <- TRUE
+      params$preprocessing.is <- FALSE
+      
+      render_rmarkdown(
+        file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+        #file = "Preprocessing_mzmine.Rmd",
+        params = params,
+        output = paste0( params$path.result, '02_01_Targeted_preprocessing')
+        )
+      
+    } else if (tolower(module) == "clean"){
+      render_rmarkdown(
+        file = system.file("rmd", "Clean_peaktable.Rmd", package="metpipe"),
+        #file = "Clean_peaktable.Rmd",
+        params = params,
+        output = paste0( params$path.result, '03_Clean_peaktable')
+      )
+      
+    } else if (tolower(module) == "normalization"){
+      render_rmarkdown(
+        file = system.file("rmd", "Normalization_comparison.Rmd", package="metpipe"),
+        #file = "Normalization_comparison.Rmd",
+        params = params,
+        output = paste0( params$path.result, '04_Normalization_comparison')
+      )
+      
+    } else if (tolower(module) == "merge"){
+      render_rmarkdown(
+        file = system.file("rmd", "Merge_and_map_names.Rmd", package="metpipe"),
+        #file = "Merge_and_map_names.Rmd",
+        params = params,
+        output = paste0( params$path.result, '05_Merge_and_map_names')
+      )
+      
     }
+    
+
     
   }
     

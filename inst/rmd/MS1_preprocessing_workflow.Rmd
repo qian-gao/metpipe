@@ -59,13 +59,13 @@ params <-
     mz_tolerance = 0.01,
     
     # Pool samples to use for evaluation
-    type.use.to.optimize = "PO",  # For optimizing XCMS parameters
-    po.sample.to.use = "PO",      # For evaluate normalization
+    type.use.to.optimize = "PO100",  # For optimizing XCMS parameters
+    po.sample.to.use = "PO100",      # For evaluate normalization
     
     
     ### Only modify if not standard workflow
     method = NULL,
-    path.result = NULL,
+    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/TE_RPS_MS1_tar/",
     sample.pattern = ".mzML",
     
     # Library path
@@ -78,7 +78,8 @@ params <-
 params$author <- "xxx (xxx@sund.ku.dk)"
 ```
 
-```{r 03_01_Preprocessing_IS, eval = FALSE}
+#### 1 QC of internal standards
+```{r 01_01_Preprocessing_IS, eval = FALSE}
 
 params$mzmine.mz.tol.pos <- 0.4
 params$mzmine.rt.tol.pos <- 0.01
@@ -91,7 +92,7 @@ run_module(module = "Preprocessing_IS",
 
 ```
 
-```{r 03_02_QC_IS, eval = FALSE}
+```{r 01_02_QC_IS, eval = FALSE}
 
 params$reference.type <- "reference" # reference or median
 params$figure_height <- 900
@@ -102,16 +103,26 @@ params$path.peaktable.IS.neg <- NULL
 run_module(module = "QC_IS",
            params = params)
 
-# render_rmarkdown(
-#     file = system.file("rmd", "QC_IS.Rmd", package="metpipe"),
-#     #file = "QC_IS.Rmd",
-#     params = params[params$QC_IS],
-#     output = paste0( params$path.result, '03_02_QC_IS')
-#     
-#   )
-
 ```
 
+#### 2 Preprocessing
+### 2.1 Targeted preprocessing
+```{r 02_01_Targeted preprocessing, eval = TRUE}
+
+params$mzmine.mz.tol.pos <- params$mz_tolerance
+params$mzmine.rt.tol.pos <- params$rt_tolerance
+params$mzmine.min.peaks.in.row.pos <- 1
+params$mzmine.min.peaks.in.row.pos.percent <- 0
+
+params$mzmine.mz.tol.neg <- params$mzmine.mz.tol.pos
+params$mzmine.rt.tol.neg <- params$mzmine.rt.tol.pos
+params$mzmine.min.peaks.in.row.neg <- params$mzmine.min.peaks.in.row.pos
+params$mzmine.min.peaks.in.row.neg.percent <- params$mzmine.min.peaks.in.row.pos.percent
+
+run_module(module = "Targeted",
+           params = params)
+
+```
 
 ```{r 02_01_Extract_precursor xcms, eval = FALSE}
 
@@ -175,33 +186,6 @@ render_rmarkdown(
 
 
 
-
-
-
-```{r 04_01_Preprocessing mzmine, eval = TRUE}
-
-params$precursor.include <- TRUE
-params$preprocessing.is <- FALSE
-
-params$mzmine.mz.tol.pos <- params$mz_tolerance
-params$mzmine.rt.tol.pos <- params$rt_tolerance
-params$mzmine.min.peaks.in.row.pos <- 1
-params$mzmine.min.peaks.in.row.pos.percent <- 0
-
-params$mzmine.mz.tol.neg <- params$mzmine.mz.tol.pos
-params$mzmine.rt.tol.neg <- params$mzmine.rt.tol.pos
-params$mzmine.min.peaks.in.row.neg <- params$mzmine.min.peaks.in.row.pos
-params$mzmine.min.peaks.in.row.neg.percent <- params$mzmine.min.peaks.in.row.pos.percent
-
-render_rmarkdown(
-    file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
-    #file = "Preprocessing_mzmine.Rmd",
-    params = params[params$Preprocessing],
-    output = paste0( params$path.result, '04_01_Preprocessing_mzmine')
-  )
-
-
-```
 
 ```{r 04_02_Untargeted_preprocessing xcms, eval = FALSE}
 
@@ -268,7 +252,8 @@ render_rmarkdown(
 
 ```
 
-```{r 05_Clean_peaktable, eval = TRUE}
+#### 3 Cleaning
+```{r 03_Clean_peaktable, eval = TRUE}
 
 ### Peaktable
 
@@ -299,16 +284,13 @@ params$filter_by_missing_feature_pct <- 50
 params$missing.impute.method <- "LoD"  # "LoD", "HF", "median", "min", "mean"
 params$missing.is.impute.method <- "LoD"
 
-render_rmarkdown(
-    file = system.file("rmd", "Clean_peaktable.Rmd", package="metpipe"),
-    #file = "Clean_peaktable.Rmd",
-    params = params[params$Clean_peaktable],
-    output = paste0( params$path.result, '05_Clean_peaktable')
-  )
+run_module(module = "Clean",
+           params = params)
 
 ```
 
-```{r 06_Normalization_comparison, eval = TRUE}
+#### 4 Normalization
+```{r 04_Normalization_comparison, eval = TRUE}
 
 ### Peaktable
 
@@ -350,16 +332,13 @@ params$type.to.remove <- c("Met", "CA", "IQ", "sol", "BL")
 
 params$norm.method <- c("bestis", "low_cv", "sum", "median")
 
-render_rmarkdown(
-    file = system.file("rmd", "Normalization_comparison.Rmd", package="metpipe"),
-    #file = "Normalization_comparison.Rmd",
-    params = params[params$Normalization_comparison],
-    output = paste0( params$path.result, '06_Normalization_comparison')
-  )
+run_module(module = "Normalization",
+           params = params)
 
 ```
 
-```{r 07_Merge_and_map_names, eval = FALSE}
+#### 5 Merge
+```{r 05_Merge, eval = FALSE}
 
 ### datatables
 
@@ -369,12 +348,8 @@ params$path.datatable.neg <- paste0(params$path.result, "06_Normalization_compar
 params$datatable.sep <- ";"
 params$feature_col_nr <- 2
 
-render_rmarkdown(
-    #file = system.file("rmd", "Merge_and_map_names.Rmd", package="metpipe"),
-    file = "Merge_and_map_names.Rmd",
-    params = params[params$Merge_and_map_names],
-    output = paste0( params$path.result, '07_Merge_and_map_names')
-  )
+run_module(module = "Merge",
+           params = params)
 
 ```
 
