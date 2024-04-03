@@ -135,9 +135,13 @@ extract_sample_info <-
 
       }
 
-      sample.info <-
-        sample.info %>%
-        filter(!File.batch %in% c("subset"))
+      if (!is.null(path) & grepl("subset", path)){
+        
+      } else {
+        sample.info <-
+          sample.info %>%
+          filter(!File.batch %in% c("subset"))
+      }
 
       if (!is.null(path.meta)){
 
