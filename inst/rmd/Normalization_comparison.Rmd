@@ -33,7 +33,7 @@ knitr::opts_chunk$set(
 
 ```{r set path}
 
-path.output <- paste0(params$path.result, "06_Normalization_comparison/")
+path.output <- paste0(params$path.result, "04_Normalization_comparison/")
 
 if (!dir.exists(path.output)) dir.create(path.output)
 
@@ -45,7 +45,7 @@ if (!dir.exists(path.output)) dir.create(path.output)
 
 if (is.null(params$path.peaktable.pos)){
   
-  params$path.peaktable.pos <- paste0(params$path.result, "05_Clean_peaktable/peaktable_targeted_pos_cleaned.xlsx")
+  params$path.peaktable.pos <- paste0(params$path.result, "03_Clean_peaktable/peaktable_pos_cleaned.xlsx")
   
 }
 
@@ -404,7 +404,7 @@ plotly::ggplotly(plt.eval$plt.var.sum, session="knitr") %>%
 
 if (is.null(params$path.peaktable.neg)){
   
-  params$path.peaktable.neg <- paste0(params$path.result, "05_Clean_peaktable/peaktable_targeted_neg_cleaned.xlsx")
+  params$path.peaktable.neg <- paste0(params$path.result, "03_Clean_peaktable/peaktable_neg_cleaned.xlsx")
   
 }
 
