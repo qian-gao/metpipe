@@ -17,6 +17,7 @@ run_module <-
     if (tolower(module) == "preprocessing_is"){
       params$preprocessing.is <- TRUE
       params$precursor.include <- FALSE
+      params$untar <- FALSE
       
       if (is.null(params$mzmine.min.peaks.in.row.pos)){
         params$mzmine.min.peaks.in.row.pos <- floor(nrow(params$sample.info.pos) / 2)
@@ -128,8 +129,8 @@ run_module <-
       
     } else if (tolower(module) == "merge"){
       render_rmarkdown(
-        file = system.file("rmd", "Merge_and_map_names.Rmd", package="metpipe"),
-        #file = "Merge_and_map_names.Rmd",
+        file = system.file("rmd", "Merge_and_map_info.Rmd", package="metpipe"),
+        #file = "Merge_and_map_info.Rmd",
         params = params,
         output = paste0( params$path.result, '05_Merge_and_map_info')
       )

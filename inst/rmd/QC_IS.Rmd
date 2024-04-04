@@ -1,6 +1,6 @@
 ---
-title: "Checking internal standards"
-author: "CBMR Metabolomics Platform"
+title: "QC internal standards"
+author: "`r params$author`"
 date: "`r base::Sys.Date()`"
 
 knit: ( function(inputFile, encoding) { 

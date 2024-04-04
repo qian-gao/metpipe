@@ -136,8 +136,8 @@ prepare_mzmine_xml <-
       params_mzmine$P_EX_CSV=paste0(path_output, "peaktable_targeted_IS_", mode, ".csv")
       params_mzmine$P_EX_MZTAB=paste0(path_output, "peaktable_targeted_IS_", mode, ".mztab")
     } else {
-      params_mzmine$P_EX_CSV=paste0(path_output, "peaktable_targeted_", mode, ".csv")
-      params_mzmine$P_EX_MZTAB=paste0(path_output, "peaktable_targeted_", mode, ".mztab")
+      params_mzmine$P_EX_CSV=paste0(path_output, "peaktable_", mode, ".csv")
+      params_mzmine$P_EX_MZTAB=paste0(path_output, "peaktable_", mode, ".mztab")
     }
 
     ### Generate MZMine xml file ###

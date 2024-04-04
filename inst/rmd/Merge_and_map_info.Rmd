@@ -1,6 +1,6 @@
 ---
-title: "Merge and map names"
-author: "CBMR Metabolomics Platform"
+title: "Merge and map info"
+author: "`r params$author`"
 date: "`r base::Sys.Date()`"
 
 knit: ( function(inputFile, encoding) { 
@@ -12,6 +12,8 @@ knit: ( function(inputFile, encoding) {
 output:
   html_document:
     toc: yes
+    toc_float:
+      collapsed: false
     toc_depth: '4'
     df_print: paged
   html_notebook:
@@ -38,7 +40,7 @@ knitr::opts_chunk$set(
 run.pos <- !is.null(params$path.datatable.pos)
 run.neg <- !is.null(params$path.datatable.neg)
 
-path.output <- paste0(params$path.result, "07_Merge_and_map_names/")
+path.output <- paste0(params$path.result, "05_Merge_and_map_info/")
 
 if (!dir.exists(path.output)) dir.create(path.output)
 

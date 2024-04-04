@@ -13,7 +13,7 @@
 #'
 #' @export
 #' @importFrom dplyr "%>%" mutate select
-#' @impot CAMERA pmd
+#' @import CAMERA pmd
 
 select_precursor <-
   function( XCMSnExp = NULL,

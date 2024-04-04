@@ -1,6 +1,6 @@
 ---
 title: "Normalization comparison"
-author: "CBMR Metabolomics Platform"
+author: "`r params$author`"
 date: "`r base::Sys.Date()`"
 
 knit: ( function(inputFile, encoding) { 
@@ -12,6 +12,8 @@ knit: ( function(inputFile, encoding) {
 output:
   html_document:
     toc: yes
+    toc_float:
+      collapsed: false
     toc_depth: '4'
     df_print: paged
   html_notebook:

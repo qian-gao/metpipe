@@ -1,6 +1,6 @@
 ---
-title: "Extract_precursor"
-author: "CBMR Metabolomics Platform"
+title: "Preprocessing XCMS"
+author: "`r params$author`"
 date: "`r base::Sys.Date()`"
 
 knit: ( function(inputFile, encoding) { 

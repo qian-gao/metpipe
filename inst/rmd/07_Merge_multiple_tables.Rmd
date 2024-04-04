@@ -1,6 +1,6 @@
 ---
-title: "07_Merge_multiple_tables"
-author: "Qian Gao, qian.gao@sund.ku.dk"
+title: "Merge multiple tables"
+author: "`r params$author`"
 date: "`r base::Sys.Date()`"
 
 knit: ( function(inputFile, encoding) { 

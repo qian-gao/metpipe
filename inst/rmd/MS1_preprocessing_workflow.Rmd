@@ -65,7 +65,7 @@ params <-
     
     ### Only modify if not standard workflow
     method = NULL,
-    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/TE_RPS_MS1_untar_msdial/",
+    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/TE_RPS_MS1_tar_untar/",
     sample.pattern = ".mzML",
     
     # Library path
@@ -349,8 +349,8 @@ run_module(module = "Normalization",
 
 ### datatables
 
-params$path.datatable.pos <- paste0(params$path.result, "06_Normalization_comparison/", "pos_normalised_bestis.xlsx")
-params$path.datatable.neg <- paste0(params$path.result, "06_Normalization_comparison/", "neg_normalised_bestis.xlsx")
+params$path.datatable.pos <- paste0(params$path.result, "04_Normalization_comparison/", "pos_normalised_bestis.xlsx")
+params$path.datatable.neg <- NULL
 
 params$datatable.sep <- ";"
 params$feature_col_nr <- 2

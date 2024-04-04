@@ -1,6 +1,6 @@
 ---
 title: "Clean peaktable"
-author: "CBMR Metabolomics Platform"
+author: "`r params$author`"
 date: "`r base::Sys.Date()`"
 
 knit: ( function(inputFile, encoding) { 
@@ -200,6 +200,7 @@ if (nrow(peaks.is > 0)){
 ```
 
 #### 3 Filter based on missings
+##### Features
 ```{r filter, eval = params$run.pos}
 #### 3 Missing imputation
 ##### 3.1 Missing inspection
@@ -216,7 +217,10 @@ features <-
   features[feature_filter$index, ] %>%
   left_join(f.info, by = "Identity")
 
+```
 
+##### IS
+```{r, eval = params$run.pos}
 # IS by feature
 if (nrow(peaks.is > 0)){
 
@@ -231,10 +235,10 @@ if (nrow(peaks.is > 0)){
     features.is[feature_filter.is$index, ] %>%
     left_join(f.info, by = "Identity")
 }
-
 ```
 
 #### 4 Missing imputation
+##### Features
 ```{r impute, eval = params$run.pos}
 ##### 3.3 Missing imputation
 # Peaks
@@ -244,7 +248,10 @@ data.impute <-
   )
 
 data <- data.impute$x
+```
 
+##### IS
+```{r, eval = params$run.pos}
 # IS
 if (nrow(peaks.is > 0)){
 
@@ -256,7 +263,6 @@ if (nrow(peaks.is > 0)){
   data.is <- data.impute.is$x
 }
 ```
-
 
 #### 5 Remove duplicate internal standard
 ```{r remove dup is, eval = params$run.pos}
@@ -277,8 +283,11 @@ if (nrow(peaks.is > 0)){
     data.is[, features.is.keep$Identity]
 }
 
+print( paste0("The following internal standards have been removed: ", 
+              features.is$Identity[!features.is$Identity %in% features.is.keep$Identity] ), quote = FALSE)
 ```
 
+#### 6 Export
 ```{r export, eval = params$run.pos}
 
 ### Prepare feature info
@@ -483,6 +492,7 @@ if (nrow(peaks.is > 0)){
 
 
 #### 3 Filter based on missings
+##### Features
 ```{r filter neg, eval = params$run.neg}
 
 # By feature
@@ -497,6 +507,10 @@ features <-
   features[feature_filter$index, ] %>%
   left_join(f.info, by = "Identity")
 
+```
+
+##### IS
+```{r, eval = params$run.neg}
 # IS by feature
 if (nrow(peaks.is > 0)){
 
@@ -514,6 +528,7 @@ if (nrow(peaks.is > 0)){
 ```
 
 #### 4 Missing imputation
+##### Features
 ```{r impute neg, eval = params$run.neg}
 
 # Peaks
@@ -524,6 +539,10 @@ data.impute <-
 
 data <- data.impute$x
 
+```
+
+##### IS
+```{r, eval = params$run.neg}
 # IS
 if (nrow(peaks.is > 0)){
 
@@ -534,7 +553,6 @@ if (nrow(peaks.is > 0)){
   
   data.is <- data.impute.is$x
 }
-
 ```
 
 #### 5 Remove duplicate internal standard
@@ -555,8 +573,13 @@ if (nrow(peaks.is > 0)){
   data.is.keep <-
     data.is[, features.is.keep$Identity]
 }
+
+print( paste0("The following internal standards have been removed: ", 
+              features.is$Identity[!features.is$Identity %in% features.is.keep$Identity] ), quote = FALSE)
+
 ```
 
+#### 6 Export
 ```{r export neg, eval = params$run.neg}
 
 ### Prepare feature info
