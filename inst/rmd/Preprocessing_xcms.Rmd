@@ -133,8 +133,7 @@ print( params$para.neg, quote = FALSE)
 ### Preprocessing
 
 peaks.pos <-
-    process_peak_group( files = sample.info.pos$File.path,
-                        para = params$para.pos,
+    process_peak_group( para = params$para.pos,
                         sample.info = sample.info.pos,
                         mode = "pos",
                         path.result = path.output,
@@ -179,8 +178,7 @@ print( paste0("POS preprocessed data were saved as: ", output.file.pos), quote =
 ### Preprocessing
 
 peaks.neg <-
-    process_peak_group( files = sample.info.neg$File.path,
-                        para = params$para.neg,
+    process_peak_group( para = params$para.neg,
                         sample.info = sample.info.neg,
                         mode = "neg",
                         path.result = path.output,

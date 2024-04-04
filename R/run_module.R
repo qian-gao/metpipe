@@ -111,6 +111,25 @@ run_module <-
         output = paste0( params$path.result, '02_02_Targeted_untargeted_preprocessing')
       )
       
+    } else if (tolower(module) == "tar_untar_xcms"){
+      params$extract_precursor <- TRUE
+      params$precursor.include <- TRUE
+      params$preprocessing.is <- FALSE
+      
+      render_rmarkdown(
+        #file = system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
+        file = "Preprocessing_xcms.Rmd",
+        params = params,
+        output = paste0( params$path.result, '02_01_Extract_precursor_xcms')
+      )
+      
+      render_rmarkdown(
+        file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+        #file = "Preprocessing_mzmine.Rmd",
+        params = params,
+        output = paste0( params$path.result, '02_02_Targeted_untargeted_preprocessing')
+      )
+      
     } else if (tolower(module) == "clean"){
       render_rmarkdown(
         file = system.file("rmd", "Clean_peaktable.Rmd", package="metpipe"),

@@ -65,7 +65,7 @@ params <-
     
     ### Only modify if not standard workflow
     method = NULL,
-    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/TE_RPS_MS1_tar_untar/",
+    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/TE_RPS_MS1_tar_untar_xcms/",
     sample.pattern = ".mzML",
     
     # Library path
@@ -201,7 +201,7 @@ params$extract_precursor <- TRUE
 ### XCMS parameters
 params$para.pos <-
   list( # para.peak.picking
-        max_peakwidth = 0.7*60,
+        max_peakwidth = 0.6*60,
         min_peakwidth = 0.1*60,
         ppm = 10,
         snthresh = 10,
@@ -224,12 +224,8 @@ params$para.pos <-
 params$para.neg <-
   params$para.pos
 
-render_rmarkdown(
-    file = system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
-    #file = "Preprocessing_xcms.Rmd",
-    params = params,
-    output = paste0( params$path.result, '02_01_Extract_precursor_xcms')
-  )
+run_module(module = "tar_untar_xcms",
+           params = params)
 
 ```
 

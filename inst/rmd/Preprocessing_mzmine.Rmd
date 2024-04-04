@@ -150,7 +150,7 @@ if (params$untar){
   prepare_mzmine_xml(
     type = ifelse(params$preprocessing.is, "is", "peak"),
     path_mzML = path_mzML_pos,
-    path_output = output.file,
+    path_output = path.output,
     mode = "pos",
     path_lib = path_lib_pos,
     mzmine_mz_tol = mzmine_mz_tol_pos,
