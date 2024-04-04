@@ -144,7 +144,10 @@ print( paste0("mzmine_min_peaks_in_row_pos_percent = ", mzmine_min_peaks_in_row_
 
 ```{r generate xml pos, eval = params$run.pos}
 
-prepare_mzmine_xml(
+if (params$untar){
+  
+} else {
+  prepare_mzmine_xml(
     type = ifelse(params$preprocessing.is, "is", "peak"),
     path_mzML = path_mzML_pos,
     path_output = path.output,
@@ -157,6 +160,8 @@ prepare_mzmine_xml(
     mzmine_min_peaks_in_row = mzmine_min_peaks_in_row_pos,
     mzmine_min_peaks_in_row_percent = mzmine_min_peaks_in_row_pos_percent
   )
+}
+
 
 ```
 
@@ -238,7 +243,10 @@ print( paste0("mzmine_min_peaks_in_row_neg_percent = ", mzmine_min_peaks_in_row_
 
 ```{r generate xml neg, eval = params$run.neg}
 
-prepare_mzmine_xml(
+if (params$untar){
+  
+} else {
+  prepare_mzmine_xml(
     type = ifelse(params$preprocessing.is, "is", "peak"),
     path_mzML = path_mzML_neg,
     path_output = path.output,
@@ -251,6 +259,8 @@ prepare_mzmine_xml(
     mzmine_min_peaks_in_row = mzmine_min_peaks_in_row_neg,
     mzmine_min_peaks_in_row_percent = mzmine_min_peaks_in_row_neg_percent
   )
+}
+
 
 ```
 

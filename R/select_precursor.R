@@ -38,7 +38,7 @@ select_precursor <-
       
       if (method == "camera"){
         xset <- as(XCMSnExp, 'xcmsSet')
-        xsa <- CAMERA::annotate(srmnxset, perfwhm=0.7, cor_eic_th=0.8,
+        xsa <- CAMERA::annotate(srmnxset, perfwhm=0.7, cor_exp_th=0.85,
                                 ppm=10, polarity=polarity)
         peaklist <- CAMERA::getPeaklist(xsa)
         

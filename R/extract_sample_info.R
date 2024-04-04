@@ -136,7 +136,7 @@ extract_sample_info <-
       }
 
       if (!is.null(path) & grepl("subset", path)){
-        
+        # do nothing
       } else {
         sample.info <-
           sample.info %>%

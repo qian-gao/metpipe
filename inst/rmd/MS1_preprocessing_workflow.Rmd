@@ -65,7 +65,7 @@ params <-
     
     ### Only modify if not standard workflow
     method = NULL,
-    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/TE_RPS_MS1_tar_untar/",
+    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/TE_RPS_MS1_untar_msdial/",
     sample.pattern = ".mzML",
     
     # Library path
@@ -127,12 +127,7 @@ run_module(module = "Targeted",
 ### 2.2 Untargeted preprocessing - XCMS
 ```{r 02_02_Untargeted_preprocessing xcms, eval = FALSE}
 
-params$extract_precursor <- FALSE
-
 ### XCMS setup
-params$optimize.xcms.parameters <- FALSE  # TRUE, FALSE
-
-# If not optimize parameters, the following parameters are used:
 params$para.pos <-
   list( # para.peak.picking
         max_peakwidth = 0.7*60,
@@ -158,15 +153,28 @@ params$para.pos <-
 params$para.neg <-
   params$para.pos
 
-render_rmarkdown(
-    file = system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
-    #file = "Preprocessing_xcms.Rmd",
-    params = params[params$Extract_precursor],
-    output = paste0( params$path.result, '04_02_Extract_precursor_xcms')
-  )
+run_module(module = "Untargeted_xcms",
+           params = params)
 
 ```
+
 ### 2.3 Untargeted preprocessing - MZMine
+```{r 02_04_Untargeted preprocessing mzmine, eval = FALSE}
+
+params$mzmine.mz.tol.pos <- params$mz_tolerance
+params$mzmine.rt.tol.pos <- params$rt_tolerance
+params$mzmine.min.peaks.in.row.pos <- 1
+params$mzmine.min.peaks.in.row.pos.percent <- 0
+
+params$mzmine.mz.tol.neg <- params$mzmine.mz.tol.pos
+params$mzmine.rt.tol.neg <- params$mzmine.rt.tol.pos
+params$mzmine.min.peaks.in.row.neg <- params$mzmine.min.peaks.in.row.pos
+params$mzmine.min.peaks.in.row.neg.percent <- params$mzmine.min.peaks.in.row.pos.percent
+
+run_module(module = "Untargeted_mzmine",
+           params = params)
+
+```
 
 ### 2.4 Untargeted preprocessing - msdial
 ```{r 02_04_Untargeted_preprocessing msdial, eval = FALSE}
@@ -181,13 +189,8 @@ params$rt_tol_neg <- params$rt_tol_pos
 params$ri_tol <- NULL
 params$ri_tol_bigger <- NULL
   
-render_rmarkdown(
-    file = system.file("rmd", "Untargeted_preprocessing_msdial.Rmd", package="metpipe"),
-    #file = "Untargeted_preprocessing_msdial.Rmd",
-    params = params[params$Untargeted_preprocessing],
-    output = paste0( params$path.result, '04_03_Untargeted_preprocessing')
-  )
-
+run_module(module = "Untargeted_msdial",
+           params = params)
 
 ```
 

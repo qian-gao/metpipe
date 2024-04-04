@@ -1,3 +1,14 @@
+#' @title run_module
+#'
+#' @description Wrapper function to run modules
+#'
+#' @param module Module name to run
+#' @param params List of parameters to use
+#'
+#' @return Rmarkdown files and related output files
+#' @examples
+#' @export
+
 run_module <- 
   function(module = NULL,
            params = NULL) {
@@ -35,15 +46,69 @@ run_module <-
         )
         
     } else if (tolower(module) == "targeted"){
-      params$precursor.include <- TRUE
+      params$precursor.include <- FALSE
       params$preprocessing.is <- FALSE
+      params$untar <- FALSE
       
       render_rmarkdown(
         file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
         #file = "Preprocessing_mzmine.Rmd",
         params = params,
-        output = paste0( params$path.result, '02_01_Targeted_preprocessing')
+        output = paste0( params$path.result, '02_Targeted_preprocessing')
         )
+      
+    } else if (tolower(module) == "untargeted_xcms"){
+      params$extract_precursor <- FALSE
+      
+      render_rmarkdown(
+        file = system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
+        #file = "Preprocessing_xcms.Rmd",
+        params = params,
+        output = paste0( params$path.result, '02_Untargeted_preprocessing_xcms')
+      )
+      
+    } else if (tolower(module) == "untargeted_mzmine"){
+      params$precursor.include <- FALSE
+      params$preprocessing.is <- FALSE
+      params$untar <- TRUE
+      
+      render_rmarkdown(
+        file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+        #file = "Preprocessing_mzmine.Rmd",
+        params = params,
+        output = paste0( params$path.result, '02_Untargeted_preprocessing_mzmine')
+      )
+      
+    } else if (tolower(module) == "untargeted_msdial"){
+      params$extract_precursor <- FALSE
+      params$precursor.include <- FALSE
+      
+      render_rmarkdown(
+        file = system.file("rmd", "Preprocessing_msdial.Rmd", package="metpipe"),
+        #file = "Untargeted_preprocessing_msdial.Rmd",
+        params = params,
+        output = paste0( params$path.result, '02_Untargeted_preprocessing_msdial')
+      )
+      
+    } else if (tolower(module) == "tar_untar_msdial"){
+      params$extract_precursor <- TRUE
+      params$precursor.include <- TRUE
+      params$preprocessing.is <- FALSE
+      params$untar <- FALSE
+      
+      render_rmarkdown(
+        file = system.file("rmd", "Preprocessing_msdial.Rmd", package="metpipe"),
+        #file = "Untargeted_preprocessing_msdial.Rmd",
+        params = params,
+        output = paste0( params$path.result, '02_01_Extract_precursor_msdial')
+      )
+      
+      render_rmarkdown(
+        file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+        #file = "Preprocessing_mzmine.Rmd",
+        params = params,
+        output = paste0( params$path.result, '02_02_Targeted_untargeted_preprocessing')
+      )
       
     } else if (tolower(module) == "clean"){
       render_rmarkdown(
@@ -66,31 +131,10 @@ run_module <-
         file = system.file("rmd", "Merge_and_map_names.Rmd", package="metpipe"),
         #file = "Merge_and_map_names.Rmd",
         params = params,
-        output = paste0( params$path.result, '05_Merge_and_map_names')
-      )
-      
-    } else if (tolower(module) == "tar_untar_msdial"){
-      params$extract_precursor <- TRUE
-      params$precursor.include <- TRUE
-      params$preprocessing.is <- FALSE
-      
-      render_rmarkdown(
-        file = system.file("rmd", "Preprocessing_msdial.Rmd", package="metpipe"),
-        #file = "Untargeted_preprocessing_msdial.Rmd",
-        params = params,
-        output = paste0( params$path.result, '02_06_01_Extract_precursor_msdial')
-      )
-      
-      render_rmarkdown(
-        file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
-        #file = "Preprocessing_mzmine.Rmd",
-        params = params,
-        output = paste0( params$path.result, '02_06_02_Targeted_untargeted_preprocessing')
+        output = paste0( params$path.result, '05_Merge_and_map_info')
       )
       
     }
-    
-
     
   }
     
