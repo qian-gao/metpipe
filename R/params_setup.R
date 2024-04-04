@@ -49,7 +49,8 @@ params_setup <-
   function(
     path.mzml = NULL,
     standard.name = TRUE,
-    path.meta = NULL,
+    path.meta.pos = NULL,
+    path.meta.neg = NULL,
     meta.match.col = "Sample",
     qc.sample.type = c( "sol", "BL", "CP", "IQ", "NIST", "CAL", "Met", "M-Mix",
                         "SPO", "PO", "PO50", "PO12.5", "PO25", "PO100", "BPO" ),
@@ -216,7 +217,8 @@ params_setup <-
     params$standard.name = standard.name
     
     # metadata
-    params$path.meta = path.meta
+    params$path.meta.pos = path.meta.pos
+    params$path.meta.neg = path.meta.neg
     params$meta.match.col = meta.match.col
     
     # Specification sample types used for QC and calibration

@@ -143,12 +143,14 @@ peaks.pos <-
 if (params$extract_precursor){
   precursor.pos <-
     select_precursor( XCMSnExp = peaks.pos,
+                      method = "camera",
                       mode = "pos",
                       path.result = path.output,
                       remove_frag_addu = TRUE )
 } else {
   precursor.pos <-
     select_precursor( XCMSnExp = peaks.pos,
+                      method = "camera",
                       mode = "pos",
                       path.result = path.output,
                       remove_frag_addu = FALSE )  
@@ -188,12 +190,14 @@ peaks.neg <-
 if (params$extract_precursor){
   precursor.neg <-
     select_precursor( XCMSnExp = peaks.neg,
+                      method = "camera",
                       mode = "neg",
                       path.result = path.output,
                       remove_frag_addu = TRUE )
 } else {
   precursor.neg <-
     select_precursor( XCMSnExp = peaks.neg,
+                      method = "camera",
                       mode = "neg",
                       path.result = path.output,
                       remove_frag_addu = FALSE )  
