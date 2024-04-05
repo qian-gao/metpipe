@@ -98,6 +98,7 @@ run_module(module = "Preprocessing_IS",
 
 params$reference.type <- "reference" # reference or median
 params$figure_height <- 900
+params$figure_width <- 800
 
 params$path.peaktable.IS.pos <- NULL
 params$path.peaktable.IS.neg <- NULL
