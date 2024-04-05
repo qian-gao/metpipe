@@ -219,12 +219,16 @@ params_setup <-
         sample.info.pos <-
           openxlsx::read.xlsx( params$path.meta.pos ) %>%
           mutate(across(where(is.character), stringr::str_trim))
+        
+        params$sample.info.pos <- sample.info.pos
       }
       
       if (!is.null(params$path.meta.neg)){
         sample.info.neg <-
           openxlsx::read.xlsx( params$path.meta.neg ) %>%
           mutate(across(where(is.character), stringr::str_trim))
+        
+        params$sample.info.neg <- sample.info.neg
       }
       
     } else {
