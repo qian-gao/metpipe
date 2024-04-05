@@ -20,7 +20,8 @@ select_precursor <-
             method = NULL,
             mode = NULL,
             remove_frag_addu = FALSE,
-            path.result = NULL
+            path.result = NULL,
+            BPPARAM = NULL
   ){
 
     if ( file.exists(paste0(path.result, "precursor_", mode, ".rds")) ){
@@ -37,22 +38,33 @@ select_precursor <-
       } 
       
       if (method == "camera"){
-        xset <- as(XCMSnExp, 'xcmsSet')
+        xsa <- 
+          XCMSnExp %>% 
+          as("xcmsSet") %>% 
+          xsAnnotate(nSlaves = BPPARAM, polarity = polarity)
         
         # xsa <- CAMERA::annotate(xset, perfwhm=0.7, cor_eic_th=0.85,
         #                         ppm=10, polarity=polarity)
         # peaklist <- CAMERA::getPeaklist(xsa)
         
-        xsa <- xsAnnotate(xset)
-        xsaF <- groupFWHM(xsa, perfwhm = 0.7)
-        xsaC <- groupCorr(xsaF, cor_exp_th = 0.85)
-        xsaFI <- findIsotopes(xsaC)
-        xsaFA <- findAdducts(xsaFI, polarity = polarity)
+        xsaF <- groupFWHM(xsa, perfwhm = 0.1, intval = "into", sigma = 6)
+        xsaC <- groupCorr(xsaF,
+                          calcIso = FALSE, 
+                          calcCiS = FALSE, 
+                          calcCaS = TRUE, 
+                          cor_eic_th=0.7,
+                          cor_exp_th=0.7,
+                          pval= 0.000001, 
+                          graphMethod="lpc",
+                          intval="into")
+        xsaFI <- findIsotopes(xsaC, ppm = 10, mzabs= 0.01,  intval = "into")
+        xsaFA <- findAdducts(xsaFI, ppm=10, mzabs=0.01, multiplier=4, polarity=polarity)
         peaklist <- getPeaklist(xsaFA)
         precursor <-
           peaklist %>% 
           filter(is.na(isotopes) | grepl("[M]", isotopes, fixed = TRUE)) %>%
-          mutate(id = row_number()) %>% 
+          mutate(id = row_number(),
+                 rt = rt/60) %>% 
           relocate(c(id, rt, mz), .before = mz)
         
       } else if (method == "pmd") {

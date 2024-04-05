@@ -185,8 +185,8 @@ params_setup <-
     if (is.null(BPPARAM_set)){
       
       params$BPPARAM_set = switch( Sys.info()["sysname"],
-                                   Windows = BiocParallel::SnowParam(max(1, min(4, parallel::detectCores()-1)), progressbar = TRUE),
-                                   BiocParallel::MulticoreParam(max(1, min(4, parallel::detectCores()-1)), progressbar = TRUE))
+                                   Windows = BiocParallel::SnowParam(max(1, parallel::detectCores()-1), progressbar = TRUE),
+                                   BiocParallel::MulticoreParam(max(1, parallel::detectCores()-1), progressbar = TRUE))
       
     } else {
       params$BPPARAM_set = BPPARAM_set

@@ -31,7 +31,8 @@ process_peak_group <-
       raw_data <-
         MSnbase::readMSData( files = sample.info$File.path,
                     pdata = new("NAnnotatedDataFrame", sample.info),
-                    mode = "onDisk")
+                    mode = "onDisk",
+                    msLevel. = 1)
 
       cwp <- CentWaveParam( peakwidth       = c( para$min_peakwidth, para$max_peakwidth ),
                             ppm             = para$ppm,

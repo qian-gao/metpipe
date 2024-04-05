@@ -32,7 +32,7 @@ library(tidyverse)
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
-  echo = FALSE,
+  echo = TRUE,
   include = FALSE,
   eval = TRUE
 )
@@ -66,7 +66,7 @@ params <-
     
     ### Only modify if not standard workflow
     method = NULL,
-    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/TE_RPS_MS1_tar/",
+    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/TE_RPS_MS1_tar_untar_msdial/",
     sample.pattern = ".mzML",
     
     # Library path
@@ -81,7 +81,7 @@ params$author <- "xxx (xxx@sund.ku.dk)"
 ```
 
 #### 1 QC of internal standards
-```{r 01_01_Preprocessing_IS, eval = TRUE}
+```{r 01_01_Preprocessing_IS, eval = FALSE}
 
 params$mzmine.mz.tol.pos <- 0.4
 params$mzmine.rt.tol.pos <- 0.01
@@ -94,7 +94,7 @@ run_module(module = "Preprocessing_IS",
 
 ```
 
-```{r 01_02_QC_IS, eval = TRUE}
+```{r 01_02_QC_IS, eval = FALSE}
 
 params$reference.type <- "reference" # reference or median
 params$figure_height <- 900
@@ -110,7 +110,7 @@ run_module(module = "QC_IS",
 
 #### 2 Preprocessing
 ### 2.1 Targeted preprocessing
-```{r 02_01_Targeted preprocessing, eval = TRUE}
+```{r 02_01_Targeted preprocessing, eval = FALSE}
 
 params$mzmine.mz.tol.pos <- params$mz_tolerance
 params$mzmine.rt.tol.pos <- params$rt_tolerance
@@ -233,7 +233,7 @@ run_module(module = "tar_untar_xcms",
 ```
 
 ### 2.6 Targeted-untargeted preprocessing - msdial
-```{r 02_06_Targeted-untargeted with msdial, eval = FALSE}
+```{r 02_06_Targeted-untargeted with msdial, eval = TRUE}
 
 params$mz_tol_pos <- params$mz_tolerance
 params$rt_tol_pos <- params$rt_tolerance
@@ -349,7 +349,7 @@ run_module(module = "Normalization",
 ### datatables
 
 params$path.datatable.pos <- paste0(params$path.result, "04_Normalization_comparison/", "pos_normalised_bestis.xlsx")
-params$path.datatable.neg <- paste0(params$path.result, "04_Normalization_comparison/", "pos_normalised_bestis.xlsx")
+params$path.datatable.neg <- paste0(params$path.result, "04_Normalization_comparison/", "neg_normalised_bestis.xlsx")
 
 params$datatable.sep <- ";"
 params$feature_col_nr <- 2
