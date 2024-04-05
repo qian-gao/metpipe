@@ -7,7 +7,8 @@
 params_setup(
   path.mzml = NULL,
   standard.name = TRUE,
-  path.meta = NULL,
+  path.meta.pos = NULL,
+  path.meta.neg = NULL,
   meta.match.col = "Sample",
   qc.sample.type = c("sol", "BL", "CP", "IQ", "NIST", "CAL", "Met", "M-Mix", "SPO", "PO",
     "PO50", "PO12.5", "PO25", "PO100", "BPO"),
@@ -34,8 +35,6 @@ params_setup(
 \item{path.mzml}{Path to mzML files}
 
 \item{standard.name}{If standardized sample names are used, TRUE/FALSE}
-
-\item{path.meta}{Path to metadata file for samples}
 
 \item{meta.match.col}{Column name to match sample info and metadata, default is "Sample"
 
@@ -88,6 +87,8 @@ If the rds file for public MS2 database is not available, msp format can be prov
 \item{path.msp.pos}{Path to public MS2 positive mode database file in msp format}
 
 \item{path.msp.neg}{Path to public MS2 negative mode database file in msp format}
+
+\item{path.meta}{Path to metadata file for samples}
 }
 \value{
 A list of parameters used for data processing
