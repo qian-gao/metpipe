@@ -115,6 +115,7 @@ run_module <-
       params$extract_precursor <- TRUE
       params$precursor.include <- TRUE
       params$preprocessing.is <- FALSE
+      params$untar <- FALSE
       
       render_rmarkdown(
         file = system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
