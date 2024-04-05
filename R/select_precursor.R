@@ -49,7 +49,7 @@ select_precursor <-
         xsaFI <- findIsotopes(xsaC)
         xsaFA <- findAdducts(xsaFI, polarity = polarity)
         peaklist <- getPeaklist(xsaFA)
-        precursor2 <-
+        precursor <-
           peaklist %>% 
           filter(is.na(isotopes) | grepl("[M]", isotopes, fixed = TRUE)) %>%
           mutate(id = row_number()) %>% 
