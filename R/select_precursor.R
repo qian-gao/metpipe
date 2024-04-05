@@ -41,7 +41,9 @@ select_precursor <-
         xsa <- 
           XCMSnExp %>% 
           as("xcmsSet") %>% 
-          xsAnnotate(nSlaves = BPPARAM, polarity = polarity)
+          xsAnnotate(polarity = polarity
+                     #nSlaves = BPPARAM
+                     )
         
         # xsa <- CAMERA::annotate(xset, perfwhm=0.7, cor_eic_th=0.85,
         #                         ppm=10, polarity=polarity)
@@ -52,7 +54,7 @@ select_precursor <-
                           calcIso = FALSE, 
                           calcCiS = FALSE, 
                           calcCaS = TRUE, 
-                          cor_eic_th=0.7,
+                          #cor_eic_th=0.7,
                           cor_exp_th=0.7,
                           pval= 0.000001, 
                           graphMethod="lpc",
