@@ -38,14 +38,14 @@ knitr::opts_chunk$set(
 
 if (is.null(params$path.peaktable.IS.pos)){
   
-  params$path.peaktable.IS.pos <- paste0(params$path.result, "03_01_Preprocessing_IS/peaktable_targeted_IS_pos.csv")
+  params$path.peaktable.IS.pos <- paste0(params$path.result, "01_01_Preprocessing_IS/peaktable_targeted_IS_pos.csv")
   print( paste0("POS peaktable for internal standards was imported from: ", params$path.peaktable.IS.pos), quote = FALSE)
 
 }
 
 if (is.null(params$path.peaktable.IS.neg)){
   
-  params$path.peaktable.IS.neg <- paste0(params$path.result, "03_01_Preprocessing_IS/peaktable_targeted_IS_neg.csv")
+  params$path.peaktable.IS.neg <- paste0(params$path.result, "01_01_Preprocessing_IS/peaktable_targeted_IS_neg.csv")
   print( paste0("NEG peaktable for internal standards was imported from: ", params$path.peaktable.IS.neg), quote = FALSE)
 
 }

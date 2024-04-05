@@ -50,7 +50,8 @@ params <-
     standard.name = TRUE,  # TRUE, FALSE
     
     # Metadata
-    path.meta = NULL,
+    path.meta.pos = NULL,
+    path.meta.neg = NULL,
     
     meta.match.col = "Sample", # "Sample" for standard.name = TRUE, "Sample.name" for 
     
@@ -65,12 +66,13 @@ params <-
     
     ### Only modify if not standard workflow
     method = NULL,
-    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/TE_RPS_MS1_tar_untar_xcms/",
+    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/TE_RPS_MS1_tar/",
     sample.pattern = ".mzML",
     
     # Library path
-    path.lib = "N:/SUN-CBMR-Metabolomics/Workflow/library/library.MS1.rds",
-    path.lib.is = "N:/SUN-CBMR-Metabolomics/Workflow/library/library.MS1.IS.rds",
+    #"N:/SUN-CBMR-Metabolomics/Workflow/library/
+    path.lib = "H:/Documents/CBMR_workflow/packages/metpipe/inst/rmd/lib_rds/library.MS1.rds",
+    path.lib.is = "H:/Documents/CBMR_workflow/packages/metpipe/inst/rmd/lib_rds/library.MS1.IS.rds",
     path.msp = "N:/SUN-CBMR-Metabolomics/Workflow/library/msdial.library.MS1.rds"
 
 )
@@ -79,7 +81,7 @@ params$author <- "xxx (xxx@sund.ku.dk)"
 ```
 
 #### 1 QC of internal standards
-```{r 01_01_Preprocessing_IS, eval = FALSE}
+```{r 01_01_Preprocessing_IS, eval = TRUE}
 
 params$mzmine.mz.tol.pos <- 0.4
 params$mzmine.rt.tol.pos <- 0.01
@@ -92,7 +94,7 @@ run_module(module = "Preprocessing_IS",
 
 ```
 
-```{r 01_02_QC_IS, eval = FALSE}
+```{r 01_02_QC_IS, eval = TRUE}
 
 params$reference.type <- "reference" # reference or median
 params$figure_height <- 900
@@ -230,7 +232,7 @@ run_module(module = "tar_untar_xcms",
 ```
 
 ### 2.6 Targeted-untargeted preprocessing - msdial
-```{r 02_06_Targeted-untargeted with msdial, eval = TRUE}
+```{r 02_06_Targeted-untargeted with msdial, eval = FALSE}
 
 params$mz_tol_pos <- params$mz_tolerance
 params$rt_tol_pos <- params$rt_tolerance
@@ -340,13 +342,13 @@ run_module(module = "Normalization",
 
 ```
 
-#### 5 Merge
-```{r 05_Merge, eval = FALSE}
+#### 5 Merge and map info
+```{r 05_Merge, eval = TRUE}
 
 ### datatables
 
 params$path.datatable.pos <- paste0(params$path.result, "04_Normalization_comparison/", "pos_normalised_bestis.xlsx")
-params$path.datatable.neg <- NULL
+params$path.datatable.neg <- paste0(params$path.result, "04_Normalization_comparison/", "pos_normalised_bestis.xlsx")
 
 params$datatable.sep <- ";"
 params$feature_col_nr <- 2
