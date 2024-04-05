@@ -117,8 +117,8 @@ run_module <-
       params$preprocessing.is <- FALSE
       
       render_rmarkdown(
-        #file = system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
-        file = "Preprocessing_xcms.Rmd",
+        file = system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
+        #file = "Preprocessing_xcms.Rmd",
         params = params,
         output = paste0( params$path.result, '02_01_Extract_precursor_xcms')
       )
