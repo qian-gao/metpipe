@@ -38,18 +38,22 @@ select_precursor <-
       
       if (method == "camera"){
         xset <- as(XCMSnExp, 'xcmsSet')
-        xsa <- CAMERA::annotate(srmnxset, perfwhm=0.7, cor_exp_th=0.85,
-                                ppm=10, polarity=polarity)
-        peaklist <- CAMERA::getPeaklist(xsa)
         
-        # xsa <- xsAnnotate(xset)
-        # xsaF <- groupFWHM(xsa, perfwhm = 0.6)
-        # xsaC <- groupCorr(xsaF, cor_eic_th = 0.8)
-        # xsaFI <- findIsotopes(xsaC)
-        # xsaFA <- findAdducts(xsaFI, polarity = polarity)
-        # peaklist <- getPeaklist(xsaFA)
+        # xsa <- CAMERA::annotate(xset, perfwhm=0.7, cor_eic_th=0.85,
+        #                         ppm=10, polarity=polarity)
+        # peaklist <- CAMERA::getPeaklist(xsa)
+        
+        xsa <- xsAnnotate(xset)
+        xsaF <- groupFWHM(xsa, perfwhm = 0.7)
+        xsaC <- groupCorr(xsaF, cor_exp_th = 0.85)
+        xsaFI <- findIsotopes(xsaC)
+        xsaFA <- findAdducts(xsaFI, polarity = polarity)
+        peaklist <- getPeaklist(xsaFA)
         precursor2 <-
-          peaklist[grepl("[M+H]+", peaklist$adduct, fixed = TRUE), ]
+          peaklist %>% 
+          filter(is.na(isotopes) | grepl("[M]", isotopes, fixed = TRUE)) %>%
+          mutate(id = row_number()) %>% 
+          relocate(c(id, rt, mz), .before = mz)
         
       } else if (method == "pmd") {
         mzrt <-

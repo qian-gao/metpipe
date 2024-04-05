@@ -200,19 +200,6 @@ params_setup <-
     
     ##### Generate sample info
     ### Path to data files
-    # mzML files
-    params$path.mzml <- path.mzml
-    
-    params$path.mzml.pos <- paste0(path.mzml, "/", "pos/")
-    if (!dir.exists(params$path.mzml.pos)) {
-      params$path.mzml.pos <- "No_data"
-    }
-
-    params$path.mzml.neg <- paste0(path.mzml, "/", "neg/")
-    if (!dir.exists(params$path.mzml.neg)) {
-      params$path.mzml.neg <- "No_data"
-    }
-
     # standard sample names
     params$standard.name = standard.name
     
@@ -220,6 +207,37 @@ params_setup <-
     params$path.meta.pos = path.meta.pos
     params$path.meta.neg = path.meta.neg
     params$meta.match.col = meta.match.col
+    
+    # mzML files
+    params$path.mzml <- path.mzml
+    
+    if (is.null(params$path.mzml)){
+      params$path.mzml.pos <- "No_data"
+      params$path.mzml.neg <- "No_data"
+      
+      if (!is.null(params$path.meta.pos)){
+        sample.info.pos <-
+          openxlsx::read.xlsx( params$path.meta.pos ) %>%
+          mutate(across(where(is.character), stringr::str_trim))
+      }
+      
+      if (!is.null(params$path.meta.neg)){
+        sample.info.neg <-
+          openxlsx::read.xlsx( params$path.meta.neg ) %>%
+          mutate(across(where(is.character), stringr::str_trim))
+      }
+      
+    } else {
+      params$path.mzml.pos <- paste0(path.mzml, "/", "pos/")
+      if (!dir.exists(params$path.mzml.pos)) {
+        params$path.mzml.pos <- "No_data"
+      }
+      
+      params$path.mzml.neg <- paste0(path.mzml, "/", "neg/")
+      if (!dir.exists(params$path.mzml.neg)) {
+        params$path.mzml.neg <- "No_data"
+      }
+    }
     
     # Specification sample types used for QC and calibration
     params$qc.sample.type = qc.sample.type
