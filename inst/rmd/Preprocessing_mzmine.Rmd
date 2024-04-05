@@ -41,7 +41,7 @@ if (params$preprocessing.is){
   path_lib_pos = paste0(path.output, "library_MS1_IS_", params$method, "_pos.csv")
   path_lib_neg = paste0(path.output, "library_MS1_IS_", params$method, "_neg.csv")
   
-  output.file.prefix <- paste0(path.output, "peaktable_IS")
+  output.file.prefix <- paste0(path.output, "peaktable_targeted_IS")
   library.file.prefix <- paste0(path.output, "library_MS1_IS_", params$method)
   
   mzmine.param.pos <- "MZMine_parameters_IS_pos.xml"
