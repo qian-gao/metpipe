@@ -67,7 +67,7 @@ select_precursor <-
           filter(is.na(isotopes) | grepl("[M]", isotopes, fixed = TRUE)) %>%
           mutate(id = row_number(),
                  rt = rt/60) %>% 
-          relocate(c(id, mz, rt, adduct, pcgroup), .before = mz)
+          relocate(c(id, mz, rt, adduct, pcgroup, isotopes), .before = mz)
         
       } else if (method == "pmd") {
         mzrt <-
