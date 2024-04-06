@@ -169,7 +169,8 @@ precursor.pos.annotated <-
                  mz_tolerance = params$mz_tolerance,
                  library_file = params$lib[[params$method]][["pos"]],
                  mode = "pos",
-                 output.file = output.file.pos ) 
+                 output.file = output.file.pos ) %>% 
+  relocate(Library.name, .after = rt)
 
 saveRDS(precursor.pos.annotated, file = paste0(path.output, "/precursor_annotation_pos.rds"))   
 print( paste0("POS preprocessed data were saved as: ", output.file.pos), quote = FALSE)
@@ -219,7 +220,8 @@ precursor.neg.annotated <-
                  mz_tolerance = params$mz_tolerance,
                  library_file = params$lib[[params$method]][["neg"]],
                  mode = "neg",
-                 output.file = output.file.neg ) 
+                 output.file = output.file.neg ) %>% 
+  relocate(Library.name, .after = rt) 
 
 saveRDS(precursor.neg.annotated, file = paste0(path.output, "/precursor_annotation_neg.rds"))
 print( paste0("NEG preprocessed data were saved as: ", output.file.neg), quote = FALSE)

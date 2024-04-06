@@ -67,7 +67,7 @@ select_precursor <-
           filter(is.na(isotopes) | grepl("[M]", isotopes, fixed = TRUE)) %>%
           mutate(id = row_number(),
                  rt = rt/60) %>% 
-          relocate(c(id, rt, mz), .before = mz)
+          relocate(c(id, mz, rt, adduct, pcgroup), .before = mz)
         
       } else if (method == "pmd") {
         mzrt <-
@@ -90,7 +90,7 @@ select_precursor <-
                             rt = pmd.cluster$rt[ pmd.cluster$stdmassindex2 ],
                             mzrt$data[ pmd.cluster$stdmassindex2, ]) %>%
           mutate( id = row_number()) %>%
-          select( id, rt, mz, colnames(mzrt$data))  %>%
+          select( id, mz, rt, colnames(mzrt$data))  %>%
           mutate( rt = rt / 60)
       }
       
