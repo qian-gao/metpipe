@@ -83,6 +83,9 @@ process_peak_group <-
       xdata4 <- groupChromPeaks( xdata3, param = pdp.2 )
       xdata <- fillChromPeaks( xdata4, param = gf, BPPARAM = BPPARAM )
 
+      sample.names <- sample.info$Sample.name
+      sampleNames(xdata) <- sample.names[as.numeric(sampleNames(xdata))]
+      
       save(xdata1, xdata2, xdata3, xdata4, xdata,
            file = paste0(path.result, "XCMSset_all_", mode, ".rds"))
 
