@@ -9,7 +9,8 @@ select_precursor(
   method = NULL,
   mode = NULL,
   remove_frag_addu = FALSE,
-  path.result = NULL
+  path.result = NULL,
+  BPPARAM = NULL
 )
 }
 \arguments{
