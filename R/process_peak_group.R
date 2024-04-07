@@ -21,7 +21,7 @@ process_peak_group <-
             BPPARAM = NULL
   ){
     
-    rownames(sample.info) <- sample.info$Sample.name
+    #rownames(sample.info) <- sample.info$Sample.name
     if ( file.exists(paste0(path.result, "XCMSset_", mode, ".rds")) ){
 
       xdata <-

@@ -5,7 +5,6 @@
 #' @param XCMSnExp A XCMSnExp object from XCMS
 #' @param method The method for annotate and group features, 'camera' or 'pmd'
 #' @param mode Polarity, 'pos' or 'neg'
-#' @param remove_frag_addu Indicator for removing the fragments and adducts. TRUE or FALSE
 #' @param path.result Path to output folder
 #'
 #' @return A data frame object that contains the precusors extracted from the 
@@ -19,7 +18,6 @@ select_precursor <-
   function( XCMSnExp = NULL,
             method = NULL,
             mode = NULL,
-            remove_frag_addu = FALSE,
             path.result = NULL,
             BPPARAM = NULL
   ){

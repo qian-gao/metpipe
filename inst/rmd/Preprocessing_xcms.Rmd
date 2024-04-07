@@ -146,7 +146,6 @@ if (params$extract_precursor){
                       method = "camera",
                       mode = "pos",
                       path.result = path.output,
-                      remove_frag_addu = TRUE,
                         BPPARAM = params$BPPARAM_set )
 } else {
   precursor.pos <-
@@ -154,9 +153,10 @@ if (params$extract_precursor){
                       method = "camera",
                       mode = "pos",
                       path.result = path.output,
-                      remove_frag_addu = FALSE,
                         BPPARAM = params$BPPARAM_set )  
 }
+
+map.names <- 
 ```
 
 ```{r match library pos, eval = params$run.pos}
@@ -169,8 +169,7 @@ precursor.pos.annotated <-
                  mz_tolerance = params$mz_tolerance,
                  library_file = params$lib[[params$method]][["pos"]],
                  mode = "pos",
-                 output.file = output.file.pos ) %>% 
-  relocate(Library.name, .after = rt)
+                 output.file = output.file.pos )
 
 saveRDS(precursor.pos.annotated, file = paste0(path.output, "/precursor_annotation_pos.rds"))   
 print( paste0("POS preprocessed data were saved as: ", output.file.pos), quote = FALSE)
@@ -220,8 +219,7 @@ precursor.neg.annotated <-
                  mz_tolerance = params$mz_tolerance,
                  library_file = params$lib[[params$method]][["neg"]],
                  mode = "neg",
-                 output.file = output.file.neg ) %>% 
-  relocate(Library.name, .after = rt) 
+                 output.file = output.file.neg )
 
 saveRDS(precursor.neg.annotated, file = paste0(path.output, "/precursor_annotation_neg.rds"))
 print( paste0("NEG preprocessed data were saved as: ", output.file.neg), quote = FALSE)
