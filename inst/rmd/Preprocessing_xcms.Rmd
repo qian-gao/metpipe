@@ -156,7 +156,6 @@ if (params$extract_precursor){
                         BPPARAM = params$BPPARAM_set )  
 }
 
-map.names <- 
 ```
 
 ```{r match library pos, eval = params$run.pos}
