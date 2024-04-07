@@ -109,16 +109,27 @@ if ( params$precursor.include && file.exists(precursor.file) ){
   
 }
 
-
-lib.to.use <-
-    bind_rows(params$lib[[params$method]]$pos, 
-              prec.lib,
-              params$lib.is[[params$method]]$pos %>%
-                select( Library.mz, Library.rt, Library.name)) %>%
-    select( Library.mz, Library.rt, Library.name) %>%
-    dplyr::rename( mz = Library.mz,
-                   rt = Library.rt,
-                   name = Library.name)
+if (params$preprocessing.is){
+  lib.to.use <-
+      bind_rows(params$lib.is[[params$method]]$pos %>%
+                  select( Library.mz, Library.rt, Library.name),
+                params$lib.is[[params$method]]$pos %>%
+                  select( Library.mz, Library.rt, Library.name)) %>%
+      select( Library.mz, Library.rt, Library.name) %>%
+      dplyr::rename( mz = Library.mz,
+                     rt = Library.rt,
+                     name = Library.name)
+} else {
+ lib.to.use <-
+      bind_rows(params$lib[[params$method]]$pos, 
+                prec.lib,
+                params$lib.is[[params$method]]$pos %>%
+                  select( Library.mz, Library.rt, Library.name)) %>%
+      select( Library.mz, Library.rt, Library.name) %>%
+      dplyr::rename( mz = Library.mz,
+                     rt = Library.rt,
+                     name = Library.name)  
+}
 
 output.file <- paste0(output.file.prefix, "_pos.csv")
 library.file <- paste0(library.file.prefix, "_pos.csv")
@@ -208,16 +219,28 @@ if ( params$precursor.include && file.exists(precursor.file) ){
   
 }
 
+if (params$preprocessing.is){
+  lib.to.use <-
+      bind_rows(params$lib.is[[params$method]]$neg %>%
+                  select( Library.mz, Library.rt, Library.name),
+                params$lib.is[[params$method]]$neg %>%
+                  select( Library.mz, Library.rt, Library.name)) %>%
+      select( Library.mz, Library.rt, Library.name) %>%
+      dplyr::rename( mz = Library.mz,
+                     rt = Library.rt,
+                     name = Library.name)
+} else {
+ lib.to.use <-
+      bind_rows(params$lib[[params$method]]$neg, 
+                prec.lib,
+                params$lib.is[[params$method]]$neg %>%
+                  select( Library.mz, Library.rt, Library.name)) %>%
+      select( Library.mz, Library.rt, Library.name) %>%
+      dplyr::rename( mz = Library.mz,
+                     rt = Library.rt,
+                     name = Library.name)  
+}
 
-lib.to.use <-
-    bind_rows(params$lib[[params$method]]$neg, 
-              prec.lib,
-              params$lib.is[[params$method]]$neg %>%
-                select( Library.mz, Library.rt, Library.name)) %>%
-    select( Library.mz, Library.rt, Library.name) %>%
-    dplyr::rename( mz = Library.mz,
-                   rt = Library.rt,
-                   name = Library.name)
 
 output.file <- paste0(output.file.prefix, "_neg.csv")
 library.file <- paste0(library.file.prefix, "_neg.csv")
