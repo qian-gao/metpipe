@@ -194,7 +194,6 @@ if (params$extract_precursor){
                       method = "camera",
                       mode = "neg",
                       path.result = path.output,
-                      remove_frag_addu = TRUE,
                         BPPARAM = params$BPPARAM_set )
 } else {
   precursor.neg <-
@@ -202,7 +201,6 @@ if (params$extract_precursor){
                       method = "camera",
                       mode = "neg",
                       path.result = path.output,
-                      remove_frag_addu = FALSE,
                         BPPARAM = params$BPPARAM_set )  
 }
   
