@@ -8,7 +8,6 @@ select_precursor(
   XCMSnExp = NULL,
   method = NULL,
   mode = NULL,
-  remove_frag_addu = FALSE,
   path.result = NULL,
   BPPARAM = NULL
 )
@@ -19,8 +18,6 @@ select_precursor(
 \item{method}{The method for annotate and group features, 'camera' or 'pmd'}
 
 \item{mode}{Polarity, 'pos' or 'neg'}
-
-\item{remove_frag_addu}{Indicator for removing the fragments and adducts. TRUE or FALSE}
 
 \item{path.result}{Path to output folder}
 }

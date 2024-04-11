@@ -12,7 +12,7 @@
 #'
 #' @export
 #' @import dplyr
-#' @import plotly
+#' @import plotly ggsci
 #'
 create_qc <-
   function(sampled_data = NULL,
@@ -31,6 +31,7 @@ create_qc <-
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
+                                     scale_color_npg() +
                                      labs(#title = "Retention Time as a Function of Running Time",
                                        x = "",
                                        y = "RT (min)",
@@ -44,6 +45,7 @@ create_qc <-
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
+                                     scale_color_npg() +
                                      labs(#title = "RT deviation as a Function of Running Time",
                                        x = "Running order",
                                        y = "Deviation: RT (min)",
@@ -58,6 +60,7 @@ create_qc <-
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
+                                     scale_color_npg() +
                                      labs(#title = "m/z as a Function of Running Time",
                                        x = "",
                                        y = "m/z",
@@ -71,6 +74,7 @@ create_qc <-
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
+                                     scale_color_npg() +
                                      labs(#title = "m/z deviation as a Function of Running Time",
                                        x = "Running order",
                                        y = "Deviation: m/z (ppm)",
@@ -85,6 +89,7 @@ create_qc <-
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
+                                     scale_color_npg() +
                                      labs(#title = "Peak area as a Function of Running Time",
                                        x = "Running order",
                                        y = "Peak area",
@@ -98,6 +103,7 @@ create_qc <-
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
+                                     scale_color_npg() +
                                      labs(#title = "Peak area deviation as a Function of Running Time",
                                        x = "Running order",
                                        y = "Deviation: Peak area (%)",
@@ -117,9 +123,10 @@ create_qc <-
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_bar(stat = "Identity", position = "dodge") +
                                      scale_x_discrete(limits=rev) +
+                                     scale_fill_npg() +
                                      theme_bw() +
                                      labs( #title = "RSD of internal standards",
-                                       x = "Internal standards",
+                                       x = "Internal standard",
                                        y = "RSD (%)") +
                                      coord_flip()
 
