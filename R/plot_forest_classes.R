@@ -123,7 +123,7 @@ plot_forest_classes <-
         geom_hline(yintercept =0, linetype=2) +
         scale_x_discrete(expand=c(0.1, 0)) +
         theme( #plot.title = element_text(size=16,face="bold"),
-               panel.background = element_rect(fill = "grey98"),
+               panel.background = element_rect(fill = "grey96"),
                panel.grid.major = element_blank(),
                panel.grid.minor = element_blank(),
                panel.spacing = unit(0.1, "lines"),

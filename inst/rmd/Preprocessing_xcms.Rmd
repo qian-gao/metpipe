@@ -162,15 +162,37 @@ if (params$extract_precursor){
 
 print( paste0( "POS: ", nrow(precursor.pos), " precursors has been selected in raw data"), quote = FALSE)
 
+lib.to.use <-
+  bind_rows(params$lib[[params$method]]$pos, 
+            params$lib.is[[params$method]]$pos %>%
+              select( Library.mz, Library.rt, Library.name))
+
+library.file <- paste0(path.output, "library_MS1_IS_", params$method, "_neg.csv")
+
+write.table( lib.to.use, 
+         sep = ";",
+         row.names = FALSE,
+         file = library.file )
+
 precursor.pos.annotated <- 
   match_library( feature_info = precursor.pos,
                  rt_tolerance = params$rt_tolerance,
                  mz_tolerance = params$mz_tolerance,
-                 library_file = params$lib[[params$method]][["pos"]],
+                 library_file = lib.to.use,
                  mode = "pos",
                  output.file = output.file.pos )
 
-saveRDS(precursor.pos.annotated, file = paste0(path.output, "/precursor_annotation_pos.rds"))   
+```
+
+```{r deisotope pos, eval = params$run.pos}
+
+precursor.pos.annotated.deiso <- 
+  precursor.pos.annotated %>% 
+  filter( !grepl("Unknown_", Library.name, fixed = TRUE) |
+          (grepl("Unknown_", Library.name, fixed = TRUE) & ((is.na(isotopes) | isotopes == "" ) | grepl("[M]", isotopes, fixed = TRUE))) 
+          )
+
+saveRDS(precursor.pos.annotated.deiso, file = paste0(path.output, "/precursor_annotation_pos.rds"))   
 print( paste0("POS preprocessed data were saved as: ", output.file.pos), quote = FALSE)
 
 ```
@@ -210,15 +232,38 @@ if (params$extract_precursor){
 ```{r match library neg, eval = params$run.neg}
   
 print( paste0( "NEG: ", nrow(precursor.neg), " precursors has been selected in raw data"), quote = FALSE)
+
+lib.to.use <-
+  bind_rows(params$lib[[params$method]]$pos, 
+            params$lib.is[[params$method]]$pos %>%
+              select( Library.mz, Library.rt, Library.name))
+
+library.file <- paste0(path.output, "library_MS1_IS_", params$method, "_neg.csv")
+
+write.table( lib.to.use, 
+         sep = ";",
+         row.names = FALSE,
+         file = library.file )
+
 precursor.neg.annotated <- 
   match_library( feature_info = precursor.neg,
                  rt_tolerance = params$rt_tolerance,
                  mz_tolerance = params$mz_tolerance,
-                 library_file = params$lib[[params$method]][["neg"]],
+                 library_file = lib.to.use,
                  mode = "neg",
                  output.file = output.file.neg )
 
-saveRDS(precursor.neg.annotated, file = paste0(path.output, "/precursor_annotation_neg.rds"))
+```
+
+```{r deisotope neg, eval = params$run.neg}
+
+precursor.neg.annotated.deiso <- 
+  precursor.neg.annotated %>% 
+  filter( !grepl("Unknown_", Library.name, fixed = TRUE) |
+          (grepl("Unknown_", Library.name, fixed = TRUE) & ((is.na(isotopes) | isotopes == "" ) | grepl("[M]", isotopes, fixed = TRUE))) 
+          )
+
+saveRDS(precursor.neg.annotated.deiso, file = paste0(path.output, "/precursor_annotation_neg.rds"))
 print( paste0("NEG preprocessed data were saved as: ", output.file.neg), quote = FALSE)
 
 ```

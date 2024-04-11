@@ -62,9 +62,9 @@ select_precursor <-
         peaklist <- getPeaklist(xsaFA)
         precursor <-
           peaklist %>% 
-          filter(is.na(isotopes) | grepl("[M]", isotopes, fixed = TRUE)) %>%
           mutate(id = row_number(),
-                 rt = rt/60) %>% 
+                 rt = rt/60,
+                 pcgroup = as.numeric(pcgroup)) %>% 
           relocate(c(id, mz, rt, adduct, pcgroup, isotopes), .before = mz)
         
       } else if (method == "pmd") {
