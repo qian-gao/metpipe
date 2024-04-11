@@ -11,6 +11,7 @@
 #'     can later be converted to a TeX output using \code{overview_print}
 #' @examples
 #' @export
+#' @import ggsci
 
 plot_list_pca <-
   function (
@@ -27,7 +28,8 @@ plot_list_pca <-
           group = group,
           print = FALSE,
           group.label = group.label,
-          plotly.text = plotly.text)
+          plotly.text = plotly.text) +
+          scale_color_npg()
       })
 
     return(plt.pca)

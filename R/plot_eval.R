@@ -14,7 +14,7 @@
 #' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
 #' @export
 #' @import tidyverse
-#' @import ggplot2
+#' @import ggplot2 ggsci
 #' 
 plot_eval <-
   function(
@@ -43,7 +43,8 @@ plot_eval <-
     plt.rsd <-
       ggplot( data = plt.rsd.data, 
               aes(x = Method, y = RSD) ) +
-      geom_boxplot( aes(fill = Sample.type), position = "dodge")
+      geom_boxplot( aes(fill = Sample.type), position = "dodge") +
+      scale_fill_npg()
     
     plt.rsd.m <- 
       plt.rsd.data %>%
@@ -62,7 +63,8 @@ plot_eval <-
               aes(x = Method, y = ratio) ) +
       geom_bar( stat = "identity",
                 aes(fill = Sample.type), position = "dodge") +
-      labs( y = "Relative mean CV")
+      labs( y = "Relative mean CV") +
+      scale_fill_npg()
     
     
     stats <- 
@@ -92,7 +94,8 @@ plot_eval <-
     plt.mad <-
       ggplot( data = plt.mad.data, 
               aes(x = Method, y = MAD) ) +
-      geom_boxplot( aes(fill = Sample.type), position = "dodge") 
+      geom_boxplot( aes(fill = Sample.type), position = "dodge") +
+      scale_fill_npg() 
     
     plt.mad.m <- 
       plt.mad.data %>%
@@ -111,7 +114,8 @@ plot_eval <-
               aes(x = Method, y = ratio) ) +
       geom_bar( stat = "identity",
                 aes(fill = Sample.type), position = "dodge") +
-      labs( y = "Relative mean MAD")
+      labs( y = "Relative mean MAD") +
+      scale_fill_npg()
     
     
     var <-
@@ -131,7 +135,8 @@ plot_eval <-
     plt.var <-
       ggplot( data = plt.var.data, 
               aes(x = Method, y = VAR) ) +
-      geom_boxplot( aes(fill = Sample.type), position = "dodge") 
+      geom_boxplot( aes(fill = Sample.type), position = "dodge") +
+      scale_fill_npg() 
     
     plt.var.m <- 
       plt.var.data %>%
@@ -150,7 +155,8 @@ plot_eval <-
               aes(x = Method, y = ratio) ) +
       geom_bar( stat = "identity",
                 aes(fill = Sample.type), position = "dodge") +
-      labs( y = "Relative variance")
+      labs( y = "Relative variance") +
+      scale_fill_npg()
     
     plt <-
       list( plt.rsd = plt.rsd,
