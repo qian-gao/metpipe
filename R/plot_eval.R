@@ -43,7 +43,7 @@ plot_eval <-
     plt.rsd <-
       ggplot( data = plt.rsd.data, 
               aes(x = Method, y = RSD) ) +
-      geom_boxplot( aes(fill = Sample.type), position = "dodge", outlier.shape = NA) +
+      geom_boxplot( aes(fill = Sample.type, outlier.shape = NA), position = "dodge") +
       theme_bw() +
       scale_fill_npg()
     
@@ -96,7 +96,7 @@ plot_eval <-
     plt.mad <-
       ggplot( data = plt.mad.data, 
               aes(x = Method, y = MAD) ) +
-      geom_boxplot( aes(fill = Sample.type), position = "dodge", outlier.shape = NA) +
+      geom_boxplot( aes(fill = Sample.type, outlier.shape = NA), position = "dodge") +
       theme_bw() +
       scale_fill_npg() 
     
@@ -139,7 +139,7 @@ plot_eval <-
     plt.var <-
       ggplot( data = plt.var.data, 
               aes(x = Method, y = VAR) ) +
-      geom_boxplot( aes(fill = Sample.type), position = "dodge", outlier.shape = NA) +
+      geom_boxplot( aes(fill = Sample.type, outlier.shape = NA), position = "dodge") +
       theme_bw() +
       scale_fill_npg() 
     
