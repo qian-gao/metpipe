@@ -91,7 +91,7 @@ create_qc <-
                                      theme_bw() +
                                      scale_color_npg() +
                                      labs(#title = "Peak area as a Function of Running Time",
-                                       x = "Running order",
+                                       x = "",
                                        y = "Peak area",
                                        color = "Internal standard", shape ="") +
                                      scale_x_continuous(limits = c(0, sample_nr)) #, breaks = integer_breaks(sample_nr))
@@ -129,8 +129,6 @@ create_qc <-
                                        x = "Internal standard",
                                        y = "RSD (%)") +
                                      coord_flip()
-
-                                   , width = 1000
     ))
 
     summary <-

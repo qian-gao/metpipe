@@ -44,6 +44,7 @@ plot_eval <-
       ggplot( data = plt.rsd.data, 
               aes(x = Method, y = RSD) ) +
       geom_boxplot( aes(fill = Sample.type), position = "dodge") +
+      theme_bw() +
       scale_fill_npg()
     
     plt.rsd.m <- 
@@ -63,6 +64,7 @@ plot_eval <-
               aes(x = Method, y = ratio) ) +
       geom_bar( stat = "identity",
                 aes(fill = Sample.type), position = "dodge") +
+      theme_bw() +
       labs( y = "Relative mean CV") +
       scale_fill_npg()
     
@@ -95,6 +97,7 @@ plot_eval <-
       ggplot( data = plt.mad.data, 
               aes(x = Method, y = MAD) ) +
       geom_boxplot( aes(fill = Sample.type), position = "dodge") +
+      theme_bw() +
       scale_fill_npg() 
     
     plt.mad.m <- 
@@ -114,6 +117,7 @@ plot_eval <-
               aes(x = Method, y = ratio) ) +
       geom_bar( stat = "identity",
                 aes(fill = Sample.type), position = "dodge") +
+      theme_bw() +
       labs( y = "Relative mean MAD") +
       scale_fill_npg()
     
@@ -136,6 +140,7 @@ plot_eval <-
       ggplot( data = plt.var.data, 
               aes(x = Method, y = VAR) ) +
       geom_boxplot( aes(fill = Sample.type), position = "dodge") +
+      theme_bw() +
       scale_fill_npg() 
     
     plt.var.m <- 
@@ -156,6 +161,7 @@ plot_eval <-
       geom_bar( stat = "identity",
                 aes(fill = Sample.type), position = "dodge") +
       labs( y = "Relative variance") +
+      theme_bw() +
       scale_fill_npg()
     
     plt <-
