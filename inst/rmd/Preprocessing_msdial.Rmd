@@ -11,10 +11,7 @@ knit: ( function(inputFile, encoding) {
           
 output:
   html_document:
-    toc: yes
-    toc_depth: '4'
-    df_print: paged
-  html_notebook:
+    theme: flatly
     toc: yes
     toc_depth: '4'
     df_print: paged

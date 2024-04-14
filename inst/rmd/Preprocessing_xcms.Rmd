@@ -11,14 +11,7 @@ knit: ( function(inputFile, encoding) {
           
 output:
   html_document:
-    css: cbmr.css
-    toc: yes
-    toc_float:
-      collapsed: false
-    toc_depth: '4'
-    df_print: paged
-  html_notebook:
-    css: cbmr.css
+    theme: flatly
     toc: yes
     toc_float:
       collapsed: false

@@ -11,13 +11,10 @@ knit: ( function(inputFile, encoding) {
 
 output:
   html_document:
+    theme: flatly
     toc: yes
     toc_float:
       collapsed: false
-    toc_depth: '4'
-    df_print: paged
-  html_notebook:
-    toc: yes
     toc_depth: '4'
     df_print: paged
 ---
