@@ -5,9 +5,9 @@
 \title{compute_normalization}
 \usage{
 compute_normalization(
-  datalist = NULL,
-  norm.method = NULL,
-  path.result = NULL,
+  datalist,
+  norm.method,
+  path.result,
   prefix = NULL,
   batch.wise = NULL,
   po.sample.to.use = NULL,

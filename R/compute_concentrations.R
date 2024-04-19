@@ -91,8 +91,8 @@ compute_concentrations <-
 #' @examples
 #'
 predict_x <-
-  function( y = NULL,
-            mod = NULL,
+  function( y,
+            mod,
             x_interval = NULL){
 
     pred_fun <-

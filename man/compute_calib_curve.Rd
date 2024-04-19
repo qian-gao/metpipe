@@ -5,9 +5,9 @@
 \title{compute_calib_curve}
 \usage{
 compute_calib_curve(
-  raw.file = NULL,
-  concentration.file = NULL,
-  dilution.nr = NULL,
+  raw.file,
+  concentration.file,
+  dilution.nr,
   k = NULL,
   choose.normalizer = FALSE
 )

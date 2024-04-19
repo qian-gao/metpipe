@@ -4,7 +4,7 @@
 \alias{calculate_add_rsd}
 \title{calculate_add_rsd}
 \usage{
-calculate_add_rsd(data = NULL, type = NULL)
+calculate_add_rsd(data, type)
 }
 \arguments{
 \item{data}{A dataframe of peaktable, sample x feature}

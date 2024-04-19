@@ -25,9 +25,9 @@
 #                                           1, 2.5, 10, 40, 160))
 
 compute_calib_curve <-
-  function( raw.file = NULL,
-            concentration.file = NULL,
-            dilution.nr = NULL,
+  function( raw.file,
+            concentration.file,
+            dilution.nr,
             k = NULL, # If specify k, it should be a vector, each row indicates one identity and its k
             choose.normalizer = FALSE
     ){

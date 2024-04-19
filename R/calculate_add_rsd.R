@@ -12,8 +12,8 @@
 #' @export
 #'
 calculate_add_rsd <-
-  function( data = NULL,
-            type = NULL ){
+  function( data,
+            type){
 
     rsd <-
       calculate_rsd( data = data,

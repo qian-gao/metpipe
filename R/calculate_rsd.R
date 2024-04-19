@@ -18,8 +18,8 @@
 #' @importFrom tidyr pivot_longer pivot_wider
 
 calculate_rsd <-
-  function( data = NULL,
-            type = NULL,
+  function( data,
+            type,
             impute = FALSE,
             names.suffix = NULL,
             other.eval = FALSE
@@ -107,45 +107,6 @@ calculate_rsd <-
       output$type.var <- var
 
     }
-
-
-
-    ### old
-
-    # data = NULL,
-    # type = NULL,
-    # impute = FALSE,
-    # suffix = "",
-    # BPPARAM = BiocParallel::bpparam()
-    #
-    # mean <-
-    #   BiocParallel::bpaggregate( data,
-    #                              by = list(type),
-    #                              FUN = base::mean,
-    #                              BPPARAM = BPPARAM)
-    #
-    # group <- paste0(mean[, 1], suffix)
-    # sd <-
-    #   BiocParallel::bpaggregate( data,
-    #                              by = list(type),
-    #                              FUN = stats::sd,
-    #                              BPPARAM = BPPARAM)
-    #
-    # rsd <- sd[, -1]/mean[, -1]
-    #
-    # mean <- t(mean[, -1])
-    # colnames(mean) <- group
-    #
-    # sd <- t(sd[, -1])
-    # colnames(sd) <- group
-    #
-    # rsd <- t(rsd)
-    # colnames(rsd) <- group
-    #
-    # output <-
-    #   list( type.mean = mean,
-    #         type.sd   = sd,
-    #         type.rsd  = rsd )
 
     return(output)
 

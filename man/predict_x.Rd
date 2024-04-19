@@ -4,7 +4,7 @@
 \alias{predict_x}
 \title{predict_x}
 \usage{
-predict_x(y = NULL, mod = NULL, x_interval = NULL)
+predict_x(y, mod, x_interval = NULL)
 }
 \arguments{
 \item{dat}{A data set object}

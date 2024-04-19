@@ -17,40 +17,6 @@ output:
     df_print: paged
 ---
 
-<style type="text/css">
-body{
-  font-size: 12px;
-  }
-td {
-  font-size: 11px;
-}
-h1.title {
-  font-size: 22px;
-}
-h4.author {
-  font-size: 16px;
-}
-h4.date {
-  font-size: 16px;
-}
-
-h1 {
-  font-size: 18px;
-}
-h2 {
-  font-size: 16px;
-}
-h3 {
-  font-size: 14px;
-}
-code.r{
-  font-size: 12px;
-}
-pre { /* Code block - determines code spacing between lines */
-  font-size: 14px;
-}
-</style>
-
 ```{r setup environment, include = FALSE}
 
 knitr::opts_chunk$set(

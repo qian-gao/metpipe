@@ -4,7 +4,7 @@
 \alias{run_module}
 \title{run_module}
 \usage{
-run_module(module = NULL, params = NULL)
+run_module(module, params, file = NULL)
 }
 \arguments{
 \item{module}{Module name to run}

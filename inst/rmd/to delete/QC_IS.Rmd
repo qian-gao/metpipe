@@ -19,40 +19,6 @@ output:
     df_print: paged
 ---
 
-<style type="text/css">
-body{
-  font-size: 12px;
-  }
-td {
-  font-size: 11px;
-}
-h1.title {
-  font-size: 22px;
-}
-h4.author {
-  font-size: 16px;
-}
-h4.date {
-  font-size: 16px;
-}
-
-h1 {
-  font-size: 18px;
-}
-h2 {
-  font-size: 16px;
-}
-h3 {
-  font-size: 14px;
-}
-code.r{
-  font-size: 12px;
-}
-pre { /* Code block - determines code spacing between lines */
-  font-size: 14px;
-}
-</style>
-
 ```{r setup environment, include = FALSE}
 
 knitr::opts_chunk$set(
@@ -64,7 +30,7 @@ knitr::opts_chunk$set(
 
 ```
 
-# 1 Data import
+### 1 Data import
 ```{r import data}
 
 if (is.null(params$path.peaktable.IS.pos)){
@@ -91,10 +57,8 @@ if (is.null(params$sample.info.neg.qc)){
 
 ```
 
-$~$
+### 2 POS Overview {.tabset}
 
-# 2 QC of internal standards
-## 2.1 Positive mode
 ```{r evaluation pos, include = FALSE, eval = params$run.pos}
 
 # Extract theoretical and actual internal standard
@@ -127,79 +91,60 @@ qc_is_pos <- list(combined_file = combined_file,
 saveRDS(qc_is_pos, file = paste0(params$path.result, "/data/QC_IS_pos.rds"))
 ```
 
-### 2.1.1 Summary {.tabset .tabset-pills}
-#### Internal standard
+#### Overall
 ```{r ms overall pos, eval = params$run.pos}
-summary %>%
-  mutate_if(is.numeric, function(x){round(x, 2)}) %>% 
-  dplyr::rename("Internal standard" = "ISTD",            
-                "Theoretical RT" = "Theoretical.rt",
-                "Median RT" = "median.rt",        
-                "RT difference" = "rt.diff",          
-                "Theoretical m/z" = "Theoretical.mz",
-                "Median m/z" = "median.mz",
-                "m/z difference" = "mz.diff",          
-                "Median intensity" = "median.intensity") %>% 
-  kbl() %>%
-  kable_paper()
-```
 
-#### RSD
-```{r, eval = params$run.pos, fig.width = 8}
-plt[[7]]
-```
+knitr::kable(summary)
 
-#### Shift
-```{r ms overall pos2, eval = params$run.pos, fig.width = 8}
-p1 <- 
-  ggplot(summary) +
-    geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=rt.diff), color="grey") +
-    geom_point( aes(x=ISTD, y=0), color = "#F39B7FB2", size=3 ) +
-    geom_point( aes(x=ISTD, y=rt.diff), color = "#3C5488B2", size=3 ) +
-    coord_flip()+
-    scale_x_discrete(limits=rev) +
-    theme_bw() +
-    xlab("Internal standard") +
-    ylab("Difference in retention time")
+plt[[7]] %>%
+  layout(annotations = list(
+          list(x = 0,  
+               y = 1.0,  
+               text = "RSD of internal standards",  
+               xref = "paper",  
+               yref = "paper",  
+               xanchor = "left",  
+               yanchor = "bottom",  
+               showarrow = FALSE)
+        ))
 
-p2 <- 
-  ggplot(summary) +
-    geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=mz.diff), color="grey") +
-    geom_point( aes(x=ISTD, y=0), color= "#F39B7FB2", size=3 ) +
-    geom_point( aes(x=ISTD, y=mz.diff), color= "#3C5488B2", size=3 ) +
-    coord_flip()+
-    scale_x_discrete(limits=rev) +
-    theme_bw() +
-    xlab("Internal standard") +
-    ylab("Difference in m/z")
-
-subplot(p1, p2, nrows = 1, margin = 0.04, titleX = TRUE, titleY = TRUE, shareY = TRUE) 
+plt[[8]] %>%
+  layout(annotations = list(
+          list(x = 0,  
+               y = 1.0,  
+               text = "Retention time linearity of internal standards",  
+               xref = "paper",  
+               yref = "paper",  
+               xanchor = "left",  
+               yanchor = "bottom",  
+               showarrow = FALSE)
+        ))
 
 ```
 
-### 2.1.2 QC of individual samples {.tabset .tabset-pills}
 #### Retention time
-```{r ms RT pos, eval = params$run.pos, fig.width = 10, fig.height = 5}
+```{r ms RT pos, eval = params$run.pos}
 
 subplot(plt[[1]], plt[[2]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 
 ```
 
 #### m/z
-```{r ms m/z pos, eval = params$run.pos, fig.width = 10, fig.height = 5}
+```{r ms m/z pos, eval = params$run.pos}
 
 subplot(plt[[3]], plt[[4]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 
 ```
 
 #### Intensity
-```{r ms1p Int pos, eval = params$run.pos, fig.width = 10, fig.height = 5}
+```{r ms1p Int pos, eval = params$run.pos}
 
 subplot(plt[[5]], plt[[6]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 
 ```
 
-## 2.2 Negative mode
+
+### 3 NEG Overview {.tabset}
 ```{r evaluation neg, include = FALSE, eval = params$run.neg}
 
 # Extract theoretical and actual internal standard
@@ -232,75 +177,54 @@ qc_is_neg <- list(combined_file = combined_file,
 saveRDS(qc_is_neg, file = paste0(params$path.result, "/data/QC_IS_neg.rds"))
 ```
 
-### 2.2.1 Summary {.tabset .tabset-pills}
-#### Internal standard
+#### Overall
 ```{r ms overall neg, eval = params$run.neg}
-summary %>%
-  mutate_if(is.numeric, function(x){round(x, 2)}) %>% 
-  dplyr::rename("Internal standard" = "ISTD",            
-                "Theoretical RT" = "Theoretical.rt",
-                "Median RT" = "median.rt",        
-                "RT difference" = "rt.diff",          
-                "Theoretical m/z" = "Theoretical.mz",
-                "Median m/z" = "median.mz",
-                "m/z difference" = "mz.diff",          
-                "Median intensity" = "median.intensity") %>% 
-  kbl() %>%
-  kable_paper()
-```
 
-#### RSD
-```{r, eval = params$run.neg, fig.width = 8}
-plt[[7]]
-```
+knitr::kable(summary)
 
-#### Shift
-```{r ms overall neg2, eval = params$run.neg, fig.width = 8}
-p1 <- 
-  ggplot(summary) +
-    geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=rt.diff), color="grey") +
-    geom_point( aes(x=ISTD, y=0), color = "#F39B7FB2", size=3 ) +
-    geom_point( aes(x=ISTD, y=rt.diff), color = "#3C5488B2", size=3 ) +
-    coord_flip()+
-    scale_x_discrete(limits=rev) +
-    theme_bw() +
-    xlab("Internal standard") +
-    ylab("Difference in retention time")
+plt[[7]] %>%
+  layout(annotations = list(
+          list(x = 0,  
+               y = 1.0,  
+               text = "RSD of internal standards",  
+               xref = "paper",  
+               yref = "paper",  
+               xanchor = "left",  
+               yanchor = "bottom",  
+               showarrow = FALSE)
+        ))
 
-p2 <- 
-  ggplot(summary) +
-    geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=mz.diff), color="grey") +
-    geom_point( aes(x=ISTD, y=0), color= "#F39B7FB2", size=3 ) +
-    geom_point( aes(x=ISTD, y=mz.diff), color= "#3C5488B2", size=3 ) +
-    coord_flip()+
-    scale_x_discrete(limits=rev) +
-    theme_bw() +
-    xlab("Internal standard") +
-    ylab("Difference in m/z")
-
-subplot(p1, p2, nrows = 1, margin = 0.04, titleX = TRUE, titleY = TRUE, shareY = TRUE) 
+plt[[8]] %>%
+  layout(annotations = list(
+          list(x = 0,  
+               y = 1.0,  
+               text = "Retention time linearity of internal standards",  
+               xref = "paper",  
+               yref = "paper",  
+               xanchor = "left",  
+               yanchor = "bottom",  
+               showarrow = FALSE)
+        ))
 
 ```
 
-### 2.2.2 QC of individual samples {.tabset .tabset-pills}
 #### Retention time
-```{r ms RT neg, eval = params$run.neg, fig.width = 10, fig.height = 5}
+```{r ms RT neg, eval = params$run.neg}
 
 subplot(plt[[1]], plt[[2]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 
 ```
 
 #### m/z
-```{r ms m/z neg, eval = params$run.neg, fig.width = 10, fig.height = 5}
+```{r ms m/z neg, eval = params$run.neg}
 
 subplot(plt[[3]], plt[[4]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 
 ```
 
 #### Intensity
-```{r ms1p Int neg, eval = params$run.neg, fig.width = 10, fig.height = 5}
+```{r ms1p Int neg, eval = params$run.neg}
 
 subplot(plt[[5]], plt[[6]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 
 ```
-

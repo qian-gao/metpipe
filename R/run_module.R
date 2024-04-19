@@ -10,8 +10,9 @@
 #' @export
 
 run_module <- 
-  function(module = NULL,
-           params = NULL) {
+  function(module,
+           params, 
+           file = NULL) {
     
     
     if (tolower(module) == "preprocessing_is"){
@@ -29,7 +30,9 @@ run_module <-
       }
       
       render_rmarkdown(
-        file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+        file = if_else(is.null(file),
+                       system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+                       file),
         #file = "Preprocessing_mzmine.Rmd",
         params = params,
         output = paste0( params$path.result, '01_01_Preprocessing_IS')
@@ -40,7 +43,9 @@ run_module <-
       params$sample.info.neg.qc <- NULL
       
       render_rmarkdown(
-        file = system.file("rmd", "QC_IS.Rmd", package="metpipe"),
+        file = if_else(is.null(file),
+                       system.file("rmd", "QC_IS.Rmd", package="metpipe"),
+                       file),
         #file = "QC_IS.Rmd",
         params = params,
         output = paste0( params$path.result, '01_02_QC_IS')
@@ -52,7 +57,9 @@ run_module <-
       params$untar <- FALSE
       
       render_rmarkdown(
-        file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+        file = if_else(is.null(file),
+                       system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+                       file),
         #file = "Preprocessing_mzmine.Rmd",
         params = params,
         output = paste0( params$path.result, '02_Targeted_preprocessing')
@@ -62,7 +69,9 @@ run_module <-
       params$extract_precursor <- FALSE
       
       render_rmarkdown(
-        file = system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
+        file = if_else(is.null(file),
+                       system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
+                       file),
         #file = "Preprocessing_xcms.Rmd",
         params = params,
         output = paste0( params$path.result, '02_Untargeted_preprocessing_xcms')
@@ -74,7 +83,9 @@ run_module <-
       params$untar <- TRUE
       
       render_rmarkdown(
-        file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+        file = if_else(is.null(file),
+                       system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+                       file),
         #file = "Preprocessing_mzmine.Rmd",
         params = params,
         output = paste0( params$path.result, '02_Untargeted_preprocessing_mzmine')
@@ -85,7 +96,9 @@ run_module <-
       params$precursor.include <- FALSE
       
       render_rmarkdown(
-        file = system.file("rmd", "Preprocessing_msdial.Rmd", package="metpipe"),
+        file = if_else(is.null(file),
+                       system.file("rmd", "Preprocessing_msdial.Rmd", package="metpipe"),
+                       file),
         #file = "Untargeted_preprocessing_msdial.Rmd",
         params = params,
         output = paste0( params$path.result, '02_Untargeted_preprocessing_msdial')
@@ -98,14 +111,18 @@ run_module <-
       params$untar <- FALSE
       
       render_rmarkdown(
-        file = system.file("rmd", "Preprocessing_msdial.Rmd", package="metpipe"),
+        file = if_else(is.null(file),
+                       system.file("rmd", "Preprocessing_msdial.Rmd", package="metpipe"),
+                       file),
         #file = "Untargeted_preprocessing_msdial.Rmd",
         params = params,
         output = paste0( params$path.result, '02_01_Extract_precursor_msdial')
       )
       
       render_rmarkdown(
-        file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+        file = if_else(is.null(file),
+                       system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+                       file),
         #file = "Preprocessing_mzmine.Rmd",
         params = params,
         output = paste0( params$path.result, '02_02_Targeted_untargeted_preprocessing')
@@ -118,14 +135,18 @@ run_module <-
       params$untar <- FALSE
       
       render_rmarkdown(
-        file = system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
+        file = if_else(is.null(file),
+                       system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
+                       file),
         #file = "Preprocessing_xcms.Rmd",
         params = params,
         output = paste0( params$path.result, '02_01_Extract_precursor_xcms')
       )
       
       render_rmarkdown(
-        file = system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+        file = if_else(is.null(file),
+                       system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
+                       file),
         #file = "Preprocessing_mzmine.Rmd",
         params = params,
         output = paste0( params$path.result, '02_02_Targeted_untargeted_preprocessing')
@@ -133,7 +154,9 @@ run_module <-
       
     } else if (tolower(module) == "clean"){
       render_rmarkdown(
-        file = system.file("rmd", "Clean_peaktable.Rmd", package="metpipe"),
+        file = if_else(is.null(file),
+                       system.file("rmd", "Clean_peaktable.Rmd", package="metpipe"),
+                       file),
         #file = "Clean_peaktable.Rmd",
         params = params,
         output = paste0( params$path.result, '03_Clean_peaktable')
@@ -141,7 +164,9 @@ run_module <-
       
     } else if (tolower(module) == "normalization"){
       render_rmarkdown(
-        file = system.file("rmd", "Normalization_comparison.Rmd", package="metpipe"),
+        file = if_else(is.null(file),
+                       system.file("rmd", "Normalization_comparison.Rmd", package="metpipe"),
+                       file),
         #file = "Normalization_comparison.Rmd",
         params = params,
         output = paste0( params$path.result, '04_Normalization_comparison')
@@ -149,7 +174,9 @@ run_module <-
       
     } else if (tolower(module) == "merge"){
       render_rmarkdown(
-        file = system.file("rmd", "Merge_and_map_info.Rmd", package="metpipe"),
+        file = if_else(is.null(file),
+                       system.file("rmd", "Merge_and_map_info.Rmd", package="metpipe"),
+                       file),
         #file = "Merge_and_map_info.Rmd",
         params = params,
         output = paste0( params$path.result, '05_Merge_and_map_info')

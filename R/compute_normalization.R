@@ -19,9 +19,9 @@
 #' @import openxlsx
 #'
 compute_normalization <-
-  function( datalist = NULL,
-            norm.method = NULL,
-            path.result = NULL,
+  function( datalist,
+            norm.method,
+            path.result,
             prefix = NULL,
             batch.wise = NULL,
             po.sample.to.use = NULL,

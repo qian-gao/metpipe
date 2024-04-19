@@ -5,8 +5,8 @@
 \title{calculate_rsd}
 \usage{
 calculate_rsd(
-  data = NULL,
-  type = NULL,
+  data,
+  type,
   impute = FALSE,
   names.suffix = NULL,
   other.eval = FALSE
