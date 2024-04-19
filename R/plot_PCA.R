@@ -8,7 +8,7 @@
 #' @param time Time (e.g., time periods are given by years, months, ...)
 #'
 #' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#'     can later be converted to a TeX output using
 #' @examples
 #' data(toydata)
 #' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
@@ -21,7 +21,7 @@ plot_PCA <-
     group = NULL,
     group.label = "Group",
     plotly.text = rownames(x),
-    alpha = 0.25,
+    alpha = 0.5,
     print = FALSE,
     plot.type = "score", # score, loading, loading_arrow, biplot
     ratio = 1,
@@ -77,7 +77,8 @@ plot_PCA <-
           choices = pcs,
           text.size = text.size,
           ...
-        )
+        ) +
+        scale_color_npg()
 
     } else if(plot.type == "loading") {
 

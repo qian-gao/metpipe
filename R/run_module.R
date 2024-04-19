@@ -30,7 +30,7 @@ run_module <-
       }
       
       render_rmarkdown(
-        file = if_else(is.null(file),
+        file = ifelse(is.null(file),
                        system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
                        file),
         #file = "Preprocessing_mzmine.Rmd",
@@ -43,7 +43,7 @@ run_module <-
       params$sample.info.neg.qc <- NULL
       
       render_rmarkdown(
-        file = if_else(is.null(file),
+        file = ifelse(is.null(file),
                        system.file("rmd", "QC_IS.Rmd", package="metpipe"),
                        file),
         #file = "QC_IS.Rmd",
@@ -57,7 +57,7 @@ run_module <-
       params$untar <- FALSE
       
       render_rmarkdown(
-        file = if_else(is.null(file),
+        file = ifelse(is.null(file),
                        system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
                        file),
         #file = "Preprocessing_mzmine.Rmd",
@@ -69,7 +69,7 @@ run_module <-
       params$extract_precursor <- FALSE
       
       render_rmarkdown(
-        file = if_else(is.null(file),
+        file = ifelse(is.null(file),
                        system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
                        file),
         #file = "Preprocessing_xcms.Rmd",
@@ -83,7 +83,7 @@ run_module <-
       params$untar <- TRUE
       
       render_rmarkdown(
-        file = if_else(is.null(file),
+        file = ifelse(is.null(file),
                        system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
                        file),
         #file = "Preprocessing_mzmine.Rmd",
@@ -96,7 +96,7 @@ run_module <-
       params$precursor.include <- FALSE
       
       render_rmarkdown(
-        file = if_else(is.null(file),
+        file = ifelse(is.null(file),
                        system.file("rmd", "Preprocessing_msdial.Rmd", package="metpipe"),
                        file),
         #file = "Untargeted_preprocessing_msdial.Rmd",
@@ -111,7 +111,7 @@ run_module <-
       params$untar <- FALSE
       
       render_rmarkdown(
-        file = if_else(is.null(file),
+        file = ifelse(is.null(file),
                        system.file("rmd", "Preprocessing_msdial.Rmd", package="metpipe"),
                        file),
         #file = "Untargeted_preprocessing_msdial.Rmd",
@@ -120,7 +120,7 @@ run_module <-
       )
       
       render_rmarkdown(
-        file = if_else(is.null(file),
+        file = ifelse(is.null(file),
                        system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
                        file),
         #file = "Preprocessing_mzmine.Rmd",
@@ -135,7 +135,7 @@ run_module <-
       params$untar <- FALSE
       
       render_rmarkdown(
-        file = if_else(is.null(file),
+        file = ifelse(is.null(file),
                        system.file("rmd", "Preprocessing_xcms.Rmd", package="metpipe"),
                        file),
         #file = "Preprocessing_xcms.Rmd",
@@ -144,7 +144,7 @@ run_module <-
       )
       
       render_rmarkdown(
-        file = if_else(is.null(file),
+        file = ifelse(is.null(file),
                        system.file("rmd", "Preprocessing_mzmine.Rmd", package="metpipe"),
                        file),
         #file = "Preprocessing_mzmine.Rmd",
@@ -154,7 +154,7 @@ run_module <-
       
     } else if (tolower(module) == "clean"){
       render_rmarkdown(
-        file = if_else(is.null(file),
+        file = ifelse(is.null(file),
                        system.file("rmd", "Clean_peaktable.Rmd", package="metpipe"),
                        file),
         #file = "Clean_peaktable.Rmd",
@@ -164,7 +164,7 @@ run_module <-
       
     } else if (tolower(module) == "normalization"){
       render_rmarkdown(
-        file = if_else(is.null(file),
+        file = ifelse(is.null(file),
                        system.file("rmd", "Normalization_comparison.Rmd", package="metpipe"),
                        file),
         #file = "Normalization_comparison.Rmd",
@@ -174,12 +174,21 @@ run_module <-
       
     } else if (tolower(module) == "merge"){
       render_rmarkdown(
-        file = if_else(is.null(file),
+        file = ifelse(is.null(file),
                        system.file("rmd", "Merge_and_map_info.Rmd", package="metpipe"),
                        file),
         #file = "Merge_and_map_info.Rmd",
         params = params,
         output = paste0( params$path.result, '05_Merge_and_map_info')
+      )
+      
+    } else if (tolower(module) == "qc_report"){
+      render_rmarkdown(
+        file = ifelse(is.null(file),
+                      system.file("rmd", "QC_report.Rmd", package="metpipe"),
+                      file),
+        params = params,
+        output = paste0( params$path.result, '06_QC_report')
       )
       
     }

@@ -298,7 +298,8 @@ normalize_various_methods <-
 
       output$normalizer <-
         output$normalizer %>%
-        dplyr::left_join(feature.info, by = "Identity")
+        dplyr::left_join(feature.info, by = "Identity") %>% 
+        select(-m_name)
 
     }
 
@@ -438,7 +439,7 @@ affy_normalize_loess <-
 #' @param time Time (e.g., time periods are given by years, months, ...)
 #'
 #' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#'     can later be converted to a TeX output using
 #' @examples
 #' data(toydata)
 #' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
@@ -573,7 +574,7 @@ affy_normalize_qspline <- function(x,
 #' @param time Time (e.g., time periods are given by years, months, ...)
 #'
 #' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#'     can later be converted to a TeX output using
 #' @examples
 #' data(toydata)
 #' output_table <- overview_tab(dat = toydata, id = ccode, time = year)

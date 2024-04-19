@@ -45,6 +45,12 @@ h2 {
 h3 {
   font-size: 14px;
 }
+h4 {
+  font-size: 12px;
+}
+h5 {
+  font-size: 12px;
+}
 code.r{
   font-size: 12px;
 }
@@ -64,7 +70,7 @@ knitr::opts_chunk$set(
 
 ```
 
-### 1 Data import
+# 1 Data import
 
 ```{r set run}
 
@@ -77,7 +83,7 @@ if (!dir.exists(path.output)) dir.create(path.output)
 
 ```
 
-#### POS
+## Positive mode
 ```{r map features pos, eval = params$run.pos}
 
 if (is.list(params$path.datatable.pos)){
@@ -157,7 +163,7 @@ data.pos <-
 colnames(data.pos)[2:ncol(data.pos)] <- paste0("pos_", colnames(data.pos)[2:ncol(data.pos)])
 ```
 
-#### NEG
+## Negative mode
 ```{r map features neg, eval = params$run.neg}
 
  if (is.list(params$path.datatable.neg)){
@@ -237,7 +243,7 @@ colnames(data.neg)[2:ncol(data.neg)] <- paste0("neg_", colnames(data.neg)[2:ncol
 
 ```
 
-### 2 Merge data tables and map feature names
+# 2 Merge data tables and map feature names
 ```{r merge}
 
 if ( run.pos & run.neg){
@@ -314,12 +320,13 @@ print(paste0(nrow(feature.info) - nrow(feature.info.keep), " features have been 
 
 ```
 
-### 3 Export
+# 3 Export
 ```{r export}
 
 out.table <-
   sample.info %>%
-  left_join(datatable.keep, by = "Sample") 
+  left_join(datatable.keep, by = "Sample")
+  
 
 wb <- createWorkbook()
 addWorksheet(wb, "datatable")

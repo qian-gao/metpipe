@@ -15,7 +15,7 @@ plot_list_pca(x = NULL, group = NULL, group.label = NULL, plotly.text = NULL)
 }
 \value{
 A data frame object that contains a summary of a sample that
-    can later be converted to a TeX output using \code{overview_print}
+    can later be converted to a TeX output using
 }
 \description{
 Provides an overview table for the time and scope conditions of

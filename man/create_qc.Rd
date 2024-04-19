@@ -4,7 +4,7 @@
 \alias{create_qc}
 \title{create_qc}
 \usage{
-create_qc(sampled_data = NULL, figure_height = NULL, figure_width = 600)
+create_qc(sampled_data = NULL, figure_height = 300, figure_width = 600)
 }
 \arguments{
 \item{sampled_data}{A dataframe containing IS in samples}

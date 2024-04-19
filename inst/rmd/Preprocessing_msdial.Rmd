@@ -13,6 +13,8 @@ output:
   html_document:
     theme: flatly
     toc: yes
+    toc_float:
+      collapsed: false
     toc_depth: '4'
     df_print: paged
 ---
@@ -42,6 +44,12 @@ h2 {
 }
 h3 {
   font-size: 14px;
+}
+h4 {
+  font-size: 12px;
+}
+h5 {
+  font-size: 12px;
 }
 code.r{
   font-size: 12px;
@@ -138,8 +146,8 @@ if (params$target == "GC"){
 
 ```
 
-### Preprocessing using MSDIAL
-#### POS
+# Preprocessing using MSDIAL
+## Positive mode parameters
 ```{r generate library pos, eval = params$run.pos}
 
 lib.to.use <-
@@ -180,7 +188,7 @@ print( paste0("rt_tol_bigger_pos = ", rt_tol_bigger_pos), quote = FALSE)
 
 ```
 
-```{r generate parameters pos, echo = TRUE, eval = params$run.pos}
+```{r generate parameters pos, eval = params$run.pos}
 
 ref.samples <-
   sample.info.pos %>%
@@ -288,7 +296,7 @@ if (params$extract_precursor){
 
 ```
 
-#### NEG
+## Negative mode parameters
 ```{r generate library neg, eval = params$run.neg}
 
 lib.to.use <-
@@ -316,7 +324,7 @@ if ( file.exists( "/home/projects/ku_00007/" )){
   msp.file <- params$msp[[params$target]]$neg  
 }
 
-print( paste0("NEG peaktable was saved as .msdial file in: ", path.output), quote = FALSE)
+print( paste0("NEG peaktable was saved as: ", output.file.neg), quote = FALSE)
 print( paste0("Library file: ", library.file), quote = FALSE)
 print( "MSDIAL parameters used in negative mode:")
 
@@ -327,7 +335,7 @@ print( paste0("rt_tol_bigger_neg = ", rt_tol_bigger_neg), quote = FALSE)
 
 ```
 
-```{r generate parameters neg, echo = TRUE, eval = params$run.neg}
+```{r generate parameters neg, eval = params$run.neg}
 
 ref.samples <-
   sample.info.neg %>%

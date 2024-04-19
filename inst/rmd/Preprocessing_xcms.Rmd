@@ -45,6 +45,12 @@ h2 {
 h3 {
   font-size: 14px;
 }
+h4 {
+  font-size: 12px;
+}
+h5 {
+  font-size: 12px;
+}
 code.r{
   font-size: 12px;
 }
@@ -64,6 +70,7 @@ knitr::opts_chunk$set(
 
 ```
 
+# Preprocessing using XCMS
 ```{r set environment variables}
 
 if (params$extract_precursor){
@@ -89,21 +96,21 @@ if (params$extract_precursor){
 
 if (!dir.exists(path.output)) dir.create(path.output)
 
-print( "Raw data was imported from the following folder:", quote = FALSE)
-print( paste0("POS: ", params$path.mzml.pos), quote = FALSE)
-print( paste0("NEG: ", params$path.mzml.neg), quote = FALSE)
-print( paste0("Other metadata: "), quote = FALSE)
-print( paste0("POS: ", params$path.meta.pos), quote = FALSE)
-print( paste0("NEG: ", params$path.meta.neg), quote = FALSE)
-
-print( "Result is stored in the following folder:", quote = FALSE)
-print( path.output, quote = FALSE)
+# print( "Raw data was imported from the following folder:", quote = FALSE)
+# print( paste0("POS: ", params$path.mzml.pos), quote = FALSE)
+# print( paste0("NEG: ", params$path.mzml.neg), quote = FALSE)
+# print( paste0("Other metadata: "), quote = FALSE)
+# print( paste0("POS: ", params$path.meta.pos), quote = FALSE)
+# print( paste0("NEG: ", params$path.meta.neg), quote = FALSE)
+# 
+# print( "Result is stored in the following folder:", quote = FALSE)
+# print( path.output, quote = FALSE)
 
 ```
 
-### 1 Data import
+## Positive mode parameters
 ```{r sample info pos, eval = params$run.pos}
-
+### 1 Data import
 if (params$extract_precursor){
   
   #file.name.pos <- list.files(path.mzml.pos, pattern = "mzML")
@@ -125,12 +132,17 @@ if (params$extract_precursor){
 saveRDS( params$para.pos, 
          file = paste0(path.output, "XCMS_parameters_", "pos", ".rds"))
 
-print( "POS:", quote = FALSE)
-print( "The following XCMS parameters have been used for extracting precursors:", quote = FALSE)
+print( "Raw data was imported from the following folder:", quote = FALSE)
+print( params$path.mzml.pos, quote = FALSE)
+print( paste0("POS peaktable was saved as: ", output.file.pos), quote = FALSE)
+print( paste0("Library file: ", path.output, "library_MS1_", params$method, "_pos.csv"), quote = FALSE)
+
+print( "XCMS parameters used in positive mode:", quote = FALSE)
 print( params$para.pos, quote = FALSE)
 
 ```
 
+## Negative mode parameters
 ```{r sample info neg, eval = params$run.neg}
 
 if (params$extract_precursor){
@@ -154,13 +166,17 @@ if (params$extract_precursor){
 saveRDS( params$para.neg, 
          file = paste0(path.output, "XCMS_parameters_", "neg", ".rds"))
 
-print( "NEG:", quote = FALSE)
-print( "The following XCMS parameters have been used for extracting precursors:", quote = FALSE)
-print( params$para.neg, quote = FALSE)
+print( "Raw data was imported from the following folder:", quote = FALSE)
+print( params$path.mzml.neg, quote = FALSE)
+print( paste0("NEG peaktable was saved as: ", output.file.neg), quote = FALSE)
+print( paste0("Library file: ", path.output, "library_MS1_", params$method, "_neg.csv"), quote = FALSE)
+
+print( "XCMS parameters used in negative mode:", quote = FALSE)
+print( params$para.pos, quote = FALSE)
 
 ```
 
-### 3 Preprocessing
+
 ```{r preprocessing pos, eval = params$run.pos}
 
 ### Preprocessing
@@ -173,34 +189,26 @@ peaks.pos <-
                         BPPARAM = params$BPPARAM_set)
 
 ### Precursor selection
-if (params$extract_precursor){
-  precursor.pos <-
-    select_precursor( XCMSnExp = peaks.pos,
-                      method = "camera",
-                      mode = "pos",
-                      path.result = path.output,
-                        BPPARAM = params$BPPARAM_set )
-} else {
-  precursor.pos <-
-    select_precursor( XCMSnExp = peaks.pos,
-                      method = "camera",
-                      mode = "pos",
-                      path.result = path.output,
-                        BPPARAM = params$BPPARAM_set )  
-}
+
+precursor.pos <-
+  select_precursor( XCMSnExp = peaks.pos,
+                    method = "camera",
+                    mode = "pos",
+                    path.result = path.output,
+                      BPPARAM = params$BPPARAM_set )
 
 ```
 
 ```{r match library pos, eval = params$run.pos}
 
-print( paste0( "POS: ", nrow(precursor.pos), " precursors has been selected in raw data"), quote = FALSE)
+#print( paste0( "POS: ", nrow(precursor.pos), " precursors has been selected in raw data"), quote = FALSE)
 
 lib.to.use <-
   bind_rows(params$lib[[params$method]]$pos, 
             params$lib.is[[params$method]]$pos %>%
               select( Library.mz, Library.rt, Library.name))
 
-library.file <- paste0(path.output, "library_MS1_IS_", params$method, "_neg.csv")
+library.file <- paste0(path.output, "library_MS1_", params$method, "_neg.csv")
 
 write.table( lib.to.use, 
          sep = ";",
@@ -226,7 +234,7 @@ precursor.pos.annotated.deiso <-
           )
 
 saveRDS(precursor.pos.annotated.deiso, file = paste0(path.output, "/precursor_annotation_pos.rds"))   
-print( paste0("POS preprocessed data were saved as: ", output.file.pos), quote = FALSE)
+#print( paste0("POS preprocessed data were saved as: ", output.file.pos), quote = FALSE)
 
 ```
 
@@ -243,35 +251,27 @@ peaks.neg <-
                         BPPARAM = params$BPPARAM_set )
 
 ### Precursor selection
-if (params$extract_precursor){
-  precursor.neg <-
-    select_precursor( XCMSnExp = peaks.neg,
-                      method = "camera",
-                      mode = "neg",
-                      path.result = path.output,
-                        BPPARAM = params$BPPARAM_set )
-} else {
-  precursor.neg <-
-    select_precursor( XCMSnExp = peaks.neg,
-                      method = "camera",
-                      mode = "neg",
-                      path.result = path.output,
-                        BPPARAM = params$BPPARAM_set )  
-}
+
+precursor.neg <-
+  select_precursor( XCMSnExp = peaks.neg,
+                    method = "camera",
+                    mode = "neg",
+                    path.result = path.output,
+                    BPPARAM = params$BPPARAM_set )
   
 ```
 
 
 ```{r match library neg, eval = params$run.neg}
   
-print( paste0( "NEG: ", nrow(precursor.neg), " precursors has been selected in raw data"), quote = FALSE)
+#print( paste0( "NEG: ", nrow(precursor.neg), " precursors has been selected in raw data"), quote = FALSE)
 
 lib.to.use <-
   bind_rows(params$lib[[params$method]]$pos, 
             params$lib.is[[params$method]]$pos %>%
               select( Library.mz, Library.rt, Library.name))
 
-library.file <- paste0(path.output, "library_MS1_IS_", params$method, "_neg.csv")
+library.file <- paste0(path.output, "library_MS1_", params$method, "_neg.csv")
 
 write.table( lib.to.use, 
          sep = ";",
@@ -297,7 +297,7 @@ precursor.neg.annotated.deiso <-
           )
 
 saveRDS(precursor.neg.annotated.deiso, file = paste0(path.output, "/precursor_annotation_neg.rds"))
-print( paste0("NEG preprocessed data were saved as: ", output.file.neg), quote = FALSE)
+#print( paste0("NEG preprocessed data were saved as: ", output.file.neg), quote = FALSE)
 
 ```
 

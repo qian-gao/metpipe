@@ -45,6 +45,12 @@ h2 {
 h3 {
   font-size: 14px;
 }
+h4 {
+  font-size: 12px;
+}
+h5 {
+  font-size: 12px;
+}
 code.r{
   font-size: 12px;
 }
@@ -54,6 +60,8 @@ pre { /* Code block - determines code spacing between lines */
 </style>
 
 ```{r setup environment, include = FALSE}
+
+library(kableExtra)
 
 knitr::opts_chunk$set(
   message = FALSE,
@@ -70,16 +78,16 @@ knitr::opts_chunk$set(
 if (is.null(params$path.peaktable.IS.pos)){
   
   params$path.peaktable.IS.pos <- paste0(params$path.result, "01_01_Preprocessing_IS/peaktable_targeted_IS_pos.csv")
-  print( paste0("POS peaktable for internal standards was imported from: ", params$path.peaktable.IS.pos), quote = FALSE)
 
 }
+print( paste0("POS peaktable for QC was imported from: ", params$path.peaktable.IS.pos), quote = FALSE)
 
 if (is.null(params$path.peaktable.IS.neg)){
   
   params$path.peaktable.IS.neg <- paste0(params$path.result, "01_01_Preprocessing_IS/peaktable_targeted_IS_neg.csv")
-  print( paste0("NEG peaktable for internal standards was imported from: ", params$path.peaktable.IS.neg), quote = FALSE)
 
 }
+print( paste0("NEG peaktable for QC was imported from: ", params$path.peaktable.IS.neg), quote = FALSE)
 
 if (is.null(params$sample.info.pos.qc)){
   params$sample.info.pos.qc <- params$sample.info.pos
@@ -145,12 +153,12 @@ summary %>%
 ```
 
 #### RSD
-```{r, eval = params$run.pos, fig.width = 8}
+```{r, eval = params$run.pos, fig.width = 8, fig.height = 4}
 plt[[7]]
 ```
 
 #### Shift
-```{r ms overall pos2, eval = params$run.pos, fig.width = 8}
+```{r ms overall pos2, eval = params$run.pos, fig.width = 8, fig.height = 4}
 p1 <- 
   ggplot(summary) +
     geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=rt.diff), color="grey") +
@@ -179,21 +187,21 @@ subplot(p1, p2, nrows = 1, margin = 0.04, titleX = TRUE, titleY = TRUE, shareY =
 
 ### 2.1.2 QC of individual samples {.tabset .tabset-pills}
 #### Retention time
-```{r ms RT pos, eval = params$run.pos, fig.width = 10, fig.height = 5}
+```{r ms RT pos, eval = params$run.pos, fig.width = 10, fig.height = 6}
 
 subplot(plt[[1]], plt[[2]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 
 ```
 
 #### m/z
-```{r ms m/z pos, eval = params$run.pos, fig.width = 10, fig.height = 5}
+```{r ms m/z pos, eval = params$run.pos, fig.width = 10, fig.height = 6}
 
 subplot(plt[[3]], plt[[4]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 
 ```
 
 #### Intensity
-```{r ms1p Int pos, eval = params$run.pos, fig.width = 10, fig.height = 5}
+```{r ms1p Int pos, eval = params$run.pos, fig.width = 10, fig.height = 6}
 
 subplot(plt[[5]], plt[[6]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 
@@ -250,12 +258,12 @@ summary %>%
 ```
 
 #### RSD
-```{r, eval = params$run.neg, fig.width = 8}
+```{r, eval = params$run.neg, fig.width = 8, fig.height = 4}
 plt[[7]]
 ```
 
 #### Shift
-```{r ms overall neg2, eval = params$run.neg, fig.width = 8}
+```{r ms overall neg2, eval = params$run.neg, fig.width = 8, fig.height = 4}
 p1 <- 
   ggplot(summary) +
     geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=rt.diff), color="grey") +
@@ -284,21 +292,21 @@ subplot(p1, p2, nrows = 1, margin = 0.04, titleX = TRUE, titleY = TRUE, shareY =
 
 ### 2.2.2 QC of individual samples {.tabset .tabset-pills}
 #### Retention time
-```{r ms RT neg, eval = params$run.neg, fig.width = 10, fig.height = 5}
+```{r ms RT neg, eval = params$run.neg, fig.width = 10, fig.height = 6}
 
 subplot(plt[[1]], plt[[2]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 
 ```
 
 #### m/z
-```{r ms m/z neg, eval = params$run.neg, fig.width = 10, fig.height = 5}
+```{r ms m/z neg, eval = params$run.neg, fig.width = 10, fig.height = 6}
 
 subplot(plt[[3]], plt[[4]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 
 ```
 
 #### Intensity
-```{r ms1p Int neg, eval = params$run.neg, fig.width = 10, fig.height = 5}
+```{r ms1p Int neg, eval = params$run.neg, fig.width = 10, fig.height = 6}
 
 subplot(plt[[5]], plt[[6]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 

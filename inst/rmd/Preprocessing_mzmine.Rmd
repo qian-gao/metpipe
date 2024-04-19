@@ -13,6 +13,8 @@ output:
   html_document:
     theme: flatly
     toc: yes
+    toc_float:
+      collapsed: false
     toc_depth: '4'
     df_print: paged
 ---
@@ -42,6 +44,12 @@ h2 {
 }
 h3 {
   font-size: 14px;
+}
+h4 {
+  font-size: 12px;
+}
+h5 {
+  font-size: 12px;
 }
 code.r{
   font-size: 12px;
@@ -116,8 +124,8 @@ mzmine_min_peaks_in_row_neg_percent = params$mzmine.min.peaks.in.row.neg.percent
 
 ```
 
-### Preprocessing using MZmine
-#### POS
+# Preprocessing using MZmine
+## Positive mode parameters
 ```{r generate library pos, eval = params$run.pos}
 
 precursor.file <- paste0(params$path.result, "02_Extract_precursor/precursor_annotation_pos.rds")
@@ -227,7 +235,7 @@ if ( file.exists( "/home/projects/ku_00007/" ) & !file.exists(output.file) ) {
 
 ```
 
-#### NEG
+## Negative mode parameters
 ```{r generate library neg, eval = params$run.neg}
 
 precursor.file <- paste0(params$path.result, "02_Extract_precursor/precursor_annotation_neg.rds")

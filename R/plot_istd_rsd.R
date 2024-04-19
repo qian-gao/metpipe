@@ -30,14 +30,15 @@ plot_istd_rsd <-
 
       p <-
         ggplot(data.istd.plot,
-               aes(x = Run.order, y = get(i), text = Sample.id)) +
+               aes(x = Run.order, y = get(i), fill = Sample.type, text = Sample.id)) +
         geom_col() +
         theme(axis.title.x = element_blank(),
               axis.text.x = element_blank(),
               axis.ticks.x = element_blank()) +
         labs( x = "Run.order",
               y = "Intensity",
-              title = i)
+              title = i) +
+        scale_fill_npg() 
 
       plt.int[[i]] <- as_widget(ggplotly(p, height = 200))
 
@@ -63,7 +64,8 @@ plot_istd_rsd <-
       labs( #title = "RSD of internal standards",
         x = "Internal standards",
         y = "RSD (%)") +
-      coord_flip()
+      coord_flip() +
+      scale_fill_npg() 
 
     plt <- list( plt.int = plt.int,
                  plt.rsd = plt.rsd)

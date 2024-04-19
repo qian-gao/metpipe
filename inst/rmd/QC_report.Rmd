@@ -1,0 +1,337 @@
+---
+title: "QC report"
+author: "`r params$author`"
+date: "`r base::Sys.Date()`"
+
+knit: ( function(inputFile, encoding) { 
+          rmarkdown::render( inputFile, 
+                             encoding = encoding, 
+                             output_file = paste0( substr(inputFile,1,nchar(inputFile)-4), '_', Sys.Date(),'.html')) 
+          })
+          
+output:
+  html_document:
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: false
+    toc_depth: '4'
+    df_print: paged
+---
+
+<style type="text/css">
+body{
+  font-size: 12px;
+  }
+td {
+  font-size: 11px;
+}
+h1.title {
+  font-size: 22px;
+}
+h4.author {
+  font-size: 16px;
+}
+h4.date {
+  font-size: 16px;
+}
+
+h1 {
+  font-size: 18px;
+}
+h2 {
+  font-size: 16px;
+}
+h3 {
+  font-size: 14px;
+}
+h4 {
+  font-size: 12px;
+}
+h5 {
+  font-size: 12px;
+}
+code.r{
+  font-size: 12px;
+}
+pre { /* Code block - determines code spacing between lines */
+  font-size: 14px;
+}
+</style>
+
+```{r setup environment, include = FALSE}
+
+library(metpipe)
+library(ggplot2)
+library(openxlsx)
+library(tidyverse)
+library(kableExtra)
+library(ggsci)
+library(plotly)
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
+```
+
+```{r import data}
+
+path.data <- paste0(params$path.result, "/data/")
+# params$figure_height <- 500
+# params$figure_width <- 1000
+
+### QC_IS
+qc_is <- list()
+#data_clean <- list()
+#data_norm <- list()
+data_merge <- readRDS(paste0(params$path.result, "data/data_merge.rds"))
+
+if (params$run.pos){
+  qc_is$pos <- readRDS(paste0(params$path.result, "data/QC_IS_pos.rds"))
+  #data_clean$pos <- readRDS(paste0(params$path.result, "data/data_clean_pos.rds"))
+  #data_norm$pos <- readRDS(paste0(params$path.result, "data/data_norm_pos.rds"))
+  
+  qc_is$pos$plt <- create_qc(sampled_data = qc_is$pos$combined_file,
+                             figure_height = params$figure_height,
+                             figure_width = params$figure_width)
+  
+  sample.info.pos <- 
+    params$sample.info.pos %>% 
+    filter(Sample.type == "Sample")
+}
+
+if (params$run.neg){
+  qc_is$neg <- readRDS(paste0(params$path.result, "data/QC_IS_neg.rds"))
+  #data_clean$neg <- readRDS(paste0(params$path.result, "data/data_clean_neg.rds"))
+  #data_norm$neg <- readRDS(paste0(params$path.result, "data/data_norm_neg.rds"))
+  
+  qc_is$neg$plt <- create_qc(sampled_data = qc_is$neg$combined_file,
+                             figure_height = params$figure_height,
+                             figure_width = params$figure_width)
+  
+  sample.info.neg <- 
+    params$sample.info.neg %>% 
+    filter(Sample.type == "Sample")
+}
+
+```
+
+$~$
+
+# 1 Sample overview
+```{r data overview}
+
+metatbl <- 
+  data_merge$sample.info %>% 
+  filter(Sample.type == "Sample") %>% 
+  select(Project, Sample) %>% 
+  rownames_to_column("ID") %>% 
+  mutate(Method = params$method,
+         POS = Sample %in% sample.info.pos$Sample,
+         NEG = Sample %in% sample.info.neg$Sample,
+         Peaktable = POS & NEG) # change later with merged data
+
+# knitr::kable(metatbl)
+kbl(metatbl) %>%
+  kable_paper() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>% 
+  scroll_box(width = "900px", height = "400px") %>%
+  column_spec(5, color = "white",
+              background = spec_color(metatbl$POS, end = 1, direction = -1)) %>%
+  column_spec(6, color = "white",
+              background = spec_color(metatbl$NEG, end = 1, direction = -1)) %>%
+  column_spec(7, color = "white",
+              background = spec_color(metatbl$Peaktable, end = 1, direction = -1))
+```
+
+$~$
+
+# 2 QC of internal standards
+## 2.1 Positive mode {.tabset .tabset-pills}
+### Internal standard
+```{r ms overall pos, eval = params$run.pos}
+summary <- qc_is$pos$summary
+plt <- qc_is$pos$plt
+
+summary %>%
+  mutate_if(is.numeric, function(x){round(x, 2)}) %>% 
+  dplyr::rename("Internal standard" = "ISTD",            
+                "Theoretical RT" = "Theoretical.rt",
+                "Median RT" = "median.rt",        
+                "RT difference" = "rt.diff",          
+                "Theoretical m/z" = "Theoretical.mz",
+                "Median m/z" = "median.mz",
+                "m/z difference" = "mz.diff",          
+                "Median intensity" = "median.intensity") %>% 
+  kbl() %>%
+  kable_paper()
+```
+
+### RSD
+```{r, eval = params$run.pos, fig.height = 4, fig.width = 8}
+plt[[7]]
+```
+
+### Shift
+```{r ms overall pos2, eval = params$run.pos, fig.height = 4, fig.width = 8}
+p1 <- 
+  ggplot(summary) +
+    geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=rt.diff), color="grey") +
+    geom_point( aes(x=ISTD, y=0), color = "#F39B7FB2", size=3 ) +
+    geom_point( aes(x=ISTD, y=rt.diff), color = "#3C5488B2", size=3 ) +
+    coord_flip()+
+    scale_x_discrete(limits=rev) +
+    theme_bw() +
+    xlab("Internal standard") +
+    ylab("Difference in retention time")
+
+p2 <- 
+  ggplot(summary) +
+    geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=mz.diff), color="grey") +
+    geom_point( aes(x=ISTD, y=0), color= "#F39B7FB2", size=3 ) +
+    geom_point( aes(x=ISTD, y=mz.diff), color= "#3C5488B2", size=3 ) +
+    coord_flip()+
+    scale_x_discrete(limits=rev) +
+    theme_bw() +
+    xlab("Internal standard") +
+    ylab("Difference in m/z")
+
+subplot(p1, p2, nrows = 1, margin = 0.04, titleX = TRUE, titleY = TRUE, shareY = TRUE) 
+
+```
+
+## 2.2 Negative mode {.tabset .tabset-pills}
+### Internal standard
+```{r ms overall neg, eval = params$run.neg}
+summary <- qc_is$neg$summary
+plt <- qc_is$neg$plt
+
+summary %>%
+  mutate_if(is.numeric, function(x){round(x, 2)}) %>% 
+  dplyr::rename("Internal standard" = "ISTD",            
+                "Theoretical RT" = "Theoretical.rt",
+                "Median RT" = "median.rt",        
+                "RT difference" = "rt.diff",          
+                "Theoretical m/z" = "Theoretical.mz",
+                "Median m/z" = "median.mz",
+                "m/z difference" = "mz.diff",          
+                "Median intensity" = "median.intensity") %>% 
+  kbl() %>%
+  kable_paper()
+```
+
+### RSD
+```{r, eval = params$run.neg, fig.height = 4, fig.width = 8}
+plt[[7]]
+```
+
+### Shift
+```{r ms overall neg2, eval = params$run.neg, fig.height = 4, fig.width = 8}
+p1 <- 
+  ggplot(summary) +
+    geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=rt.diff), color="grey") +
+    geom_point( aes(x=ISTD, y=0), color = "#F39B7FB2", size=3 ) +
+    geom_point( aes(x=ISTD, y=rt.diff), color = "#3C5488B2", size=3 ) +
+    coord_flip()+
+    scale_x_discrete(limits=rev) +
+    theme_bw() +
+    xlab("Internal standard") +
+    ylab("Difference in retention time")
+
+p2 <- 
+  ggplot(summary) +
+    geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=mz.diff), color="grey") +
+    geom_point( aes(x=ISTD, y=0), color= "#F39B7FB2", size=3 ) +
+    geom_point( aes(x=ISTD, y=mz.diff), color= "#3C5488B2", size=3 ) +
+    coord_flip()+
+    scale_x_discrete(limits=rev) +
+    theme_bw() +
+    xlab("Internal standard") +
+    ylab("Difference in m/z")
+
+subplot(p1, p2, nrows = 1, margin = 0.04, titleX = TRUE, titleY = TRUE, shareY = TRUE) 
+
+```
+
+$~$
+
+# 3 Batch evaluation {.tabset .tabset-pills}
+## PCA
+```{r, fig.height = 4, fig.width = 4}
+
+data_all <- data_merge$data
+
+p <- 
+  plot_PCA(
+      data_all[, -c(1:ncol(data_merge$sample.info))],
+      group = data_all$Batch,
+      group.label = "Batch",
+      plotly.text = data_all$Sample,
+      ratio = 1)
+  
+ggplotly(p)
+
+```
+
+## Sample mean across batches
+```{r, fig.height = 4, fig.width = 8}
+
+Sample.mean <- 
+  apply(data_all[, -c(1:ncol(data_merge$sample.info))], 1, function(x) mean(x, na.rm = TRUE))
+
+data.plot <- 
+  cbind(data_all, Sample.mean) %>% 
+  mutate(ID = row_number(),
+         Sample.mean = scale(Sample.mean),
+         Batch = ifelse(Sample.type %in% params$po.sample.to.use, "QC", Batch))
+
+p <- 
+  ggplot(data.plot, aes(x = ID, y = Sample.mean, color = Batch, text = Sample)) +
+    geom_point() +
+    theme_bw()  +
+    scale_color_npg()
+
+ggplotly(p)
+
+```
+
+$~$
+
+# 4 Metabolites summary {.tabset .tabset-pills}
+## Metabolites class
+```{r, fig.height = 4, fig.width = 8}
+features <- 
+  data_merge$feature.info
+
+if (!"Metabolite.class" %in% names(features)) features$Metabolite.class <- features$lipid_class
+
+data.plot <- data.frame(table(features$Metabolite.class))
+names(data.plot)[1] <- "Class"
+
+plot_ly(data.plot, labels = ~Class, values = ~Freq, type = 'pie',
+               marker = list(line = list(color = '#FFFFFF', width = 1)))
+
+```
+
+## Identification level
+```{r, fig.height = 4, fig.width = 8}
+data.plot <- 
+  data.frame(table(features$Source)) %>% 
+  mutate(Source = case_when( Var1 == "in_house_MS1_matched" ~ "Level 1",
+                             Var1 == "public_db_MS2_matched" ~ "Level 2",
+                             Var1 == "public_db_mz_matched" ~ "m/z match",
+                             TRUE ~ "Others"))
+
+
+plot_ly(data.plot, labels = ~Source, values = ~Freq, type = 'pie',
+               marker = list(line = list(color = '#FFFFFF', width = 1)))
+
+```
+
+
+
+
