@@ -97,7 +97,7 @@ params <-
     
     ### Only modify if not standard workflow
     method = NULL,
-    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/EX_RPS_MS1_tar/",
+    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/EX_RPS_MS1_untar_xcms/",
     sample.pattern = ".mzML",
     
     # Library path
@@ -141,7 +141,7 @@ run_module(module = "QC_IS",
 
 #### 2 Preprocessing
 ### 2.1 Targeted preprocessing
-```{r 02_01_Targeted preprocessing, eval = TRUE}
+```{r 02_01_Targeted preprocessing, eval = FALSE}
 
 params$mzmine.mz.tol.pos <- params$mz_tolerance
 params$mzmine.rt.tol.pos <- params$rt_tolerance
@@ -157,7 +157,7 @@ run_module(module = "Targeted",
 ```
 
 ### 2.2 Untargeted preprocessing - XCMS
-```{r 02_02_Untargeted_preprocessing xcms, eval = FALSE}
+```{r 02_02_Untargeted_preprocessing xcms, eval = TRUE}
 
 ### XCMS setup
 params$para.pos <-
@@ -294,7 +294,7 @@ params$path.peaktable.pos <- NULL
 params$path.peaktable.neg <- NULL
 
 params$peaktable.sep <- ";"
-params$peaktable.sample.pattern <- ".mzML Peak area"
+params$peaktable.sample.pattern <- NULL #".mzML Peak area"
 
 params$mz_col_nr <- 2
 params$rt_col_nr <- 3
@@ -331,7 +331,7 @@ params$path.peaktable.pos <- NULL
 params$path.peaktable.neg <- NULL
 
 params$peaktable.sep <- ";"
-params$peaktable.sample.pattern <- ".mzML Peak area"
+params$peaktable.sample.pattern <- NULL #".mzML Peak area"
 
 params$mz_col_nr <- 1
 params$rt_col_nr <- 2

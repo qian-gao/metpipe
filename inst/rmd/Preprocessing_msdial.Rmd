@@ -24,7 +24,7 @@ body{
   font-size: 12px;
   }
 td {
-  font-size: 11px;
+  font-size: 14px;
 }
 h1.title {
   font-size: 22px;

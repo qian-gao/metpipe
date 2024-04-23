@@ -24,7 +24,7 @@ body{
   font-size: 12px;
   }
 td {
-  font-size: 11px;
+  font-size: 14px;
 }
 h1.title {
   font-size: 22px;
@@ -113,14 +113,14 @@ mzmine_mz_tol_bigger_pos = params$mzmine.mz.tol.pos+0.003
 mzmine_rt_tol_pos = params$mzmine.rt.tol.pos
 mzmine_rt_tol_bigger_pos = params$mzmine.rt.tol.pos+0.1
 mzmine_min_peaks_in_row_pos = params$mzmine.min.peaks.in.row.pos
-mzmine_min_peaks_in_row_pos_percent = params$mzmine.min.peaks.in.row.pos.percent
+#mzmine_min_peaks_in_row_pos_percent = params$mzmine.min.peaks.in.row.pos.percent
 
 mzmine_mz_tol_neg = params$mzmine.mz.tol.neg
 mzmine_mz_tol_bigger_neg = params$mzmine.mz.tol.neg+0.003
 mzmine_rt_tol_neg = params$mzmine.rt.tol.neg
 mzmine_rt_tol_bigger_neg = params$mzmine.rt.tol.neg+0.1
 mzmine_min_peaks_in_row_neg = params$mzmine.min.peaks.in.row.neg
-mzmine_min_peaks_in_row_neg_percent = params$mzmine.min.peaks.in.row.neg.percent
+#mzmine_min_peaks_in_row_neg_percent = params$mzmine.min.peaks.in.row.neg.percent
 
 ```
 
@@ -187,7 +187,7 @@ print( paste0("mzmine_mz_tol_bigger_pos = ", mzmine_mz_tol_bigger_pos), quote = 
 print( paste0("mzmine_rt_tol_pos = ", mzmine_rt_tol_pos), quote = FALSE)
 print( paste0("mzmine_rt_tol_bigger_pos = ", mzmine_rt_tol_bigger_pos), quote = FALSE)
 print( paste0("mzmine_min_peaks_in_row_pos = ", mzmine_min_peaks_in_row_pos), quote = FALSE)
-print( paste0("mzmine_min_peaks_in_row_pos_percent = ", mzmine_min_peaks_in_row_pos_percent), quote = FALSE)
+# print( paste0("mzmine_min_peaks_in_row_pos_percent = ", mzmine_min_peaks_in_row_pos_percent), quote = FALSE)
 
 ```
 
@@ -208,7 +208,7 @@ if (params$untar){
     mzmine_rt_tol = mzmine_rt_tol_pos,
     mzmine_rt_tol_bigger = mzmine_rt_tol_bigger_pos,
     mzmine_min_peaks_in_row = mzmine_min_peaks_in_row_pos,
-    mzmine_min_peaks_in_row_percent = mzmine_min_peaks_in_row_pos_percent
+    mzmine_min_peaks_in_row_percent = 0
   )
 }
 
@@ -298,7 +298,7 @@ print( paste0("mzmine_mz_tol_bigger_neg = ", mzmine_mz_tol_bigger_neg), quote = 
 print( paste0("mzmine_rt_tol_neg = ", mzmine_rt_tol_neg), quote = FALSE)
 print( paste0("mzmine_rt_tol_bigger_neg = ", mzmine_rt_tol_bigger_neg), quote = FALSE)
 print( paste0("mzmine_min_peaks_in_row_neg = ", mzmine_min_peaks_in_row_neg), quote = FALSE)
-print( paste0("mzmine_min_peaks_in_row_neg_percent = ", mzmine_min_peaks_in_row_neg_percent), quote = FALSE)
+# print( paste0("mzmine_min_peaks_in_row_neg_percent = ", mzmine_min_peaks_in_row_neg_percent), quote = FALSE)
 
 ```
 
@@ -319,7 +319,7 @@ if (params$untar){
     mzmine_rt_tol = mzmine_rt_tol_neg,
     mzmine_rt_tol_bigger = mzmine_rt_tol_bigger_neg,
     mzmine_min_peaks_in_row = mzmine_min_peaks_in_row_neg,
-    mzmine_min_peaks_in_row_percent = mzmine_min_peaks_in_row_neg_percent
+    mzmine_min_peaks_in_row_percent = 0
   )
 }
 

@@ -13,7 +13,7 @@
 #' data(toydata)
 #' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
 #' @export
-#' @import ggplot2
+#' @import ggplot2 ggsci
 #'
 plot_PCA <-
   function(

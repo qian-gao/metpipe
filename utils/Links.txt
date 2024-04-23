@@ -1,0 +1,7 @@
+install:
+Request Admin Previleges
+R-4.3.1 https://cran.rstudio.com/
+Rstudio https://posit.co/download/rstudio-desktop/
+
+Update all/some/none? [a/s/n]:
+

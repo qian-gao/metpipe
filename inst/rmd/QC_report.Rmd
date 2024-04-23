@@ -61,10 +61,10 @@ pre { /* Code block - determines code spacing between lines */
 
 ```{r setup environment, include = FALSE}
 
-library(metpipe)
-library(ggplot2)
-library(openxlsx)
-library(tidyverse)
+# library(metpipe)
+# library(ggplot2)
+# library(openxlsx)
+# library(tidyverse)
 library(kableExtra)
 library(ggsci)
 library(plotly)
@@ -261,7 +261,7 @@ $~$
 
 # 3 Batch evaluation {.tabset .tabset-pills}
 ## PCA
-```{r, fig.height = 4, fig.width = 4}
+```{r, fig.height = 4, fig.width = 6}
 
 data_all <- data_merge$data
 
@@ -283,15 +283,26 @@ ggplotly(p)
 Sample.mean <- 
   apply(data_all[, -c(1:ncol(data_merge$sample.info))], 1, function(x) mean(x, na.rm = TRUE))
 
+# data.plot <- 
+#   cbind(data_all, Sample.mean) %>% 
+#   mutate(ID = row_number(),
+#          Sample.mean = scale(Sample.mean),
+#          Batch = ifelse(Sample.type %in% params$po.sample.to.use, "QC", Batch))
+
+scaled <- 
+  apply(data_all[, -c(1:ncol(data_merge$sample.info))], 2, function(x) scale(x)) %>% 
+  as.data.frame()
+
 data.plot <- 
-  cbind(data_all, Sample.mean) %>% 
-  mutate(ID = row_number(),
-         Sample.mean = scale(Sample.mean),
-         Batch = ifelse(Sample.type %in% params$po.sample.to.use, "QC", Batch))
+  data_merge$sample.info %>% 
+  mutate(Run_order = row_number(),
+         Batch = ifelse(Sample.type %in% params$po.sample.to.use, "QC", Batch)) %>% 
+  cbind(., scaled) %>% 
+  pivot_longer(-c(1:(ncol(data_merge$sample.info) + 1)), names_to = "met", values_to = "value")
 
 p <- 
-  ggplot(data.plot, aes(x = ID, y = Sample.mean, color = Batch, text = Sample)) +
-    geom_point() +
+  ggplot(data.plot, aes(x = Run_order, y = value, color = Batch, text = Sample)) +
+    geom_boxplot() +
     theme_bw()  +
     scale_color_npg()
 
@@ -307,7 +318,7 @@ $~$
 features <- 
   data_merge$feature.info
 
-if (!"Metabolite.class" %in% names(features)) features$Metabolite.class <- features$main_class
+if (!"Metabolite.class" %in% names(features)) features$Metabolite.class <- features$lipid_class
 
 data.plot <- data.frame(table(features$Metabolite.class))
 names(data.plot)[1] <- "Class"
