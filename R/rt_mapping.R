@@ -135,7 +135,7 @@ rt_mapping_predict <-
     fit <- pracma::ppfit(ref$RT.old,
                          ref$RT.new,
                          xi = ref$RT.old,
-                         method = "linear")
+                         method = "cubic") # linear
 
     ##### Prediction
 

@@ -19,8 +19,7 @@ if( length(new.pkgs.from.cran) ) {
 
 installed.pkgs <- installed.packages()[,"Package"]
 
-pkgs.from.bioc <- c("CAMERA", #"limma", "sva"
-                    )
+pkgs.from.bioc <- c("CAMERA", "limma")
 
 new.pkgs.from.bioc <- pkgs.from.bioc[ !pkgs.from.bioc %in% installed.pkgs ]
 

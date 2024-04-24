@@ -267,8 +267,8 @@ precursor.neg <-
 #print( paste0( "NEG: ", nrow(precursor.neg), " precursors has been selected in raw data"), quote = FALSE)
 
 lib.to.use <-
-  bind_rows(params$lib[[params$method]]$pos, 
-            params$lib.is[[params$method]]$pos %>%
+  bind_rows(params$lib[[params$method]]$neg, 
+            params$lib.is[[params$method]]$neg %>%
               select( Library.mz, Library.rt, Library.name))
 
 library.file <- paste0(path.output, "library_MS1_", params$method, "_neg.csv")

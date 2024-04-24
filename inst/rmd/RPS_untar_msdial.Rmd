@@ -76,13 +76,13 @@ knitr::opts_chunk$set(
 params <-
   params_setup( 
     
-    path.mzml = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/mzML/EX_RPS_MS1/",
+    path.mzml = "D:/Projects/AMP_test_project/mzML/EX_RPS_MS1/",
     
-    standard.name = TRUE,  # TRUE, FALSE
+    standard.name = FALSE,  # TRUE, FALSE
     
     # Metadata
-    path.meta.pos = NULL,
-    path.meta.neg = NULL,
+    path.meta.pos = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/files/meta/EX_RPS_meta_pos.xlsx",
+    path.meta.neg = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/files/meta/EX_RPS_meta_neg.xlsx",
     
     meta.match.col = "Sample.name", 
     
@@ -97,7 +97,7 @@ params <-
     
     ### Only modify if not standard workflow
     method = NULL,
-    path.result = "N:/SUN-CBMR-Metabolomics/Projects/AMP_test_project/peaktable/EX_RPS_MS1_untar_msdial/",
+    path.result = "D:/Projects/AMP_test_project/peaktable/EX_RPS_MS1_untar_msdial/",
     sample.pattern = ".mzML",
     
     # Library path
@@ -390,8 +390,7 @@ run_module(module = "Merge",
 ```{r 06_QC_report, eval = TRUE}
 
 run_module(module = "QC_report",
-           params = params,
-           file = "H:\\Documents\\CBMR_workflow\\packages\\metpipe\\inst\\rmd/QC_report.Rmd")
+           params = params)
 
 ```
 
