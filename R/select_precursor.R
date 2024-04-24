@@ -47,13 +47,13 @@ select_precursor <-
         #                         ppm=10, polarity=polarity)
         # peaklist <- CAMERA::getPeaklist(xsa)
         
-        xsaF <- groupFWHM(xsa, perfwhm = 0.1, intval = "into", sigma = 6)
+        xsaF <- groupFWHM(xsa, perfwhm = 0.6, intval = "into", sigma = 6)
         xsaC <- groupCorr(xsaF,
                           calcIso = FALSE, 
                           calcCiS = FALSE, 
                           calcCaS = TRUE, 
                           #cor_eic_th=0.7,
-                          cor_exp_th=0.7,
+                          cor_exp_th=0.8,
                           pval= 0.000001, 
                           graphMethod="lpc",
                           intval="into")

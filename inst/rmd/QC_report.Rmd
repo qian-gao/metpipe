@@ -318,7 +318,7 @@ $~$
 features <- 
   data_merge$feature.info
 
-if (!"Metabolite.class" %in% names(features)) features$Metabolite.class <- features$lipid_class
+if (!"Metabolite.class" %in% names(features)) features$Metabolite.class <- features$main_class
 
 data.plot <- data.frame(table(features$Metabolite.class))
 names(data.plot)[1] <- "Class"

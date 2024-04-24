@@ -6,7 +6,8 @@ if (!require("BiocManager", quietly = TRUE))
 installed.pkgs <- installed.packages()[,"Package"]
 
 pkgs.from.cran <- c("devtools", "openxlsx", "tidyverse",
-                    "ggsci", "pmd", "kableExtra")
+                    "ggsci", "pmd", "kableExtra"
+                    )
 new.pkgs.from.cran <- pkgs.from.cran[ !pkgs.from.cran %in% installed.pkgs ]
 
 if( length(new.pkgs.from.cran) ) {
@@ -18,7 +19,8 @@ if( length(new.pkgs.from.cran) ) {
 
 installed.pkgs <- installed.packages()[,"Package"]
 
-pkgs.from.bioc <- c("CAMERA")
+pkgs.from.bioc <- c("CAMERA", #"limma", "sva"
+                    )
 
 new.pkgs.from.bioc <- pkgs.from.bioc[ !pkgs.from.bioc %in% installed.pkgs ]
 
@@ -101,6 +103,9 @@ installed.pkgs <- installed.packages()[,"Package"]
 
 pkgs.from.bioc <- c(
                     "limma",
+                    
+                    
+                    
                     "affy",
                     "sva",
                     "ropls",

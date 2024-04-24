@@ -578,7 +578,7 @@ affy_normalize_qspline <- function(x,
 #' @examples
 #' data(toydata)
 #' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
-#'
+#' 
 sva_ComBat <-
 function (dat, batch, mod = NULL, par.prior = TRUE, prior.plots = FALSE,
           mean.only = FALSE, ref.batch = NULL, BPPARAM = bpparam("SerialParam"))
