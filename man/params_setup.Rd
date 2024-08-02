@@ -9,6 +9,8 @@ params_setup(
   standard.name = TRUE,
   path.meta.pos = NULL,
   path.meta.neg = NULL,
+  sample.info.pos = NULL,
+  sample.info.neg = NULL,
   meta.match.col = "Sample",
   qc.sample.type = c("sol", "BL", "CP", "IQ", "NIST", "CAL", "Met", "M-Mix", "SPO", "PO",
     "PO50", "PO12.5", "PO25", "PO100", "BPO"),
@@ -16,7 +18,6 @@ params_setup(
     "CA07", "CA08", "CA09"),
   rt_tolerance = 0.3,
   mz_tolerance = 0.01,
-  type.use.to.optimize = "PO",
   po.sample.to.use = "PO",
   path.mzmine = NULL,
   path.msdial = NULL,
@@ -28,13 +29,22 @@ params_setup(
   path.lib.is = NULL,
   path.msp = NULL,
   path.msp.pos = NULL,
-  path.msp.neg = NULL
+  path.msp.neg = NULL,
+  author = NULL
 )
 }
 \arguments{
 \item{path.mzml}{Path to mzML files}
 
 \item{standard.name}{If standardized sample names are used, TRUE/FALSE}
+
+\item{path.meta.pos}{Path to metadata file for samples}
+
+\item{path.meta.neg}{Path to metadata file for samples!!!!}
+
+\item{sample.info.pos}{Path to metadata file for samples!!!}
+
+\item{sample.info.neg}{Path to metadata file for samples!!!!!}
 
 \item{meta.match.col}{Column name to match sample info and metadata, default is "Sample"
 
@@ -51,8 +61,6 @@ Parameters for preprocessing}
 \item{rt_tolerance}{Retention time tolerance for matching library}
 
 \item{mz_tolerance}{m/z tolerance for matching library}
-
-\item{type.use.to.optimize}{Sample type used for optimizing XCMS parameters, default is "PO"}
 
 \item{po.sample.to.use}{Sample type used for evaluating normalization, default is "PO"
 
@@ -88,7 +96,7 @@ If the rds file for public MS2 database is not available, msp format can be prov
 
 \item{path.msp.neg}{Path to public MS2 negative mode database file in msp format}
 
-\item{path.meta}{Path to metadata file for samples}
+\item{author}{Author of the analysis}
 }
 \value{
 A list of parameters used for data processing

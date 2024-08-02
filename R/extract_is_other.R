@@ -1,6 +1,6 @@
-#' @title extract_is
+#' @title extract_is_other
 #'
-#' @description Extract internal standard measurements from MZmine3 output
+#' @description Extract internal standard measurements from software other than MZmine3 output
 #'
 #' @param sample.info A dataframe containing sample info
 #' @param reference.type mz and RT to compare to, choose from c("reference", "median")
@@ -15,7 +15,7 @@
 #' @export
 #' @import dplyr
 #'
-extract_is <-
+extract_is_other <-
   function( sample.info = NULL,
             reference.type = NULL,
             lib.istd = NULL,
@@ -54,7 +54,7 @@ extract_is <-
         select( colnames.mz[i],
                 colnames.rt[i],
                 ISTD,
-                colnames.peak.area[i]) %>%
+                colnames.peak.area[i]) %>% 
         mutate( ISTD = ifelse( grepl(": 0.", ISTD, fixed = TRUE),
                                substr(ISTD, 1, regexpr("\\:[^\\:]*$", ISTD)-1),
                                ISTD)) # mzmine3

@@ -153,6 +153,22 @@ run_module <-
       )
       
     } else if (tolower(module) == "clean"){
+      
+      # if (params$feature.grouping.method == "camera"){
+      #   params$mz_col_nr <- 2
+      #   params$rt_col_nr <- 3
+      #   params$identity_col_nr <- 4
+      #   params$others <- c(19:21)
+      # } else if (params$feature.grouping.method == "camera"){
+      #   params$mz_col_nr <- 2
+      #   params$rt_col_nr <- 3
+      #   params$identity_col_nr <- 4
+      #   params$others <- c(19:21)        
+      # } else {
+      #   #######################
+      # }
+      
+      
       render_rmarkdown(
         file = ifelse(is.null(file),
                        system.file("rmd", "Clean_peaktable.Rmd", package="metpipe"),

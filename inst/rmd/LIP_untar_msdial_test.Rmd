@@ -308,6 +308,8 @@ params$mean.filter <- list(c( 3, "BL", "<", "PO"), # mean in PO should be > 3 ti
                            c( 1, "PO", ">", 500))
                            
 params$rsd.filter <- c(1, "PO", "<", 0.3)        # 0.3, RSD in PO should be < 30%
+#params$rsd.filter <- c(1.5, "PO", "<", "Sample")        # 0.3, RSD in PO should be < 30%
+
 params$rt.range <- c(0.6, 30)         # c(0, 30), only keep peaks in 0 - 30 min 
 
 # Filter based on missings

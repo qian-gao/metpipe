@@ -65,7 +65,8 @@ select_precursor <-
           mutate(id = row_number(),
                  rt = rt/60,
                  pcgroup = as.numeric(pcgroup)) %>% 
-          relocate(c(id, mz, rt, adduct, pcgroup, isotopes), .before = mz)
+          relocate(c(id, mz, rt, adduct, pcgroup, isotopes), .before = mz) %>% 
+          filter(!grepl("M+", isotopes, fixed = TRUE))
         
       } else if (method == "pmd") {
         mzrt <-

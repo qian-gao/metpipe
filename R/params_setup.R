@@ -5,7 +5,11 @@
 #' Path to data files   
 #' @param path.mzml Path to mzML files
 #' @param standard.name If standardized sample names are used, TRUE/FALSE
-#' @param path.meta Path to metadata file for samples
+#' @param path.meta.pos Path to metadata file for samples
+#' @param path.meta.neg Path to metadata file for samples!!!!
+#' @param sample.info.pos Path to metadata file for samples!!!
+#' @param sample.info.neg Path to metadata file for samples!!!!!
+#' 
 #' @param meta.match.col Column name to match sample info and metadata, default is "Sample"
 #' 
 #' Specification sample types used for QC and calibration
@@ -17,7 +21,6 @@
 #' Parameters for preprocessing
 #' @param rt_tolerance Retention time tolerance for matching library
 #' @param mz_tolerance m/z tolerance for matching library
-#' @param type.use.to.optimize Sample type used for optimizing XCMS parameters, default is "PO"
 #' @param po.sample.to.use Sample type used for evaluating normalization, default is "PO"
 #' 
 #' Path to preprocessing software
@@ -41,9 +44,12 @@
 #' @param path.msp.pos Path to public MS2 positive mode database file in msp format
 #' @param path.msp.neg Path to public MS2 negative mode database file in msp format
 #'  
+#' @param author Author of the analysis
 #' @return A list of parameters used for data processing
 #' 
 #' @export
+
+## @param type.use.to.optimize Sample type used for optimizing XCMS parameters, default is "PO"
 
 params_setup <-
   function(
@@ -51,6 +57,8 @@ params_setup <-
     standard.name = TRUE,
     path.meta.pos = NULL,
     path.meta.neg = NULL,
+    sample.info.pos = NULL,
+    sample.info.neg = NULL,
     meta.match.col = "Sample",
     qc.sample.type = c( "sol", "BL", "CP", "IQ", "NIST", "CAL", "Met", "M-Mix",
                         "SPO", "PO", "PO50", "PO12.5", "PO25", "PO100", "BPO" ),
@@ -58,7 +66,7 @@ params_setup <-
                                  "CA05", "CA06", "CA07", "CA08", "CA09" ),
     rt_tolerance = 0.3,
     mz_tolerance = 0.01,
-    type.use.to.optimize = "PO",
+    #type.use.to.optimize = "PO",
     po.sample.to.use = "PO",
     path.mzmine = NULL,
     path.msdial = NULL,
@@ -70,7 +78,9 @@ params_setup <-
     path.lib.is = NULL,
     path.msp = NULL,
     path.msp.pos = NULL,
-    path.msp.neg = NULL
+    path.msp.neg = NULL,
+    
+    author = NULL
 
   ){
 
@@ -195,7 +205,7 @@ params_setup <-
     ### Parameters for preprocessing
     params$rt_tolerance = rt_tolerance
     params$mz_tolerance = mz_tolerance
-    params$type.use.to.optimize = type.use.to.optimize
+    #params$type.use.to.optimize = type.use.to.optimize
     params$po.sample.to.use = po.sample.to.use
     
     ##### Generate sample info
@@ -207,6 +217,10 @@ params_setup <-
     params$path.meta.pos = path.meta.pos
     params$path.meta.neg = path.meta.neg
     params$meta.match.col = meta.match.col
+    
+    # if pre-loaded sample.info
+    params$sample.info.pos <- sample.info.pos
+    params$sample.info.neg <- sample.info.neg
     
     # mzML files
     params$path.mzml <- path.mzml

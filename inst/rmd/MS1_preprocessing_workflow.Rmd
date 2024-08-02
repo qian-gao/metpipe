@@ -140,7 +140,7 @@ run_module(module = "QC_IS",
 ```
 
 #### 2 Preprocessing
-### 2.1 Targeted preprocessing
+### 2.1 Targeted preprocessing - mzmine
 ```{r 02_01_Targeted preprocessing, eval = TRUE}
 
 params$mzmine.mz.tol.pos <- params$mz_tolerance

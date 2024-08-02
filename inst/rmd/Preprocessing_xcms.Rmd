@@ -192,11 +192,17 @@ peaks.pos <-
 
 precursor.pos <-
   select_precursor( XCMSnExp = peaks.pos,
-                    method = "camera",
+                    method = params$feature.grouping.method,
                     mode = "pos",
                     path.result = path.output,
                       BPPARAM = params$BPPARAM_set )
 
+XCMSnExp = peaks.pos
+method = params$feature.grouping.method
+mode = "pos"
+path.result = path.output
+BPPARAM = params$BPPARAM_set
+  
 ```
 
 ```{r match library pos, eval = params$run.pos}
@@ -227,13 +233,14 @@ precursor.pos.annotated <-
 
 ```{r deisotope pos, eval = params$run.pos}
 
-precursor.pos.annotated.deiso <- 
-  precursor.pos.annotated %>% 
-  filter( !grepl("Unknown_", Library.name, fixed = TRUE) |
-          (grepl("Unknown_", Library.name, fixed = TRUE) & ((is.na(isotopes) | isotopes == "" ) | grepl("[M]", isotopes, fixed = TRUE))) 
-          )
+### Very strict way
+# precursor.pos.annotated.deiso <- 
+#   precursor.pos.annotated %>% 
+#   filter( !grepl("Unknown_", Library.name, fixed = TRUE) |
+#           (grepl("Unknown_", Library.name, fixed = TRUE) & ((is.na(isotopes) | isotopes == "" ) | grepl("[M]", isotopes, fixed = TRUE))) 
+#           )
 
-saveRDS(precursor.pos.annotated.deiso, file = paste0(path.output, "/precursor_annotation_pos.rds"))   
+saveRDS(precursor.pos.annotated, file = paste0(path.output, "/precursor_annotation_pos.rds"))   
 #print( paste0("POS preprocessed data were saved as: ", output.file.pos), quote = FALSE)
 
 ```
@@ -254,7 +261,7 @@ peaks.neg <-
 
 precursor.neg <-
   select_precursor( XCMSnExp = peaks.neg,
-                    method = "camera",
+                    method = params$feature.grouping.method,
                     mode = "neg",
                     path.result = path.output,
                     BPPARAM = params$BPPARAM_set )
@@ -290,13 +297,14 @@ precursor.neg.annotated <-
 
 ```{r deisotope neg, eval = params$run.neg}
 
-precursor.neg.annotated.deiso <- 
-  precursor.neg.annotated %>% 
-  filter( !grepl("Unknown_", Library.name, fixed = TRUE) |
-          (grepl("Unknown_", Library.name, fixed = TRUE) & ((is.na(isotopes) | isotopes == "" ) | grepl("[M]", isotopes, fixed = TRUE))) 
-          )
+### Very strict way
+# precursor.neg.annotated.deiso <- 
+#   precursor.neg.annotated %>% 
+#   filter( !grepl("Unknown_", Library.name, fixed = TRUE) |
+#           (grepl("Unknown_", Library.name, fixed = TRUE) & ((is.na(isotopes) | isotopes == "" ) | grepl("[M]", isotopes, fixed = TRUE))) 
+#           )
 
-saveRDS(precursor.neg.annotated.deiso, file = paste0(path.output, "/precursor_annotation_neg.rds"))
+saveRDS(precursor.neg.annotated, file = paste0(path.output, "/precursor_annotation_neg.rds"))
 #print( paste0("NEG preprocessed data were saved as: ", output.file.neg), quote = FALSE)
 
 ```
