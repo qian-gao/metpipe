@@ -335,7 +335,7 @@ addWorksheet(wb, "feature.info")
 writeData(wb, "feature.info", feature.info.keep)
 addWorksheet(wb, "feature.info.before.merge")
 writeData(wb, "feature.info.before.merge", feature.info)
-saveWorkbook(wb, paste0(path.output, "datatable_", params$method, ".xlsx"), overwrite = TRUE)
+saveWorkbook(wb, paste0(path.output, "datatable_", params$method, params_suffix, ".xlsx"), overwrite = TRUE)
 
 print(paste0("Datatable was saved as ", path.output, "datatable_", params$method, ".xlsx"), quote = FALSE)
 
