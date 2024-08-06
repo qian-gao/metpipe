@@ -57,7 +57,7 @@ compute_normalization <-
     
     x.output <-
       cbind( Sample.name = sample.info$Sample.name,
-             process.list$data)
+             process.list$raw.data)
     
     wb <- createWorkbook()
     addWorksheet(wb, "Normalized.data")
