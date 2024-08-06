@@ -46,6 +46,28 @@ compute_normalization <-
                      type = sample.info$Sample.type,
                      names.suffix = "orig")$type.rsd
 
+    istd.rsd <-
+      calculate_rsd( data = data.istd,
+                     type = sample.info$Sample.type,
+                     names.suffix = NULL)$type.rsd
+    
+    normalizer.output <-
+      data.rsd.orig %>%
+      dplyr::left_join(feature.info, by = "Identity")
+    
+    x.output <-
+      cbind( Sample.name = sample.info$Sample.name,
+             process.list$data)
+    
+    wb <- createWorkbook()
+    addWorksheet(wb, "Normalized.data")
+    writeData(wb, "Normalized.data", x.output)
+    addWorksheet(wb, "Normalizer")
+    writeData(wb, "Normalizer", normalizer.output)
+    addWorksheet(wb, "Istd")
+    writeData(wb, "Istd", istd.rsd)
+    saveWorkbook(wb, file = paste0(path.result, prefix, "normalised_", "none", ".xlsx"), overwrite = TRUE )
+    
     if ("bestis" %in% norm.method){
 
       result.normalization <-
