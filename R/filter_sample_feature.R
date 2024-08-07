@@ -69,7 +69,7 @@ filter_sample_feature <-
 
       sample.remove <- filter.sample.remove
 
-      sample.keep <- !sample.info$Sample.id %in% sample.remove
+      sample.keep <- !sample.info$Sample %in% sample.remove
       sample.out <- paste(sample.info$Sample.name[!sample.keep], collapse = ", ")
 
       data <- data[ sample.keep, ]
@@ -87,7 +87,7 @@ filter_sample_feature <-
 
       feature.remove <- filter.feature.remove
 
-      feature.keep <- !feature.info$Feature.id %in% feature.remove
+      feature.keep <- !feature.info$Feature %in% feature.remove
       feature.out <- paste(feature.info$Identity[!feature.keep], collapse = ", ")
 
       data <- data[ , feature.keep ]
