@@ -233,14 +233,14 @@ pca.plot <-
     x = process.list,
     group = datalist$sample.info$Batch,
     group.label = "Batch",
-    plotly.text = datalist$sample.info$Sample.id)
+    plotly.text = datalist$sample.info$Sample)
 
 pca.plot.type <- 
   plot_list_pca(
     x = process.list,
     group = datalist$sample.info$Sample.type,
     group.label = "Sample type",
-    plotly.text = datalist$sample.info$Sample.id)
+    plotly.text = datalist$sample.info$Sample)
 
 plt.eval <-
   plot_eval( x = process.list,
@@ -581,14 +581,14 @@ pca.plot <-
     x = process.list,
     group = datalist$sample.info$Batch,
     group.label = "Batch",
-    plotly.text = datalist$sample.info$Sample.id)
+    plotly.text = datalist$sample.info$Sample)
 
 pca.plot.type <- 
   plot_list_pca(
     x = process.list,
     group = datalist$sample.info$Sample.type,
     group.label = "Sample type",
-    plotly.text = datalist$sample.info$Sample.id)
+    plotly.text = datalist$sample.info$Sample)
 
 plt.eval <-
   plot_eval( x = process.list,
