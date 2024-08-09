@@ -262,7 +262,7 @@ params_setup <-
     params$calibration.sample.type = calibration.sample.type
     
     ### Generate sample info
-    if ( !"No_data" %in% params$path.mzml.pos ){
+    if ( !"No_data" %in% params$path.mzml.pos & !is.null(params$sample.info.pos)){
       
       sample.info.pos <-
         extract_sample_info( path = params$path.mzml.pos,
@@ -279,7 +279,7 @@ params_setup <-
       params$sample.info.pos <- sample.info.pos
     }
     
-    if ( !"No_data" %in% params$path.mzml.neg ){
+    if ( !"No_data" %in% params$path.mzml.neg & !is.null(params$sample.info.neg) ){
       
       sample.info.neg <-
         extract_sample_info( path = params$path.mzml.neg,
