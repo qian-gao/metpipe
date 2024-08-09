@@ -50,7 +50,7 @@ prepare_mzmine_xml <-
 
     params_mzmine$P_TF_FEATURE_LIST=path_lib
     params_mzmine$P_TF_SEPARATOR=';'
-    params_mzmine$P_TF_INTENSITY_TOLERANCE=0.3
+    params_mzmine$P_TF_INTENSITY_TOLERANCE=0.2
     params_mzmine$P_TF_NOISE_LEVEL=500
     params_mzmine$P_TF_MZ_ABS_TOLERANCE=mzmine_mz_tol
     params_mzmine$P_TF_MZ_PPM_TOLERANCE=0.0
@@ -103,7 +103,7 @@ prepare_mzmine_xml <-
 
     ### Peak finder (optional) ###
     ## Percentage parameter P_GF_INTENSITY_TOLERANCE. e.g. 50% should be inputted as 0.5
-    params_mzmine$P_GF_INTENSITY_TOLERANCE=0.3
+    params_mzmine$P_GF_INTENSITY_TOLERANCE=0.2
     params_mzmine$P_GF_MZ_ABS_TOLERANCE=mzmine_mz_tol
     params_mzmine$P_GF_MZ_PPM_TOLERANCE=0.0
     params_mzmine$P_GF_RT_ABS_TOLERANCE=mzmine_rt_tol_bigger

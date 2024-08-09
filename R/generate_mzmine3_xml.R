@@ -33,7 +33,7 @@ generate_mzmine3_xml <-
                      "</file>" ),
              collapse = "" )
 
-    modules <- c("start", "MSDKmzMLImportModule")
+    modules <- c("start", "AllSpectralDataImportModule")
 
     if (!is.null(params$P_MD_NOISE_LEVEL)) modules <- c(modules, "MassDetectionModule")
 
