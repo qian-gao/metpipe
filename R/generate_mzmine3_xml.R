@@ -21,7 +21,7 @@ generate_mzmine3_xml <-
   ){
 
     files <-
-      list.files( params$P_RAWPATH, pattern = ".mzML",
+      list.files( params$P_RAWPATH, pattern = "(.mzML)|(.d)",
                   recursive = FALSE, full.names = TRUE, include.dirs = TRUE)
 
     files.ms1 <-
