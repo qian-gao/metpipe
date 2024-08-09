@@ -59,7 +59,7 @@ extract_is <-
                                substr(ISTD, 1, regexpr("\\:[^\\:]*$", ISTD)-1),
                                ISTD)) # mzmine3
 
-      Sample.name <- gsub( ".mzML Feature m/z|.mzML Peak m/z", "", colnames(sample)[1]) # mzmine3
+      Sample.name <- gsub( ".mzML Feature m/z|.mzML Peak m/z|.d Feature m/z|.d Peak m/z", "", colnames(sample)[1]) # mzmine3
       #Sample.name <- gsub( ".mzML.Peak.m.z", "", colnames(sample)[1])  # mzmine2
 
       sample <-
