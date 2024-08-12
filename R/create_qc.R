@@ -31,7 +31,9 @@ create_qc <-
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
-                                     scale_color_npg() +
+                                     scale_color_manual(values = c(pal_npg("nrc", alpha = 0.7)(10),
+                                                                   pal_lancet("lanonc", alpha = 0.7)(9),
+                                                                   pal_jama('default', alpha = 0.7)(7))) +
                                      labs(#title = "Retention Time as a Function of Running Time",
                                        x = "",
                                        y = "RT (min)",
@@ -45,8 +47,9 @@ create_qc <-
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
-                                     scale_color_npg() +
-                                     labs(#title = "RT deviation as a Function of Running Time",
+                                     scale_color_manual(values = c(pal_npg("nrc", alpha = 0.7)(10),
+                                                                   pal_lancet("lanonc", alpha = 0.7)(9),
+                                                                   pal_jama('default', alpha = 0.7)(7))) +                                     labs(#title = "RT deviation as a Function of Running Time",
                                        x = "Running order",
                                        y = "Deviation: RT (min)",
                                        color = "", shape ="") +
@@ -60,8 +63,9 @@ create_qc <-
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
-                                     scale_color_npg() +
-                                     labs(#title = "m/z as a Function of Running Time",
+                                     scale_color_manual(values = c(pal_npg("nrc", alpha = 0.7)(10),
+                                                                   pal_lancet("lanonc", alpha = 0.7)(9),
+                                                                   pal_jama('default', alpha = 0.7)(7))) +                                     labs(#title = "m/z as a Function of Running Time",
                                        x = "",
                                        y = "m/z",
                                        color = "Internal standard", shape ="") +
@@ -74,8 +78,9 @@ create_qc <-
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
-                                     scale_color_npg() +
-                                     labs(#title = "m/z deviation as a Function of Running Time",
+                                     scale_color_manual(values = c(pal_npg("nrc", alpha = 0.7)(10),
+                                                                   pal_lancet("lanonc", alpha = 0.7)(9),
+                                                                   pal_jama('default', alpha = 0.7)(7))) +                                     labs(#title = "m/z deviation as a Function of Running Time",
                                        x = "Running order",
                                        y = "Deviation: m/z (ppm)",
                                        color = "", shape ="") +
@@ -89,8 +94,9 @@ create_qc <-
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
-                                     scale_color_npg() +
-                                     labs(#title = "Peak area as a Function of Running Time",
+                                     scale_color_manual(values = c(pal_npg("nrc", alpha = 0.7)(10),
+                                                                   pal_lancet("lanonc", alpha = 0.7)(9),
+                                                                   pal_jama('default', alpha = 0.7)(7))) +                                     labs(#title = "Peak area as a Function of Running Time",
                                        x = "",
                                        y = "Peak area",
                                        color = "Internal standard", shape ="") +
@@ -103,8 +109,9 @@ create_qc <-
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
-                                     scale_color_npg() +
-                                     labs(#title = "Peak area deviation as a Function of Running Time",
+                                     scale_color_manual(values = c(pal_npg("nrc", alpha = 0.7)(10),
+                                                                   pal_lancet("lanonc", alpha = 0.7)(9),
+                                                                   pal_jama('default', alpha = 0.7)(7))) +                                     labs(#title = "Peak area deviation as a Function of Running Time",
                                        x = "Running order",
                                        y = "Deviation: Peak area (%)",
                                        color = "", shape ="") +
@@ -123,8 +130,9 @@ create_qc <-
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_bar(stat = "Identity", position = "dodge") +
                                      scale_x_discrete(limits=rev) +
-                                     scale_fill_npg() +
-                                     theme_bw() +
+                                     scale_fill_manual(values = c(pal_npg("nrc", alpha = 0.7)(10),
+                                                                   pal_lancet("lanonc", alpha = 0.7)(9),
+                                                                   pal_jama('default', alpha = 0.7)(7))) +                                     theme_bw() +
                                      labs( #title = "RSD of internal standards",
                                        x = "Internal standard",
                                        y = "RSD (%)") +
