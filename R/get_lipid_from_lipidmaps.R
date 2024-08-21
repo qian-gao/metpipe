@@ -73,8 +73,8 @@ get_lipid_from_lipidmaps <-
       output %>%
       select( abbrev, pubchem_cid, hmdb_id, formula, exactmass, kegg_id,
               smiles, inchi_key, core, main_class, sub_class,
-              isomer_label, abbrev_chains, query, lipid) %>%
-      mutate( Compound.name = ifelse(is.na(abbrev), lipid, abbrev)) %>%
+              isomer_label, abbrev_chains, name, sys_name, query, lipid) %>%
+      mutate( Compound.name = lipid) %>%
       rename( PC.CID = pubchem_cid,
               HMDB.ID = hmdb_id,
               Molecular.formula = formula,
@@ -83,7 +83,7 @@ get_lipid_from_lipidmaps <-
               Smiles = smiles,
               Inchikey = inchi_key) %>%
       select(Compound.name, PC.CID, HMDB.ID, Molecular.formula, Monoisotopic.mass, KEGG.ID,
-             Smiles, Inchikey, core, main_class, sub_class, isomer_label, abbrev_chains, query, lipid)
+             Smiles, Inchikey, core, main_class, sub_class, isomer_label, abbrev, abbrev_chains, name, sys_name, query)
 
     return(lip.info)
 
