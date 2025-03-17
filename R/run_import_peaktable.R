@@ -1,3 +1,21 @@
+#' run_import_peaktable
+#'
+#' @param peaktable_pos 
+#' @param peaktable_neg 
+#' @param rt_col_nr 
+#' @param mz_col_nr 
+#' @param identity_col_nr 
+#' @param sample_col_nr 
+#' @param meta_file_pos 
+#' @param meta_file_neg 
+#' @param find_is 
+#' @param add_lipid_info 
+#' @param keep.lipid.orig 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 run_import_peaktable <- 
   function(
     peaktable_pos = NULL,

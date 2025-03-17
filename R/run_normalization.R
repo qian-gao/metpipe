@@ -1,3 +1,16 @@
+#' run_normalization
+#'
+#' @param datalist 
+#' @param impute.method.sample 
+#' @param impute.method.is 
+#' @param po.sample.to.use 
+#' @param norm.method 
+#' @param sample.type.keep 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 run_normalization <- 
   function(
     datalist = NULL,

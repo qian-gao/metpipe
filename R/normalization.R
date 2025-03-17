@@ -1,23 +1,17 @@
-# 
-# # Misssing imputation
-# # "LoD", "HF", "median", "min", "mean"
-# impute.method.sample <- "HF"  
-# impute.method.is <- "HF"
-# 
-# # Sample types to remove from datatable
-# sample.type.keep <- c("Sample")
-# 
-# 
-# # Normalization method
-# #c("bestis", "low_cv", "pqn", "loess", "sum", "median", "limma")
-# 
-# po.sample.to.use <- "PO"
-# norm.method <- c("bestis")
-# 
-# datalist_back <- datalist
-# 
-# datalist <- datalist_back$pos
 
+#' normalization
+#'
+#' @param datalist 
+#' @param impute.method.sample 
+#' @param impute.method.is 
+#' @param po.sample.to.use 
+#' @param norm.method 
+#' @param sample.type.keep 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 normalization <- 
   function(
     datalist = NULL,

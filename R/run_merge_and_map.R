@@ -1,3 +1,14 @@
+#' run_merge_amd_map
+#'
+#' @param datalist 
+#' @param final.norm 
+#' @param eval.sample.to.use 
+#' @param sample.type.keep 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 run_merge_amd_map <- 
   function(
     datalist = NULL,

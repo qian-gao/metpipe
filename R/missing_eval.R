@@ -1,3 +1,12 @@
+#' missing_eval
+#'
+#' @param data_cleaned 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+
 missing_eval <- 
   function(
     data_cleaned = NULL

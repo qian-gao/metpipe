@@ -13,7 +13,7 @@ devtools::document()
 
 ### intall
 devtools::install_github("https://github.com/qian-gao/metpipe",
-                         auth_token = "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")
+                         auth_token = "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")
 
 ### function description
 
