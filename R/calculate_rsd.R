@@ -1,16 +1,15 @@
 #' @title calculate_rsd
 #'
-#' @description Calculate summary for subsets of dataset
+#' @description Calculate summary for subsets of a dataset. It is deprecated.
+#'              Use calculate_summary instead.
 #'
-#' @param data A data frame object, sample x feature
-#' @param type A vector indicating sample types
-#' @param impute If impute missing values
-#' @param names.suffix Suffix to add on output variable names
-#' @param other.eval If calculate other summary (MAD and VAR)
+#' @param data A data frame object, sample x feature.
+#' @param type A vector indicating sample types.
+#' @param impute TRUE/FALSE, if impute missing values, if TRUE, half minimum is imputed.
+#' @param names.suffix Suffix to add to the output variable names.
+#' @param other.eval TRUE/FALSE, if calculate other summary (MAD and VAR).
 #'
-#' @return A list of summaries for all types of samples
-#'
-#' @examples
+#' @return A list of summaries for all types of samples.
 #'
 #' @export
 #' @importFrom dplyr "%>%" mutate left_join arrange select summarise group_by
@@ -27,6 +26,7 @@ calculate_rsd <-
 
     ### Impute missing
     if (impute){
+      #data[is.na(data)] <- 0
       hm <- min(data, na.rm = T) / 2
       data[ is.na(data) ] <- hm
     }

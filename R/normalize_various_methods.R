@@ -167,7 +167,7 @@ normalize_various_methods <-
 
           norms <- mat.raw  %>%
             sapply(FUN = function(x) x/mat.istds[ , j]) %>%
-            as_data_frame %>%
+            as.data.frame() %>%
             gather(Metabolite, Area_norm)
 
           norms <- norms %>% mutate(Area_norm = Area_norm*mat.is.means[j])
@@ -298,63 +298,16 @@ normalize_various_methods <-
 
       output$normalizer <-
         output$normalizer %>%
-        dplyr::left_join(feature.info, by = "Identity") %>% 
-        select(-m_name)
+        dplyr::left_join(feature.info, by = "Identity")
 
     }
 
-    if (!is.null(export.path)){
+    if ( !is.null(istds)){
 
-      library(openxlsx)
-
-      if ( !is.null(istds)){
-
-        istd.rsd <-
-          calculate_rsd( data = istds,
-                         type = type,
-                         names.suffix = NULL)$type.rsd
-
-        x.output <-
-          output$x %>%
-          rownames_to_column("Sample.name")
-
-        wb <- createWorkbook()
-        addWorksheet(wb, "Normalized.data")
-        writeData(wb, "Normalized.data", x.output)
-        addWorksheet(wb, "Normalizer")
-        writeData(wb, "Normalizer", output$normalizer)
-        addWorksheet(wb, "Istd")
-        writeData(wb, "Istd", istd.rsd)
-        saveWorkbook(wb, file = paste0(export.path, prefix, "normalised_", method, ".xlsx"), overwrite = TRUE )
-
-      } else {
-
-        x.output <-
-          output$x %>%
-          rownames_to_column("Sample.name")
-
-        wb <- createWorkbook()
-        addWorksheet(wb, "Normalized.data")
-        writeData(wb, "Normalized.data", x.output)
-        addWorksheet(wb, "Normalizer")
-        writeData(wb, "Normalizer", output$normalizer)
-
-        if (!is.null(istds)){
-
-          istd.rsd <-
-            calculate_rsd( data = istds,
-                           type = type,
-                           names.suffix = NULL)$type.rsd
-
-          addWorksheet(wb, "Istd")
-          writeData(wb, "Istd", istd.rsd)
-
-        }
-
-        saveWorkbook(wb, file = paste0(export.path, prefix, "normalised_", method, ".xlsx"), overwrite = TRUE )
-
-      }
-
+      output$istd.rsd <-
+        calculate_rsd( data = istds,
+                       type = type,
+                       names.suffix = NULL)$type.rsd
     }
 
     return( output )

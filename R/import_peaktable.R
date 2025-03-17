@@ -1,0 +1,94 @@
+import_peaktable <- 
+  function(
+      peaktable = NULL,
+      meta = NULL,
+      rt_col_nr = NULL,
+      mz_col_nr = NULL,
+      identity_col_nr = NULL,
+      sample_col_nr = NULL,
+      find_is = FALSE,
+      add_lipid_info = FALSE,
+      keep.lipid.orig = NULL
+  ){
+
+    datalist <- list()
+    
+    file <- readxl::read_excel(peaktable)
+    peaks <- file[, c(sample_col_nr:ncol(file))]
+    features <- 
+      file[, c(rt_col_nr, mz_col_nr, identity_col_nr, 
+             setdiff( 1:(sample_col_nr-1),
+                      c(rt_col_nr, mz_col_nr, identity_col_nr)) )]
+      
+    colnames(features)[1:3] <- c("rt", "mz", "Identity_raw")
+    
+    features <- 
+      features %>% 
+      mutate( Feature_type = ifelse(is.na(Identity_raw)| Identity_raw == "" |Identity_raw == "NA", 
+                                    "Unknown", "Known"),
+              Identity_raw = ifelse(Feature_type == "Unknown", 
+                                     paste0("Unknown_MZ_", round(mz, 3), "_RT_", round(rt, 3)),
+                                     Identity_raw),
+              Feature_ID = paste0("F", row_number())) %>% 
+      group_by(Identity_raw) %>% 
+      mutate(n = n(),
+             Identity = ifelse( n > 1, 
+                                paste0(Identity_raw, "-iso", row_number()),
+                                Identity_raw)) %>% 
+      ungroup() %>% 
+      select(-n) %>% 
+      relocate(Identity, .before = Identity_raw)
+    
+    if (find_is){
+      features <- 
+        features %>% 
+        mutate(Feature_type = ifelse( Feature_type == "Known" & 
+                                        grepl("^[0-9][0-9]\\.", substr(Identity_raw, 1, 3)),
+                                      "IS",
+                                      Feature_type))
+    }
+    
+    if (add_lipid_info){
+      afeatures <- 
+        add_lipid_info(features,
+                       keep.lipid.orig = keep.lipid.orig)
+        
+    }
+    
+    if (!is.null(meta)){
+    
+      file <- 
+        readxl::read_excel(meta) %>%
+        mutate(across(where(is.character), stringr::str_trim)) %>% 
+        group_by(Sample) %>% 
+        mutate(n = n(),
+               Sample = ifelse(n > 1, 
+                               paste0(Sample, "-", row_number()),
+                               Sample)) %>%
+        ungroup() %>% 
+        select(-n)
+        
+      
+    } else {
+      
+      file <- 
+        data.frame(
+          File.name = colnames(peaks),
+          Sample = colnames(peaks),
+          Sample.type = "Sample",
+          Sample.batch = "No batch"
+        )
+    }
+    
+    rownames(peaks) <- features$Feature_ID
+    colnames(peaks) <- file$Sample
+    
+    datalist$peaks <- peaks
+    datalist$peaks_raw <- peaks
+    datalist$features <- features
+    datalist$features_raw <- features    
+    datalist$meta <- file
+    datalist$meta_raw <- file
+    
+    return(datalist)
+}

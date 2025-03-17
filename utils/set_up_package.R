@@ -5,6 +5,7 @@ library(usethis)  # Automate Package and Project Setup
 
 ### check if name available
 # available::available("metpipe", browse = FALSE)
+# create_package("H:/Documents/CBMR_workflow/packages/metpipe")
 
 ### generate help file in man and new NAMESPACE file
 setwd("H:/Documents/CBMR_workflow/packages/metpipe")
@@ -35,3 +36,11 @@ devtools::install_github("https://github.com/qian-gao/metpipe",
 
 pack <- available.packages()
 pack["ggplot2","Depends"]
+
+use_package("ggplot2") 
+use_package("ggsci") 
+use_package("grid") 
+use_package("reshape2") 
+use_package("scales") 
+use_package("laeken") 
+use_package("VIM") 

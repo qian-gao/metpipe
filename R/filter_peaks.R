@@ -103,16 +103,21 @@ filter_peaks <-
           m.thres <- mean.filter[[i]]
         }
 
-        index <-
-          apply( mzrt$type.mean,
-                 MAR = 1,
-                 function(x){
-                   if (!is.na(as.numeric(m.thres[4]))){
-                     eval( parse( text = paste0( m.thres[1], "*", x[m.thres[2]], m.thres[3], m.thres[4]) ))
-                   } else {
-                     eval( parse( text = paste0( m.thres[1], "*", x[m.thres[2]], m.thres[3], x[m.thres[4]]) ))
-                   }
-                 })
+        if (!is.na(as.numeric(m.thres[4]))){
+          index <-
+            apply( mzrt$type.mean,
+                   MAR = 1,
+                   function(x){
+                       eval( parse( text = paste0( m.thres[1], "*", x[m.thres[2]], m.thres[3], m.thres[4]) ))
+                   })
+          } else {
+            index <-
+              apply( mzrt$type.mean,
+                     MAR = 1,
+                     function(x){
+                       eval( parse( text = paste0( m.thres[1], "*", x[m.thres[2]], m.thres[3], x[m.thres[4]]) ))
+                     })            
+          }
 
         index[is.na(index)] <- FALSE
         index.list$mean.filter[[i]] <- c(index)
@@ -140,16 +145,21 @@ filter_peaks <-
           m.thres <- rsd.filter[[i]]
         }
 
-        index <-
-          apply( mzrt$type.rsd,
-                 MAR = 1,
-                 function(x){
-                   if (!is.na(as.numeric(m.thres[4]))){
+        if (!is.na(as.numeric(m.thres[4]))){
+          index <-
+            apply( mzrt$type.rsd,
+                   MAR = 1,
+                   function(x){
                      eval( parse( text = paste0( m.thres[1], "*", x[m.thres[2]], m.thres[3], m.thres[4]) ))
-                   } else {
+                   })
+        } else {
+          index <-
+            apply( mzrt$type.rsd,
+                   MAR = 1,
+                   function(x){
                      eval( parse( text = paste0( m.thres[1], "*", x[m.thres[2]], m.thres[3], x[m.thres[4]]) ))
-                   }
-                 })
+                   })          
+        }
 
         index[is.na(index)] <- FALSE
         index.list$rsd.filter[[i]] <- c(index)
@@ -224,7 +234,7 @@ filter_peaks <-
 
   }
 
-#' @title filter_peaks
+#' @title mzrt_filter
 #'
 #' @description Provides an overview table for the time and scope conditions of
 #'     a data set

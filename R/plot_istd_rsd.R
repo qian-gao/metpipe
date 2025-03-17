@@ -11,16 +11,18 @@
 #'     can later be converted to a TeX output using \code{overview_print}
 #' @examples
 #' @export
-#' @import ggplot2
+#' @import ggplot2 ggsci
 #'
 plot_istd_rsd <-
   function( datalist = NULL){
 
     data.istd <- datalist$data.istd
-    data <- datalist$data
-    sample.info <- datalist$sample.info
-    feature.info <- datalist$feature.info
-    feature.info.istd <- datalist$feature.info.istd
+    #data <- datalist$data
+    sample.info <- 
+      datalist$sample.info %>% 
+      mutate(Run.order = row_number())
+    #feature.info <- datalist$feature.info
+    #feature.info.istd <- datalist$feature.info.istd
 
     data.istd.plot <-
       cbind(sample.info, data.istd)

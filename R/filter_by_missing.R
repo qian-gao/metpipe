@@ -18,7 +18,7 @@ filter_by_missing <-
            threshold  #Percentage
   ) {
 
-    if ( method == "feature" ) {
+    if ( method == "sample" ) {
 
       missings <- apply( x, 2, function(x) { sum(is.na(x) | x==0) } )
       nsample <- nrow(x)
@@ -27,11 +27,11 @@ filter_by_missing <-
       x.filter <- x[ , feature.keep, drop = FALSE]
       result <- list(x = x.filter, index = feature.keep)
 
-      print( paste0( "Only keep features having missings less than ", threshold, "% : ",
-                     sum(!result$index), " features have been removed" ),
+      print( paste0( "Only keep samples having missings less than ", threshold, "% : ",
+                     sum(!result$index), " samples have been removed" ),
              quote = FALSE)
 
-    } else if ( method == "sample") {
+    } else if ( method == "feature") {
 
       missings <- apply( x, 1, function(x) { sum(is.na(x) | x==0) } )
       nfeature <- ncol(x)
@@ -40,8 +40,8 @@ filter_by_missing <-
       x.filter <- x[ sample.keep, , drop = FALSE]
       result <- list(x = x.filter, index = sample.keep)
 
-      print( paste0( "Only keep sampless having missings less than ", threshold, "% : ",
-                     sum(!result$index), " samples have been removed" ),
+      print( paste0( "Only keep features having missings less than ", threshold, "% : ",
+                     sum(!result$index), " features have been removed" ),
              quote = FALSE)
 
     }

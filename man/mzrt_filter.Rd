@@ -2,7 +2,7 @@
 % Please edit documentation in R/filter_peaks.R
 \name{mzrt_filter}
 \alias{mzrt_filter}
-\title{filter_peaks}
+\title{mzrt_filter}
 \usage{
 mzrt_filter(mzrt = NULL, index = NULL)
 }

@@ -56,7 +56,7 @@ plot_eval <-
     
     plt.rsd.mean <-
       plt.rsd.m %>%
-      left_join(plt.rsd.m[ plt.rsd.m$Method %in% "raw.data", ], by = "Sample.type") %>%
+      left_join(plt.rsd.m[ plt.rsd.m$Method %in% "raw", ], by = "Sample.type") %>%
       mutate( ratio = mean.x / mean.y * 100) %>%
       dplyr::rename( Method = Method.x) %>%
       mutate(Method = factor(Method, levels = methods))
@@ -111,7 +111,7 @@ plot_eval <-
     
     plt.mad.mean <-
       plt.mad.m %>%
-      left_join(plt.mad.m[ plt.mad.m$Method %in% "raw.data", ], by = "Sample.type") %>%
+      left_join(plt.mad.m[ plt.mad.m$Method %in% "raw", ], by = "Sample.type") %>%
       mutate( ratio = mean.x / mean.y * 100) %>%
       dplyr::rename( Method = Method.x) %>%
       mutate(Method = factor(Method, levels = methods))
@@ -156,7 +156,7 @@ plot_eval <-
     
     plt.var.sum <-
       plt.var.m %>%
-      left_join(plt.var.m[ plt.var.m$Method %in% "raw.data", ], by = "Sample.type") %>%
+      left_join(plt.var.m[ plt.var.m$Method %in% "raw", ], by = "Sample.type") %>%
       mutate( ratio = sum.x / sum.y * 100) %>%
       dplyr::rename( Method = Method.x) %>%
       mutate(Method = factor(Method, levels = methods))
