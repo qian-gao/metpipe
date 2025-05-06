@@ -65,8 +65,7 @@ filter_peaks <-
 
     rsd <-
       calculate_rsd( data = data,
-                     type = sample.type,
-                     impute = TRUE)
+                     type = sample.type)
 
     mzrt <- c(mzrt, rsd)
     index.list <- list()
@@ -116,7 +115,7 @@ filter_peaks <-
                      MAR = 1,
                      function(x){
                        eval( parse( text = paste0( m.thres[1], "*", x[m.thres[2]], m.thres[3], x[m.thres[4]]) ))
-                     })            
+                     })
           }
 
         index[is.na(index)] <- FALSE
@@ -158,7 +157,7 @@ filter_peaks <-
                    MAR = 1,
                    function(x){
                      eval( parse( text = paste0( m.thres[1], "*", x[m.thres[2]], m.thres[3], x[m.thres[4]]) ))
-                   })          
+                   })
         }
 
         index[is.na(index)] <- FALSE
