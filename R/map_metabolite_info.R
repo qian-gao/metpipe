@@ -49,11 +49,10 @@ map_metabolite_info <-
     
     report <- 
       raw %>% 
-      left_join(met_info, by = c("Metabolite_name_original" = "Input.name")) %>% 
+      left_join(met_info[, 1:2], by = c("Metabolite_name_original" = "Input.name")) %>% 
       rename(Metabolite_name = Standardized.name) %>% 
       mutate(Metabolite_name = ifelse(is.na(Metabolite_name), Metabolite_name_original, Metabolite_name)) %>% 
-      relocate(Metabolite_name, .before = Metabolite_name_original) %>% 
-      relocate(c(Metabolite_name_original, Formula), .after = last_col())
+      relocate(Metabolite_name, .before = Metabolite_name_original)
     
     # Load database
     db <- read.table(db_file, sep = db_sep, header = TRUE)
