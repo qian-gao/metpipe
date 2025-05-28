@@ -11,6 +11,8 @@
 #' @return A feature table with metabolite information
 #' @importFrom magrittr %>%
 #' @import dplyr
+#' @export
+#' 
 map_metabolite_info <- 
   function(input_file = NULL,
            name_col = 6,
@@ -19,7 +21,6 @@ map_metabolite_info <-
            db_sep = ',',
            path_output = NULL){
     
-    `%>%` <- magrittr::`%>%`
     
     if (is.data.frame(input_file)){
       raw <- input_file
