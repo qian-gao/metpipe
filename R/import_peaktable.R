@@ -31,7 +31,9 @@ import_peaktable <-
     datalist <- list()
     
     file <- readxl::read_excel(peaktable)
-    peaks <- file[, c(sample_col_nr:ncol(file))]
+    peaks <- 
+      file[, c(sample_col_nr:ncol(file))] %>% 
+      mutate(across(where(is.character), as.numeric))
     features <- 
       file[, c(rt_col_nr, mz_col_nr, identity_col_nr, 
              setdiff( 1:(sample_col_nr-1),
@@ -66,7 +68,7 @@ import_peaktable <-
     }
     
     if (add_lipid_info){
-      afeatures <- 
+      features <- 
         add_lipid_info(features,
                        keep.lipid.orig = keep.lipid.orig)
         
