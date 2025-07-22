@@ -30,7 +30,7 @@ import_peaktable <-
 
     datalist <- list()
     
-    file <- readxl::read_excel(peaktable)
+    file <- openxlsx::read.xlsx(peaktable)
     peaks <- 
       file[, c(sample_col_nr:ncol(file))] %>% 
       mutate(across(where(is.character), as.numeric))
