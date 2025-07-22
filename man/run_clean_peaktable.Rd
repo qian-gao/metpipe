@@ -11,6 +11,8 @@ run_clean_peaktable(
   rt.range = NULL,
   filter_by_missing_feature_pct = NULL,
   outliers.sample = NULL,
+  outliers.sample.pos = NULL,
+  outliers.sample.neg = NULL,
   po.sample.to.use = NULL
 )
 }

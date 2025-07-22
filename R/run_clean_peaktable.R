@@ -24,6 +24,8 @@ run_clean_peaktable <-
     
     # Outliers
     outliers.sample = NULL,
+    outliers.sample.pos = NULL,
+    outliers.sample.neg = NULL,
     
     # Sample type to use to filter duplicate istd
     po.sample.to.use = NULL
@@ -31,6 +33,8 @@ run_clean_peaktable <-
     
     if (!is.null(datalist$pos)){
       cat("Positive mode: \n")
+      
+      if (is.null(outliers.sample.pos)) outliers.sample.pos <- outliers.sample
       datalist$pos <- 
         clean_peaktable(
           datalist = datalist$pos,
@@ -38,13 +42,15 @@ run_clean_peaktable <-
           rsd.filter = rsd.filter,      
           rt.range = rt.range, 
           filter_by_missing_feature_pct = filter_by_missing_feature_pct,
-          outliers.sample = outliers.sample,
+          outliers.sample = outliers.sample.pos,
           po.sample.to.use = po.sample.to.use
         )
     }
 
     if (!is.null(datalist$neg)){
       cat("Negative mode: \n")
+
+      if (is.null(outliers.sample.neg)) outliers.sample.neg <- outliers.sample
       datalist$neg <- 
         clean_peaktable(
           datalist = datalist$neg,
@@ -52,7 +58,7 @@ run_clean_peaktable <-
           rsd.filter = rsd.filter,      
           rt.range = rt.range, 
           filter_by_missing_feature_pct = filter_by_missing_feature_pct,
-          outliers.sample = outliers.sample,
+          outliers.sample = outliers.sample.neg,
           po.sample.to.use = po.sample.to.use
         )
     }
