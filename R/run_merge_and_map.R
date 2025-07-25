@@ -119,8 +119,12 @@ run_merge_amd_map <-
         select(-c("File.name"))   
     }
     
-    map.names <- feature.info$Identity_clean
-    names(map.names) <- feature.info$Identity
+    feature.info.seq <- 
+      data.frame(Identity = names(datatable.keep)[-1]) %>% 
+      left_join(feature.info, by = "Identity")
+    
+    map.names <- feature.info.seq$Identity_clean
+    names(map.names) <- feature.info.seq$Identity
     colnames(datatable.keep)[-1] <- map.names[colnames(datatable.keep)[-1]]
     
     keep.index <- sample.info$Sample.type %in% sample.type.keep
@@ -128,12 +132,13 @@ run_merge_amd_map <-
     sample.info <- sample.info[keep.index, ]
     datatable <- cbind(sample.info, datatable.keep[keep.index, -1])
     
+    
     print(paste0("For repeating features, the one with higher mean intensity in ", eval.sample.to.use, " was kept."), quote = FALSE)
     print(paste0(nrow(feature.info.temp) - nrow(feature.info), " features have been removed"), quote = FALSE)
     
     datalist$datatable <- datatable
     datalist$sample.info <- sample.info
-    datalist$feature.info <- feature.info
+    datalist$feature.info <- feature.info.seq
     
     return(datalist)
 
