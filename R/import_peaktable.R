@@ -62,7 +62,7 @@ import_peaktable <-
       features <- 
         features %>% 
         mutate(Feature_type = ifelse( Feature_type == "Known" & 
-                                        grepl("^[0-9][0-9]\\.", substr(Identity_raw, 1, 3)),
+                                        (grepl("^[0-9][0-9]\\.", substr(Identity_raw, 1, 3)) | grepl("-D[0-9]+$", Identity_raw)),
                                       "IS",
                                       Feature_type))
     }
@@ -90,13 +90,31 @@ import_peaktable <-
       
     } else {
       
+      # file <- 
+      #   data.frame(
+      #     File.name = colnames(peaks),
+      #     Sample = colnames(peaks),
+      #     Sample.type = "Sample",
+      #     Sample.batch = "No batch"
+      #   )
+      
+      File.name <- colnames(peaks)
+      Run.order <- as.numeric(gsub(".d", "", str_extract(File.name, "[0-9]+.d$")))
       file <- 
         data.frame(
-          File.name = colnames(peaks),
-          Sample = colnames(peaks),
-          Sample.type = "Sample",
-          Sample.batch = "No batch"
-        )
+          File.name,
+          Sample = File.name,
+          Run.order) %>% 
+        mutate(Sample.type = case_when(grepl("_PO[0-9]+_", File.name) ~ "PO",
+                                       grepl("_NIST[0-9]+_", File.name) ~ "NIST",
+                                       grepl("_BL[0-9]+_", File.name) ~ "BL",
+                                       grepl("_CP[0-9]+_", File.name) ~ "CP",
+                                       TRUE ~ "Sample"),
+               Sample.seq = row_number()) %>% 
+        arrange(Run.order) %>% 
+        mutate(Sample.batch = paste0("Batch ", row_number() %/% 100 + 1)) %>% 
+        arrange(Sample.seq)
+      
     }
     
     rownames(peaks) <- features$Feature_ID
