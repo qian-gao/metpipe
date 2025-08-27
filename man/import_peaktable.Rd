@@ -13,7 +13,8 @@ import_peaktable(
   sample_col_nr = NULL,
   find_is = FALSE,
   add_lipid_info = FALSE,
-  keep.lipid.orig = NULL
+  keep.lipid.orig = NULL,
+  standerdized.name = FALSE
 )
 }
 \arguments{

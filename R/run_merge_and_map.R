@@ -20,10 +20,10 @@ run_merge_amd_map <-
     sample.type.keep <- c("Sample", sample.type.keep)
     
     meta.pos <- datalist$pos$meta_norm
-    peaks.pos <- cbind(meta.pos[, "Sample"], datalist$pos$peaks_norm[[final.norm]])
+    peaks.pos <- cbind(Sample = meta.pos[, "Sample"], datalist$pos$peaks_norm[[final.norm]])
     
     meta.neg <- datalist$neg$meta_norm
-    peaks.neg <- cbind(meta.neg[, "Sample"], datalist$neg$peaks_norm[[final.norm]])
+    peaks.neg <- cbind(Sample = meta.neg[, "Sample"], datalist$neg$peaks_norm[[final.norm]])
     
     if (!is.null(datalist$pos) & !is.null(datalist$neg)){
       

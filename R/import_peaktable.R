@@ -25,7 +25,8 @@ import_peaktable <-
       sample_col_nr = NULL,
       find_is = FALSE,
       add_lipid_info = FALSE,
-      keep.lipid.orig = NULL
+      keep.lipid.orig = NULL,
+      standerdized.name = FALSE
   ){
 
     datalist <- list()
@@ -62,7 +63,7 @@ import_peaktable <-
       features <- 
         features %>% 
         mutate(Feature_type = ifelse( Feature_type == "Known" & 
-                                        (grepl("^[0-9][0-9]\\.", substr(Identity_raw, 1, 3)) | grepl("-D[0-9]+$", Identity_raw)),
+                                        (grepl("^[0-9][0-9]\\.|-D[0-9]+$", substr(Identity_raw, 1, 3)) | grepl("-D[0-9]+$", Identity_raw)),
                                       "IS",
                                       Feature_type))
     }
@@ -88,6 +89,38 @@ import_peaktable <-
         select(-n)
         
       
+    } else if (standerdized.name) {
+      
+      File.name <- colnames(peaks)
+      Run.order <- as.numeric(gsub(".d", "", str_extract(File.name, "[0-9]+.d$")))
+      
+      file <-
+        data.frame(
+          File.name,
+          stringr::str_split_fixed(
+            string = File.name,
+            pattern = "_",
+            n = Inf
+          )[, c(1:3, 5, 6, 7)],
+          Run.order,
+          stringsAsFactors = FALSE
+        )
+      
+      colnames(file) <-
+        c("File.name", "Project", "Method", "Date", "Sample", "Extract.rep", "Tech.rep" , "Run.order")
+      
+      file <- 
+        file %>% 
+        mutate(Sample.type = case_when(grepl("_PO[0-9]+_|_PO_", File.name) ~ "PO",
+                                       grepl("_NIST[0-9]+_|_NIST_", File.name) ~ "NIST",
+                                       grepl("_BL[0-9]+_|_BL_", File.name) ~ "BL",
+                                       grepl("_CP[0-9]+_|_CP_", File.name) ~ "CP",
+                                       TRUE ~ "Sample"),
+               Sample.seq = row_number()) %>% 
+        arrange(Run.order) %>% 
+        mutate(Sample.batch = paste0("Batch ", row_number() %/% 100 + 1)) %>% 
+        arrange(Sample.seq)        
+      
     } else {
       
       # file <- 
@@ -103,16 +136,17 @@ import_peaktable <-
       file <- 
         data.frame(
           File.name,
-          Sample = File.name,
+          Sample = NA,
           Run.order) %>% 
-        mutate(Sample.type = case_when(grepl("_PO[0-9]+_", File.name) ~ "PO",
-                                       grepl("_NIST[0-9]+_", File.name) ~ "NIST",
-                                       grepl("_BL[0-9]+_", File.name) ~ "BL",
-                                       grepl("_CP[0-9]+_", File.name) ~ "CP",
+        mutate(Sample.type = case_when(grepl("_PO[0-9]+_|_PO_", File.name) ~ "PO",
+                                       grepl("_NIST[0-9]+_|_NIST_", File.name) ~ "NIST",
+                                       grepl("_BL[0-9]+_|_BL_", File.name) ~ "BL",
+                                       grepl("_CP[0-9]+_|_CP_", File.name) ~ "CP",
                                        TRUE ~ "Sample"),
                Sample.seq = row_number()) %>% 
         arrange(Run.order) %>% 
-        mutate(Sample.batch = paste0("Batch ", row_number() %/% 100 + 1)) %>% 
+        mutate(Sample.batch = paste0("Batch ", row_number() %/% 100 + 1),
+               Sample = paste0("Sample_", row_number())) %>% 
         arrange(Sample.seq)
       
     }

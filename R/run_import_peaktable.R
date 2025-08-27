@@ -31,7 +31,8 @@ run_import_peaktable <-
     
     find_is = FALSE,
     add_lipid_info = FALSE,
-    keep.lipid.orig = NULL
+    keep.lipid.orig = NULL,
+    standerdized.name = FALSE
   ){
     
     datalist <- list()
@@ -47,7 +48,8 @@ run_import_peaktable <-
           sample_col_nr = sample_col_nr,
           find_is = find_is,
           add_lipid_info = add_lipid_info,
-          keep.lipid.orig = keep.lipid.orig
+          keep.lipid.orig = keep.lipid.orig,
+          standerdized.name = standerdized.name
         )
     } else {
       datalist$pos <- NULL
@@ -64,7 +66,8 @@ run_import_peaktable <-
           sample_col_nr = sample_col_nr,
           find_is = find_is,
           add_lipid_info = add_lipid_info,
-          keep.lipid.orig = keep.lipid.orig
+          keep.lipid.orig = keep.lipid.orig,
+          standerdized.name = standerdized.name
         )
     } else {
       datalist$neg <- NULL

@@ -15,7 +15,8 @@ run_import_peaktable(
   meta_file_neg = NULL,
   find_is = FALSE,
   add_lipid_info = FALSE,
-  keep.lipid.orig = NULL
+  keep.lipid.orig = NULL,
+  standerdized.name = FALSE
 )
 }
 \arguments{
