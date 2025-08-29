@@ -116,10 +116,18 @@ import_peaktable <-
                                        grepl("_BL[0-9]+_|_BL_", File.name) ~ "BL",
                                        grepl("_CP[0-9]+_|_CP_", File.name) ~ "CP",
                                        TRUE ~ "Sample"),
-               Sample.seq = row_number()) %>% 
+               Sample.seq = row_number(),
+               Sample = paste0(Sample, "_", Extract.rep)) %>% 
         arrange(Run.order) %>% 
         mutate(Sample.batch = paste0("Batch ", row_number() %/% 100 + 1)) %>% 
-        arrange(Sample.seq)        
+        arrange(Sample.seq) %>% 
+        group_by(Sample) %>% 
+        mutate(n = n(),
+               Sample = ifelse(n > 1, 
+                               paste0(Sample, "-", row_number()),
+                               Sample)) %>%
+        ungroup() %>% 
+        select(-n)        
       
     } else {
       
