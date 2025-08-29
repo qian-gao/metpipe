@@ -15,4 +15,5 @@ Imports:
     grid,
     laeken,
     reshape2,
-    scales
+    scales,
+    VIM
