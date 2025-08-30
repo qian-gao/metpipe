@@ -117,7 +117,8 @@ import_peaktable <-
                                        grepl("_CP[0-9]+_|_CP_", File.name) ~ "CP",
                                        TRUE ~ "Sample"),
                Sample.seq = row_number(),
-               Sample = paste0(Sample, "_", Extract.rep)) %>% 
+               Sample = paste0(Sample, "_", Extract.rep),
+               Run.order = dense_rank(Run.order)) %>% 
         arrange(Run.order) %>% 
         mutate(Sample.batch = paste0("Batch ", row_number() %/% 100 + 1)) %>% 
         arrange(Sample.seq) %>% 
@@ -151,7 +152,8 @@ import_peaktable <-
                                        grepl("_BL[0-9]+_|_BL_", File.name) ~ "BL",
                                        grepl("_CP[0-9]+_|_CP_", File.name) ~ "CP",
                                        TRUE ~ "Sample"),
-               Sample.seq = row_number()) %>% 
+               Sample.seq = row_number(),
+               Run.order = dense_rank(Run.order)) %>% 
         arrange(Run.order) %>% 
         mutate(Sample.batch = paste0("Batch ", row_number() %/% 100 + 1),
                Sample = paste0("Sample_", row_number())) %>% 
