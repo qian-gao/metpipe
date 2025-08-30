@@ -14,7 +14,8 @@ run_merge_amd_map <-
     datalist = NULL,
     final.norm = NULL,
     eval.sample.to.use = NULL,
-    sample.type.keep = NULL
+    sample.type.keep = NULL,
+    db_file = NULL
   ){
     
     sample.type.keep <- c("Sample", sample.type.keep)
@@ -123,7 +124,14 @@ run_merge_amd_map <-
       data.frame(Identity = names(datatable.keep)[-1]) %>% 
       left_join(feature.info, by = "Identity")
     
-    map.names <- feature.info.seq$Identity_clean
+    feature.info.seq <- 
+      map_metabolite_info(input_file = feature.info.seq,
+                          name_col = 4,
+                          sep = ';',
+                          db_file = 'N:/SUN-CBMR-Metabolomics/Workflow/library/metabolomics_workbench_refmet_20250515.csv') %>% 
+      select(-Metabolite_name_original)
+    
+    map.names <- feature.info.seq$Metabolite_name
     names(map.names) <- feature.info.seq$Identity
     colnames(datatable.keep)[-1] <- map.names[colnames(datatable.keep)[-1]]
     

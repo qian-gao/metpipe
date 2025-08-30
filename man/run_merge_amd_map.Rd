@@ -8,7 +8,8 @@ run_merge_amd_map(
   datalist = NULL,
   final.norm = NULL,
   eval.sample.to.use = NULL,
-  sample.type.keep = NULL
+  sample.type.keep = NULL,
+  db_file = NULL
 )
 }
 \arguments{
