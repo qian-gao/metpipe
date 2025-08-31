@@ -42,7 +42,7 @@ plot_istd_rsd <-
               title = i) +
         scale_fill_npg() 
 
-      plt.int[[i]] <- as_widget(ggplotly(p, height = 200))
+      plt.int[[i]] <- as_widget(ggplotly(p))
 
     }
 

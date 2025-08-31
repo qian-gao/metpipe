@@ -123,7 +123,7 @@ create_qc <-
                                        y = "RSD (%)") +
                                      coord_flip()
 
-                                   , width = 1000
+                                   #, width = 1000
     ))
 
     summary <-
@@ -136,7 +136,7 @@ create_qc <-
                                      geom_smooth(method = "lm", se = FALSE, linetype = "dashed", color = "blue", alpha = 0.1) +
                                      geom_point(size = 2, aes(shape = ISTD)) + scale_shape_manual(values = c(1:25))
 
-                                   , width = 800
+                                   #, width = 800
     ))
 
     return(plt)
