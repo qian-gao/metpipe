@@ -137,7 +137,8 @@ run_merge_amd_map <-
     
     feature.info.seq <- 
       data.frame(Identity = names(datatable.keep)[-1]) %>% 
-      left_join(feature.info, by = "Identity")
+      left_join(feature.info, by = "Identity") %>% 
+      dplyr::rename(Formula = formula)
     
     feature.info.seq <- 
       map_metabolite_info(input_file = feature.info.seq,
