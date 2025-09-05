@@ -11,7 +11,7 @@
 #'     can later be converted to a TeX output using \code{overview_print}
 #' @examples
 #' @export
-#' @import ggplot2 ggsci
+#' @import ggplot2 ggsci htmltools dplyr tidyr
 #'
 plot_istd_rsd <-
   function( datalist = NULL){

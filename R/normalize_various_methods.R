@@ -13,8 +13,7 @@
 #' data(toydata)
 #' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
 #' @export
-#' @import reshape2
-#' @import tidyverse
+#' @import reshape2 dplyr tidyr
 #'
 normalize_various_methods <-
   function(

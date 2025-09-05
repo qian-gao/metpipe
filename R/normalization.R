@@ -9,6 +9,7 @@
 #' @param sample.type.keep 
 #'
 #' @return
+#' @import dplyr
 #' @export
 #'
 #' @examples

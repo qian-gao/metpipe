@@ -12,7 +12,7 @@ setwd("H:/Documents/CBMR_workflow/packages/metpipe")
 devtools::document()
 
 ### intall
-devtools::install_github("https://github.com/qian-gao/metpipe",
+remotes::install_github("https://github.com/qian-gao/metpipe",
                          auth_token = "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")
 
 ### function description
@@ -44,3 +44,12 @@ use_package("reshape2")
 use_package("scales") 
 use_package("laeken") 
 use_package("VIM") 
+use_package("plotly")
+use_package("dplyr")
+use_package("tidyr")
+use_package("htmltools")
+use_package("readxl")
+use_package("openxlsx")
+use_package("stringi")
+use_package("curl")
+use_package("data.table")

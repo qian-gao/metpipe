@@ -10,7 +10,7 @@
 #'
 #' @return A feature table with metabolite information
 #' @importFrom magrittr %>%
-#' @import dplyr
+#' @import dplyr stringi curl
 #' @export
 #' 
 map_metabolite_info <- 

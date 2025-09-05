@@ -13,8 +13,8 @@
 #' data(toydata)
 #' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
 #' @export
-#' @import tidyverse
-#' @import ggplot2 ggsci
+#' @import dplyr tidyr
+#' @import ggplot2 ggsci data.table
 #' 
 plot_eval <-
   function(

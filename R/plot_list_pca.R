@@ -11,7 +11,7 @@
 #'     can later be converted to a TeX output using
 #' @examples
 #' @export
-#' @import ggsci
+#' @import ggplot2 ggsci
 
 plot_list_pca <-
   function (

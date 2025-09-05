@@ -1,0 +1,211 @@
+---
+title: "Data preprocessing"
+author: "CBMR Metabolomics Platform"
+date: "`r base::Sys.Date()`"
+          
+output:
+  html_document:
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: false
+    toc_depth: '4'
+    number_sections: true
+    df_print: paged
+---
+<style type="text/css">
+body{
+  font-size: 12px;
+  }
+td {
+  font-size: 14px;
+}
+h1.title {
+  font-size: 22px;
+}
+h4.author {
+  font-size: 16px;
+}
+h4.date {
+  font-size: 16px;
+}
+
+h1 {
+  font-size: 18px;
+}
+h2 {
+  font-size: 16px;
+}
+h3 {
+  font-size: 14px;
+}
+h4 {
+  font-size: 12px;
+}
+h5 {
+  font-size: 12px;
+}
+code.r{
+  font-size: 12px;
+}
+pre { /* Code block - determines code spacing between lines */
+  font-size: 14px;
+}
+</style>
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+```
+
+```{r install packages, eval = FALSE}
+pkgs <- c("tidyverse", "openxlsx", "devtools") 
+pkgs.to.install <- pkgs[!pkgs %in% installed.packages()[,"Package"]]
+
+if (!"metpipe" %in% installed.packages()[,"Package"]) {
+  devtools::install_github("https://github.com/qian-gao/metpipe",
+                           auth_token = "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")
+}
+```
+
+```{r}
+library(tidyverse)
+library(openxlsx)
+library(metpipe)
+```
+
+# Import peak table
+```{r, message = FALSE, warning = FALSE}
+
+datalist <- 
+  run_import_peaktable(
+    peaktable_pos = "data/peaktable_pos.xlsx",
+    peaktable_neg = "data/peaktable_neg.xlsx",
+    
+    rt_col_nr = 1,
+    mz_col_nr = 4,
+    identity_col_nr = 8,
+    sample_col_nr = 16,
+    
+    meta_file_pos = "data/meta_pos.xlsx",
+    meta_file_neg = "data/meta_neg.xlsx",
+    
+    find_is = TRUE,
+    add_lipid_info = TRUE,
+    keep.lipid.orig = c("AHexCer (O-17:0)17:1;2O/16:3;O")
+  )
+  
+```
+
+## Generate meta template
+```{r, message = FALSE, warning = FALSE}
+generate_meta_template <- 
+  function(peaktable_pos = NULL,
+           peaktable_neg = NULL,
+           sample_col_nr = NULL,
+           standard_name = FALSE
+  ){
+    if (!is.null(peaktable_pos)){
+      file <- readxl::read_excel(peaktable_pos)
+      template <- data.frame(
+        File.name = colnames(file)[sample_col_nr:ncol(file)],
+        Sample = NA,
+        Sample.type = NA,
+        Sample.batch = NA)
+      openxlsx::write.xlsx(template, file = "meta_template_pos.xlsx")
+    }
+    
+    if (!is.null(peaktable_neg)){
+      file <- readxl::read_excel(peaktable_neg)
+      template <- data.frame(
+        File.name = colnames(file)[sample_col_nr:ncol(file)],
+        Sample = NA,
+        Sample.type = NA,
+        Sample.batch = NA)
+      openxlsx::write.xlsx(template, file = "meta_template_neg.xlsx")
+    }
+  }
+
+generate_meta_template(peaktable_pos = "data/peaktable_pos.xlsx",
+           peaktable_neg = "data/peaktable_neg.xlsx",
+           sample_col_nr = 16,
+           standard_name = FALSE)
+```
+
+# Clean peaktable
+```{r, message = FALSE, warning = FALSE}
+
+datalist <- 
+  run_clean_peaktable(
+    datalist = datalist,
+    
+    # Feature filtering
+    mean.filter = list(c( 3, "BL", "<", "PO"),
+                       c( 1, "PO", ">", 100)),
+    rsd.filter = c(1, "PO", "<", 0.3),      
+    rt.range = c(0.6, 30), 
+    filter_by_missing_feature_pct = 50,
+    
+    # Outliers
+    outliers.sample = c("PO1", "PL34"),
+    po.sample.to.use = "PO"
+  )
+```
+
+# Normalization
+```{r, message = FALSE, warning = FALSE}
+
+datalist <- 
+  run_normalization(
+      datalist = datalist,
+      
+      # Misssing imputation
+      # "LoD", "HF", "median", "min", "mean"
+      impute.method.sample = "HF",  
+      impute.method.is = "HF",
+      
+      # Normalization method
+      #c("bestis", "low_cv", "pqn", "loess", "sum", "median", "limma")
+      po.sample.to.use = "PO",
+      norm.method = c("bestis", "low_cv", "sum"),
+      sample.type.keep = c("NIST")
+      )
+
+```
+
+# Merge and map info
+```{r, message = FALSE, warning = FALSE}
+
+datalist <- 
+  run_merge_amd_map(
+    datalist = datalist,
+    final.norm = "bestis",
+    eval.sample.to.use = "PO",
+    sample.type.keep = "Sample"
+  )
+
+saveRDS(datalist, "datalist.rds")
+```
+
+# Export
+```{r, message = FALSE, warning = FALSE}
+wb <- createWorkbook()
+addWorksheet(wb, "datatable")
+writeData(wb, "datatable", datalist$datatable)
+addWorksheet(wb, "feature.info")
+writeData(wb, "feature.info", datalist$feature.info)
+saveWorkbook(wb, "datatable.xlsx")
+```
+
+```{r session info, include = FALSE}
+
+# Session info
+
+utils::sessionInfo()
+
+```

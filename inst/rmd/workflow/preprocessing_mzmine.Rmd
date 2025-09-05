@@ -1,0 +1,250 @@
+---
+title: "Preprocessing with mzmine"
+author: "CBMR Metabolomics Platform"
+date: "`r base::Sys.Date()`"
+          
+output:
+  html_document:
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: false
+    toc_depth: '3'
+    number_sections: true
+    df_print: paged
+
+params:
+  raw_dir: ""
+  result_dir: ""
+  workflow_dir: ""
+  mzmine_dir: ""
+  temp_dir: ""
+---
+<style type="text/css">
+body{
+  font-size: 12px;
+  }
+td {
+  font-size: 14px;
+}
+h1.title {
+  font-size: 22px;
+}
+h4.author {
+  font-size: 16px;
+}
+h4.date {
+  font-size: 16px;
+}
+
+h1 {
+  font-size: 18px;
+}
+h2 {
+  font-size: 16px;
+}
+h3 {
+  font-size: 14px;
+}
+h4 {
+  font-size: 12px;
+}
+h5 {
+  font-size: 12px;
+}
+code.r{
+  font-size: 12px;
+}
+pre { /* Code block - determines code spacing between lines */
+  font-size: 14px;
+}
+</style>
+
+```{r setup environment, include = FALSE}
+
+library(xml2)
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
+```
+
+```{r pipeline input}
+
+path_file <- params$raw_dir
+path_result <- params$result_dir
+path_workflow <- params$workflow_dir
+path_mzmine <- params$mzmine_dir
+path_temp <- params$temp_dir
+
+```
+
+# Method configuration
+```{r}
+method_all <- readRDS(paste0(path_workflow, "/parameters/method_configuration.rds"))
+
+fname <- basename(path_file)
+matrix_i <- strsplit(fname, "_")[[1]][1]
+assay_i <- strsplit(fname, "_")[[1]][2]
+analysis_i <- strsplit(fname, "_")[[1]][3]
+
+method <- subset(method_all, assay == assay_i & analysis == analysis_i)
+
+mzmine_params <- paste0(path_workflow, method$mzmine_params)
+path_lib_pos <- paste0(path_workflow, method$path_lib_pos)
+path_lib_neg <- paste0(path_workflow, method$path_lib_neg)
+sepectral_lib <- strsplit(method$path_spectral, "|", fixed = TRUE)[[1]]
+path_spectral_lib <- paste0(path_workflow, sepectral_lib)
+
+cat("Method name: ", fname, "\n")
+cat("In house libraries used for preprocessing: \n")
+cat(path_lib_pos, "\n")
+cat(path_lib_neg, "\n")
+cat("Spectral libraries used for preprocessing: \n")
+cat(path_spectral_lib, "\n")
+cat("mzmine parameter file used for preprocessing: \n")
+cat(mzmine_params, "\n")
+```
+
+# Raw data files
+```{r}
+path_files_pos <- paste0(path_file, "/pos/")
+path_files_neg <- paste0(path_file, "/neg/")
+
+# Processing method
+path_params <- mzmine_params
+path_lib_pos <- path_lib_pos
+path_lib_neg <- path_lib_neg
+
+cat("Raw data for preprocessing are stored in: \n")
+cat(path_file, "\n")
+
+```
+
+# Preprocessing
+```{r}
+run.pos <- FALSE
+run.neg <- FALSE
+
+if (!is.null(path_files_pos)){
+  run.pos <- TRUE
+  path_result_pos <- paste0(path_result, "/pos")
+  dir.create(path_result_pos)
+  
+  cat("Processed data in positive mode is stored in: \n")
+  cat(path_result_pos, "\n")
+}
+
+if (!is.null(path_files_neg)){
+  run.neg <- TRUE
+  path_result_neg <- paste0(path_result, "/neg")
+  dir.create(path_result_neg)
+  
+  cat("Processed data in negative mode is stored in: \n")
+  cat(path_result_neg, "\n")
+}
+
+mzmine_user <- paste0(path_workflow, "/parameters/qiangao.mzuser")
+```
+
+## Positive
+```{r, eval = run.pos}
+
+path_input <- path_files_pos
+path_output <- path_result_pos
+path_lib <- path_lib_pos
+parameters <- read_xml(path_params)
+param_file <- paste0(path_output, "/mzmine_parameters_pos.mzbatch")
+
+if (!file.exists(param_file)){
+  file_names_node <- xml_find_first(parameters, "//parameter[@name='File names']")
+  new_files <- list.files(path_input, full.names = TRUE, pattern = ".d$")
+  
+  for (f in new_files) {
+    xml_add_child(file_names_node, "file", f)
+  }
+  
+  file_names_node <- xml_find_first(parameters, "//parameter[@name='Database file']")
+  xml_add_child(file_names_node, "current_file", path_lib)
+  
+  file_names_node <- xml_find_first(parameters, "//parameter[@name='Spectral library files']")
+  
+  for (f in path_spectral_lib) {
+    xml_add_child(file_names_node, "file", f)
+  }
+  
+  write_xml(parameters, param_file)
+}
+
+if (grepl(".exe", path_mzmine)){
+  system("cmd.exe", input = paste0(path_mzmine,
+         ' -user ', mzmine_user,
+         ' -batch ', param_file,
+         ' -output ', path_output,
+         ' -temp ', path_temp))
+} else {
+  system(paste0(path_mzmine,
+         ' -user ', mzmine_user, 
+         ' -batch ', param_file,
+         ' -output ', path_output,
+         ' -temp ', path_temp))  
+}
+
+```
+
+## Negative
+```{r, eval = run.neg}
+
+path_input <- path_files_neg
+path_output <- path_result_neg
+path_lib <- path_lib_neg
+parameters <- read_xml(path_params)
+param_file <- paste0(path_output, "/mzmine_parameters_neg.mzbatch")
+
+if (!file.exists(param_file)){
+  file_names_node <- xml_find_first(parameters, "//parameter[@name='File names']")
+  new_files <- list.files(path_input, full.names = TRUE, pattern = ".d$")
+  
+  for (f in new_files) {
+    xml_add_child(file_names_node, "file", f)
+  }
+  
+  file_names_node <- xml_find_first(parameters, "//parameter[@name='Database file']")
+  xml_add_child(file_names_node, "current_file", path_lib)
+  
+  file_names_node <- xml_find_first(parameters, "//parameter[@name='Spectral library files']")
+  
+  for (f in path_spectral_lib) {
+    xml_add_child(file_names_node, "file", f)
+  }
+    
+  write_xml(parameters, param_file)
+}
+
+if (grepl(".exe", path_mzmine)){
+  system("cmd.exe", input = paste0(path_mzmine,
+         ' -user ', mzmine_user,
+         ' -batch ', param_file,
+         ' -output ', path_output,
+         ' -temp ', path_temp))
+} else {
+  system(paste0(path_mzmine,
+         ' -user ', mzmine_user, 
+         ' -batch ', param_file,
+         ' -output ', path_output,
+         ' -temp ', path_temp))  
+}
+
+```
+
+```{r SessionInfo, include = FALSE}
+
+# Session info
+
+utils::sessionInfo()
+
+```
