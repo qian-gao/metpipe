@@ -1,0 +1,190 @@
+---
+title: "Data post processing"
+author: "CBMR Metabolomics Platform"
+date: "`r base::Sys.Date()`"
+          
+output:
+  html_document:
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: false
+    toc_depth: '3'
+    number_sections: true
+    df_print: paged
+
+params:
+  result_dir: ""
+---
+<style type="text/css">
+body{
+  font-size: 12px;
+  }
+td {
+  font-size: 14px;
+}
+h1.title {
+  font-size: 22px;
+}
+h4.author {
+  font-size: 16px;
+}
+h4.date {
+  font-size: 16px;
+}
+
+h1 {
+  font-size: 18px;
+}
+h2 {
+  font-size: 16px;
+}
+h3 {
+  font-size: 14px;
+}
+h4 {
+  font-size: 12px;
+}
+h5 {
+  font-size: 12px;
+}
+code.r{
+  font-size: 12px;
+}
+pre { /* Code block - determines code spacing between lines */
+  font-size: 14px;
+}
+</style>
+
+```{r setup environment, include = FALSE}
+
+library(dplyr)
+library(openxlsx)
+library(metpipe)
+library(stringr)
+library(tidyr)
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+```
+
+```{r pipeline input}
+
+path_result <- params$result_dir
+
+```
+
+# Import peak table
+```{r, message = FALSE, warning = FALSE}
+
+datalist <- 
+  run_import_peaktable(
+    peaktable_pos = paste0(path_result, "/peaktable_pos.xlsx"),
+    peaktable_neg = paste0(path_result, "/peaktable_neg.xlsx"),
+    
+    rt_col_nr = 3,
+    mz_col_nr = 2,
+    identity_col_nr = 5,
+    sample_col_nr = 28,
+    
+    #meta_file_pos = paste0(path_result, "meta_template_pos.xlsx"),
+    #meta_file_neg = paste0(path_result, "meta_template_neg.xlsx"),
+    
+    find_is = TRUE
+  )
+
+cat("Peaktable used for post processing are: \n")
+cat(path_result, "/peaktable_pos.xlsx", "\n")
+cat(path_result, "/peaktable_neg.xlsx", "\n")
+```
+
+# Clean peaktable
+```{r, message = FALSE, warning = FALSE}
+datalist$pos$meta <- 
+  datalist$pos$meta %>% 
+  mutate(Sample.type = ifelse(grepl("POK", File.name), "POK", Sample.type))
+
+datalist$neg$meta <- 
+  datalist$neg$meta %>% 
+  mutate(Sample.type = ifelse(grepl("POK", File.name), "POK", Sample.type))
+
+datalist <- 
+  run_clean_peaktable(
+    datalist = datalist,
+    
+    # Feature filtering
+    mean.filter = list(c( 3, "BL", "<", "POK"),
+                       c( 3, "BL", "<", "Sample"),
+                       c( 1, "POK", ">", 100),
+                       c( 1, "Sample", ">", 100)),
+    rsd.filter = list(c(1, "POK", "<", 0.5),
+                      c(1, "Sample", "<", 0.5)),
+    rt.range = c(0, 30), 
+    filter_by_missing_feature_pct = 50,
+    
+    # Outliers
+    outliers.sample = c(),
+    po.sample.to.use = "NIST"
+  )
+```
+
+# Normalization
+```{r, message = FALSE, warning = FALSE}
+
+datalist <- 
+  run_normalization(
+      datalist = datalist,
+      
+      # Misssing imputation
+      # "LoD", "HF", "median", "min", "mean"
+      impute.method.sample = "HF",  
+      impute.method.is = "HF",
+      
+      # Normalization method
+      #c("bestis", "low_cv", "pqn", "loess", "sum", "median", "limma")
+      po.sample.to.use = "NIST",
+      norm.method = c("bestis", "low_cv", "sum"),
+      sample.type.keep = c("NIST")
+      )
+
+```
+
+# Merge and map info
+```{r, message = FALSE, warning = FALSE}
+
+final.norm = "bestis"
+
+datalist <- 
+  run_merge_amd_map(
+    datalist = datalist,
+    final.norm = final.norm,
+    eval.sample.to.use = "NIST",
+    sample.type.keep = "Sample",
+    db_file = 'N:/SUN-CBMR-Metabolomics/Workflow/library/metabolomics_workbench_refmet_20250515.csv'
+  )
+
+cat("Final selected normalization method is: ", final.norm, "\n")
+saveRDS(datalist, paste0(path_result, "/datalist.rds"))
+```
+
+# Export
+```{r, message = FALSE, warning = FALSE}
+wb <- createWorkbook()
+addWorksheet(wb, "datatable")
+writeData(wb, "datatable", datalist$datatable)
+addWorksheet(wb, "feature.info")
+writeData(wb, "feature.info", datalist$feature.info)
+saveWorkbook(wb, paste0(path_result, "/datatable.xlsx"), overwrite = TRUE)
+```
+
+```{r session info, include = FALSE}
+
+# Session info
+
+utils::sessionInfo()
+
+```

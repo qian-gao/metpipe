@@ -17,12 +17,10 @@ Imports:
     ggsci,
     grid,
     htmltools,
-    laeken,
     openxlsx,
     plotly,
     readxl,
     reshape2,
     scales,
     stringi,
-    tidyr,
-    VIM
+    tidyr

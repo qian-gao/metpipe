@@ -15,6 +15,7 @@ devtools::document()
 remotes::install_github("https://github.com/qian-gao/metpipe",
                          auth_token = "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")
 
+library(metpipe)
 ### function description
 
 #' @title overview_tab
