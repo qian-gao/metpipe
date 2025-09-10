@@ -37,7 +37,7 @@ run_import_peaktable <-
     
     datalist <- list()
     
-    if (!is.null(peaktable_pos)){
+    if (file.exists(peaktable_pos)){
       datalist$pos <- 
         import_peaktable(
           peaktable = peaktable_pos,
@@ -55,7 +55,7 @@ run_import_peaktable <-
       datalist$pos <- NULL
     }
     
-    if (!is.null(peaktable_neg)){
+    if (file.exists(peaktable_neg)){
       datalist$neg <- 
         import_peaktable(
           peaktable = peaktable_neg,
