@@ -24,6 +24,7 @@ clean_peaktable <-
     rsd.filter = NULL,      
     rt.range = NULL, 
     filter_by_missing_feature_pct = NULL,
+    filter_by_missing_sample_type = "Sample",
     
     # Outliers
     outliers.sample = NULL,
@@ -72,7 +73,7 @@ clean_peaktable <-
     }
     
     # Filter based on missings
-    sample.index <- meta$Sample.type == "Sample"
+    sample.index <- meta$Sample.type == filter_by_missing_sample_type
     
     feature_filter <- 
       filter_by_missing( subset(peaks.filtered, select = -c(rt, mz, Identity))[, sample.index], 
@@ -88,7 +89,7 @@ clean_peaktable <-
     
     ## IS
     if (nrow(peaks.is > 0)){
-      sample.index <- meta$Sample.type == "Sample"
+      sample.index <- meta$Sample.type == filter_by_missing_sample_type
       
       cat("IS: ")
       feature_filter.is <- 

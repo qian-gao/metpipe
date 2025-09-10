@@ -76,17 +76,22 @@ import_peaktable <-
     }
     
     if (!is.null(meta)){
-    
-      file <- 
-        readxl::read_excel(meta) %>%
-        mutate(across(where(is.character), stringr::str_trim)) %>% 
-        group_by(Sample) %>% 
-        mutate(n = n(),
-               Sample = ifelse(n > 1, 
-                               paste0(Sample, "-", row_number()),
-                               Sample)) %>%
-        ungroup() %>% 
-        select(-n)
+      if (!is.data.frame(meta)){
+        file <- 
+          readxl::read_excel(meta)
+      } else {
+        file <- meta
+      }
+        file <- 
+          file %>%
+          mutate(across(where(is.character), stringr::str_trim)) %>% 
+          group_by(Sample) %>% 
+          mutate(n = n(),
+                 Sample = ifelse(n > 1, 
+                                 paste0(Sample, "-", row_number()),
+                                 Sample)) %>%
+          ungroup() %>% 
+          select(-n)
         
       
     } else if (standerdized.name) {

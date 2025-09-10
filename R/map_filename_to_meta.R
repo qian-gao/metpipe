@@ -1,0 +1,54 @@
+#' Map file names to meta
+#'
+#' @param raw_files 
+#'
+#' @returns
+#' @export
+#' 
+#' @import stringr dplyr
+#' @examples
+map_filename_to_meta <- 
+  function(raw_files){
+    
+    File.name <- basename(raw_files)
+    Run.order <- as.numeric(gsub(".d", "", str_extract(File.name, "[0-9]+.d$")))
+    
+    file <-
+      data.frame(
+        File.name,
+        stringr::str_split_fixed(
+          string = File.name,
+          pattern = "_",
+          n = Inf
+        )[, c(1:3, 5, 6, 7)],
+        Run.order,
+        stringsAsFactors = FALSE
+      )
+    
+    colnames(file) <-
+      c("File.name", "Project", "Method", "Date", "Sample", "Extract.rep", "Tech.rep" , "Run.order")
+    
+    file <- 
+      file %>% 
+      mutate(Sample.type = case_when(grepl("_PO[0-9]+_|_PO_", File.name) ~ "PO",
+                                     grepl("_NIST[0-9]+_|_NIST_", File.name) ~ "NIST",
+                                     grepl("_BL[0-9]+_|_BL_", File.name) ~ "BL",
+                                     grepl("_CP[0-9]+_|_CP_", File.name) ~ "CP",
+                                     TRUE ~ "Sample"),
+             Sample.seq = row_number(),
+             Sample = paste0(Sample, "_", Extract.rep),
+             Run.order = dense_rank(Run.order)) %>% 
+      arrange(Run.order) %>% 
+      mutate(Sample.batch = paste0("Batch ", row_number() %/% 100 + 1)) %>% 
+      arrange(Sample.seq) %>% 
+      group_by(Sample) %>% 
+      mutate(n = n(),
+             Sample = ifelse(n > 1, 
+                             paste0(Sample, "-", row_number()),
+                             Sample)) %>%
+      ungroup() %>% 
+      select(-n) 
+    
+    return(file)
+    
+  }
