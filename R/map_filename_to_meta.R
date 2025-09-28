@@ -34,6 +34,8 @@ map_filename_to_meta <-
                                      grepl("_NIST[0-9]+_|_NIST_", File.name) ~ "NIST",
                                      grepl("_BL[0-9]+_|_BL_", File.name) ~ "BL",
                                      grepl("_CP[0-9]+_|_CP_", File.name) ~ "CP",
+                                     grepl("_POJ[0-9]+_|_POJ_", File.name) ~ "Sample",
+                                     grepl("_POK[0-9]+_|_POK_", File.name) ~ "POK",   
                                      TRUE ~ "Sample"),
              Sample.seq = row_number(),
              Sample = paste0(Sample, "_", Extract.rep),
