@@ -30,12 +30,12 @@ map_filename_to_meta <-
     
     file <- 
       file %>% 
-      mutate(Sample.type = case_when(grepl("_PO[0-9]+_|_PO_", File.name) ~ "PO",
-                                     grepl("_NIST[0-9]+_|_NIST_", File.name) ~ "NIST",
-                                     grepl("_BL[0-9]+_|_BL_", File.name) ~ "BL",
-                                     grepl("_CP[0-9]+_|_CP_", File.name) ~ "CP",
-                                     grepl("_POJ[0-9]+_|_POJ_", File.name) ~ "Sample",
-                                     grepl("_POK[0-9]+_|_POK_", File.name) ~ "POK",   
+      mutate(Sample.type = case_when(grepl("_PO[0-9]+_|_PO_|_POP[0-9]+_", File.name) ~ "PO",
+                                     grepl("_NIST[0-9]+_|_NIST_|_NISTP[0-9]+_", File.name) ~ "NIST",
+                                     grepl("_BL[0-9]+_|_BL_|_BLP[0-9]+_", File.name) ~ "BL",
+                                     grepl("_CP[0-9]+_|_CP_|_CPP[0-9]+_", File.name) ~ "CP",
+                                     grepl("_POJ[0-9]+_|_POJ_|_POJP[0-9]+_", File.name) ~ "Sample",
+                                     grepl("_POK[0-9]+_|_POK_|_POKP[0-9]+_", File.name) ~ "POK",   
                                      TRUE ~ "Sample"),
              Sample.seq = row_number(),
              Sample = paste0(Sample, "_", Extract.rep),
