@@ -29,7 +29,7 @@ if( length(new.pkgs.from.bioc) ) {
   
 }
 
-devtools::install_github("https://github.com/qian-gao/metpipe", 
+remotes::install_github("https://github.com/qian-gao/metpipe", 
                          auth_token = "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")
 
 
