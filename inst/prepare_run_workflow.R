@@ -25,21 +25,16 @@ path_result <- dplyr::coalesce(get_arg("--result"), defaults$path_result)
 path_yaml <- dplyr::coalesce(get_arg("--yaml"), defaults$path_yaml)
 
 # Prepare workflow
-# Configuration
-if (!dir.exists(path_result)) dir.create(path_result)
+prepare_workflow <- system.file("prepare_workflow.R", package = "metpipe")
 
-rmarkdown::render(
-  input = path_yaml,
-  #input = paste0(path_workflow, "/scripts/prep_yaml.Rmd"),
-  params = list(path_raw = path_raw,
-                path_result = path_result,
-                path_workflow = path_workflow,
-                path_mzmine = path_mzmine,
-                path_temp = path_temp),
-  intermediates_dir = path_temp,
-  output_file = paste0(path_result, "/generate_yml_", Sys.Date(), ".html")
-)
-
+system(paste0('Rscript ', prepare_workflow, 
+              ' --raw ', path_raw, 
+              ' --temp ', path_temp,
+              ' --workflow ', path_workflow,
+              ' --mzmine ', path_mzmine,
+              ' --result ', path_result,
+              ' --yaml ', path_yaml
+))
 
 # Run workflow
 config_file <- paste0(path_result, "/config.yml")
