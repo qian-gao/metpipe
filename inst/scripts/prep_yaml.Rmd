@@ -173,7 +173,8 @@ path_lib_neg <- ifelse(!is.na(method$path_lib_neg), paste0(path_workflow, method
 sepectral_lib <- strsplit(method$path_spectral, "|", fixed = TRUE)[[1]]
 path_spectral_lib <- paste0(path_workflow, sepectral_lib)
 mzmine_user <- paste0(path_workflow, "/parameters/qiangao.mzuser")
-
+mzmine_memory <- "-memory none"
+mzmine_threads <- "-threads auto"
 ```
 
 # QC
@@ -258,6 +259,8 @@ config <- list(
   figure_height = figure_height,
   figure_width = figure_width,
   mzmine_user = mzmine_user,
+  mzmine_memory = mzmine_memory,
+  mzmine_threads = mzmine_threads,
   mean.filter = mean.filter,
   rsd.filter = rsd.filter,
   rt.range = rt.range,

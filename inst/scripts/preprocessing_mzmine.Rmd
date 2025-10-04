@@ -92,7 +92,8 @@ path_lib_istd_neg = config$path_lib_istd_neg
 sepectral_lib = config$sepectral_lib
 path_spectral_lib = config$path_spectral_lib
 mzmine_user = config$mzmine_user
-
+mzmine_memory <- config$mzmine_memory
+mzmine_threads <- config$mzmine_threads
 # output
 mzmine_peaktable_pos <- config$mzmine_peaktable_pos
 mzmine_peaktable_neg <- config$mzmine_peaktable_neg
@@ -171,16 +172,22 @@ if (!file.exists(mzmine_peaktable_pos)){
            ' -user ', mzmine_user,
            ' -batch ', param_file,
            ' -output ', path_output,
+           ' ', mzmine_memory,
+           ' ', mzmine_threads,
            ' -temp ', path_temp))
   } else {
     system(paste0(path_mzmine,
            ' -user ', mzmine_user, 
            ' -batch ', param_file,
            ' -output ', path_output,
-           ' -memory all',
+           ' ', mzmine_memory,
+           ' ', mzmine_threads,
            ' -temp ', path_temp))  
   }
+} else {
+  cat('raw neg is already preprocessed, skipped this step.')
 }
+
 ```
 
 ## Negative
@@ -226,16 +233,22 @@ if (!file.exists(mzmine_peaktable_neg)){
            ' -user ', mzmine_user,
            ' -batch ', param_file,
            ' -output ', path_output,
+           ' ', mzmine_memory,
+           ' ', mzmine_threads,
            ' -temp ', path_temp))
   } else {
     system(paste0(path_mzmine,
            ' -user ', mzmine_user, 
            ' -batch ', param_file,
            ' -output ', path_output,
-           ' -memory all',
+           ' ', mzmine_memory,
+           ' ', mzmine_threads,
            ' -temp ', path_temp))  
   }
+} else {
+  cat('raw neg is already preprocessed, skipped this step.')
 }
+
 ```
 
 ```{r SessionInfo, include = FALSE}
