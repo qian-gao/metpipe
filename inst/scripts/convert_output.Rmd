@@ -14,8 +14,7 @@ output:
     df_print: paged
 
 params:
-  raw_dir: ""
-  result_dir: ""
+  config: ""
 ---
 <style type="text/css">
 body{
@@ -59,6 +58,7 @@ pre { /* Code block - determines code spacing between lines */
 
 ```{r setup environment, include = FALSE}
 
+library(yaml)
 library(dplyr)
 library(openxlsx)
 
@@ -71,23 +71,25 @@ knitr::opts_chunk$set(
 
 ```
 
-```{r pipeline input}
+```{r pipeline input, include = FALSE}
 
-path_result <- params$result_dir
+config <- read_yaml(params$config)
 
+run.pos = config$run.pos
+run.neg = config$run.neg
+mzmine_peaktable_pos <- config$mzmine_peaktable_pos
+mzmine_peaktable_neg <- config$mzmine_peaktable_neg
+
+# output
+path_peaktable_pos <- config$path_peaktable_pos
+path_peaktable_neg <- config$path_peaktable_neg
+path_peaktable_istd_pos <- config$path_peaktable_istd_pos
+path_peaktable_istd_neg <- config$path_peaktable_istd_neg
+  
 ```
 
 # Convert output
 ```{r}
-run.pos <- FALSE
-run.neg <- FALSE
-
-path_peaktable_pos <- paste0(path_result, "/pos/pos_full_feature_table.csv")
-path_peaktable_neg <- paste0(path_result, "/neg/neg_full_feature_table.csv")
-
-if (!is.null(path_peaktable_pos)) {run.pos <- TRUE}
-
-if (!is.null(path_peaktable_neg)) {run.neg <- TRUE}
 
 cols_to_save <- 
   c("id", "mz", "rt", "ccs", 
@@ -103,7 +105,7 @@ colnames(df_temp) <- cols_to_save
 ## Positive
 ```{r, eval = run.pos}
 
-path_peaktable <- path_peaktable_pos
+path_peaktable <- mzmine_peaktable_pos
 mode <- "pos"
 
 raw <- 
@@ -147,7 +149,7 @@ names(peaks) <- gsub("datafile.|.area", "", names(peaks))
 
 peaktable <- cbind(features, peaks)
 
-file_name <- paste0(path_result, "/peaktable_", mode, ".xlsx")
+file_name <- path_peaktable_pos
 write.xlsx(peaktable, file = file_name)
 
 cat("Converted peaktable is stored in: \n")
@@ -169,7 +171,7 @@ peaks_istd <- raw[row_index, (sample_index & (mz_index | rt_index | area_index))
 
 peaktable_istd <- cbind(features_istd, peaks_istd)
 
-file_name <- paste0(path_result, "/peaktable_istd_", mode, ".xlsx")
+file_name <- path_peaktable_istd_pos
 write.xlsx(peaktable_istd, file = file_name)
 
 cat("Converted peaktable istd is stored in: \n")
@@ -179,7 +181,7 @@ cat(file_name, "\n")
 ## Negative
 ```{r, eval = run.neg}
 
-path_peaktable <- path_peaktable_neg
+path_peaktable <- mzmine_peaktable_neg
 mode <- "neg"
 
 raw <- 
@@ -223,7 +225,7 @@ names(peaks) <- gsub("datafile.|.area", "", names(peaks))
 
 peaktable <- cbind(features, peaks)
 
-file_name <- paste0(path_result, "/peaktable_", mode, ".xlsx")
+file_name <- path_peaktable_neg
 write.xlsx(peaktable, file = file_name)
 
 cat("Converted peaktable is stored in: \n")
@@ -245,7 +247,7 @@ peaks_istd <- raw[row_index, (sample_index & (mz_index | rt_index | area_index))
 
 peaktable_istd <- cbind(features_istd, peaks_istd)
 
-file_name <- paste0(path_result, "/peaktable_istd_", mode, ".xlsx")
+file_name <- path_peaktable_istd_neg
 write.xlsx(peaktable_istd, file = file_name)
 
 cat("Converted peaktable istd is stored in: \n")

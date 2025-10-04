@@ -14,7 +14,7 @@ output:
     df_print: paged
 
 params:
-  result_dir: ""
+  config: ""
 ---
 <style type="text/css">
 body{
@@ -72,21 +72,23 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r pipeline input}
+```{r pipeline input, include = FALSE}
 
-path_result <- params$result_dir
+config <- read_yaml(params$config)
+
+rds_datalist <- config$rds_datalist
 
 ```
 
 
 ```{r}
 
-datalist <- readRDS(paste0(path_result, "/datalist.rds"))
+datalist <- readRDS(rds_datalist)
 
 run.clean.pos <- !is.null(datalist$pos$peaks_cleaned)
 run.clean.neg <- !is.null(datalist$neg$peaks_cleaned)
-run.istd.pos <- !is.null("IS" %in% datalist$pos$features_cleaned$Feature_type)
-run.istd.neg <- !is.null("IS" %in% datalist$neg$features_cleaned$Feature_type)
+run.istd.pos <- "IS" %in% datalist$pos$features_cleaned$Feature_type
+run.istd.neg <- "IS" %in% datalist$neg$features_cleaned$Feature_type
 run.norm.pos <- !is.null(datalist$pos$peaks_norm)
 run.norm.neg <- !is.null(datalist$neg$peaks_norm)
 ```

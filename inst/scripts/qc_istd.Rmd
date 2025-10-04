@@ -14,9 +14,7 @@ output:
     df_print: paged
 
 params:
-  raw_dir: ""
-  result_dir: ""
-  workflow_dir: ""
+  config: ""
 ---
 <style type="text/css">
 body{
@@ -78,60 +76,56 @@ knitr::opts_chunk$set(
 
 ```
 
-```{r pipeline input}
+```{r pipeline input, include = FALSE}
 
-path_result <- params$result_dir
-path_workflow <- params$workflow_dir
+config <- read_yaml(params$config)
+
+method_name = config$method_name
+path_lib_istd_pos = config$path_lib_istd_pos
+path_lib_istd_neg = config$path_lib_istd_neg
+run.pos = config$run.pos
+run.neg = config$run.neg
+meta_pos = data.frame(config$meta_pos)
+meta_neg = data.frame(config$meta_neg)
+figure_height = config$figure_height
+figure_width = config$figure_width
+path_peaktable_istd_pos <- config$path_peaktable_istd_pos
+path_peaktable_istd_neg <- config$path_peaktable_istd_neg
+
+# output
+rds_qc_is_pos <- config$rds_qc_is_pos
+rds_qc_is_neg <- config$rds_qc_is_neg
 
 ```
 
 # Method configuration
 ```{r}
-method_all <- readRDS(paste0(path_workflow, "/parameters/method_configuration.rds"))
 
-fname <- basename(path_result)
-matrix_i <- strsplit(fname, "_")[[1]][1]
-assay_i <- strsplit(fname, "_")[[1]][2]
-analysis_i <- strsplit(fname, "_")[[1]][3]
-
-method <- subset(method_all, assay == assay_i & analysis == analysis_i)
-
-path_lib_pos <- paste0(path_workflow, method$path_lib_istd_pos)
-path_lib_neg <- paste0(path_workflow, method$path_lib_istd_neg)
-
-cat("Method name: ", fname, "\n")
+cat("Method name: ", method_name, "\n")
 cat("Internal standard libraries used for QC: \n")
-cat(path_lib_pos, "\n")
-cat(path_lib_neg, "\n")
+cat(path_lib_istd_pos, "\n")
+cat(path_lib_istd_neg, "\n")
+
 ```
 
 # Data import
 ```{r}
 
-dir.create(paste0(path_result, "/data"))
-
-peaktable_pos = paste0(path_result, "/peaktable_istd_pos.xlsx")
-peaktable_neg = paste0(path_result, "/peaktable_istd_neg.xlsx")
+peaktable_pos = path_peaktable_istd_pos
+peaktable_neg = path_peaktable_istd_neg
     
-
-figure_height = 800
-figure_width = 1000
-
-run.pos <- file.exists(peaktable_pos)
-run.neg <- file.exists(peaktable_neg)
-
 reference.type <- "reference"
 
 cat("Peaktable istd used for QC are: \n")
-cat(peaktable_pos, "\n")
-cat(peaktable_neg, "\n")
+if (run.pos) cat(peaktable_pos, "\n")
+if (run.neg) cat(peaktable_neg, "\n")
 ```
 
 # Positive mode {.tabset .tabset-pills}
 ```{r, eval = run.pos}
 
 path_peaktable <- peaktable_pos
-path_lib_is <- path_lib_pos
+path_lib_is <- path_lib_istd_pos
 
 lib.is <- 
   read.table(path_lib_is, sep = ";", header = TRUE) %>% 
@@ -165,15 +159,9 @@ df_area <-
 
 df_qc <- 
   cbind(df_mz, df_rt[, "file.rt"], df_area[, "file.area"]) %>% 
-  mutate(File.name = gsub("datafile.|.mz|.rt|.area", "", File.name),
-         Sample.type = case_when(grepl("_PO[0-9]+_|_PO_", File.name) ~ "PO",
-                                       grepl("_NIST[0-9]+_|_NIST_", File.name) ~ "NIST",
-                                       grepl("_BL[0-9]+_|_BL_", File.name) ~ "BL",
-                                       grepl("_CP[0-9]+_|_CP_", File.name) ~ "CP",
-                                       TRUE ~ "Sample"),
-         Run.order.orig = as.numeric(gsub(".d", "", str_extract(File.name, "[0-9]+.d$"))),
-         Run.order = dense_rank(Run.order.orig))
-  
+  mutate(File.name = gsub("datafile.|.mz|.rt|.area", "", File.name)) %>% 
+  left_join(meta_pos %>% mutate(File.name = make.names(File.name)),
+            by = "File.name")
 
 # Remove not detected IS
 # data.plot <-
@@ -218,7 +206,7 @@ if (reference.type == "reference") {
 
 ```
 
-```{r evaluation pos, include = FALSE, eval = run.pos}
+```{r evaluation pos, eval = run.pos}
 
 plt <- create_qc(sampled_data = combined_file,
                  figure_height = figure_height,
@@ -237,7 +225,7 @@ qc_is_pos <- list(combined_file = combined_file,
                   plt = plt,
                   summary = summary)
 
-saveRDS(qc_is_pos, file = paste0(path_result, "/data/QC_IS_pos.rds"))
+saveRDS(qc_is_pos, file = rds_qc_is_pos)
 ```
 
 ## Overall
@@ -343,7 +331,7 @@ subplot(p1, p2, nrows = 1, margin = 0.04, titleX = TRUE, titleY = TRUE, shareY =
 ```{r, eval = run.neg}
 
 path_peaktable <- peaktable_neg
-path_lib_is <- path_lib_neg
+path_lib_is <- path_lib_istd_neg
 
 lib.is <- 
   read.table(path_lib_is, sep = ";", header = TRUE) %>% 
@@ -377,14 +365,9 @@ df_area <-
 
 df_qc <- 
   cbind(df_mz, df_rt[, "file.rt"], df_area[, "file.area"]) %>% 
-  mutate(File.name = gsub("datafile.|.mz|.rt|.area", "", File.name),
-         Sample.type = case_when(grepl("_PO[0-9]+_|_PO_", File.name) ~ "PO",
-                                       grepl("_NIST[0-9]+_|_NIST_", File.name) ~ "NIST",
-                                       grepl("_BL[0-9]+_|_BL_", File.name) ~ "BL",
-                                       grepl("_CP[0-9]+_|_CP_", File.name) ~ "CP",
-                                       TRUE ~ "Sample"),
-         Run.order.orig = as.numeric(gsub(".d", "", str_extract(File.name, "[0-9]+.d$"))),
-         Run.order = dense_rank(Run.order.orig))
+  mutate(File.name = gsub("datafile.|.mz|.rt|.area", "", File.name)) %>% 
+  left_join(meta_neg %>% mutate(File.name = make.names(File.name)),
+            by = "File.name")
   
 
 # Remove not detected IS
@@ -431,7 +414,7 @@ if (reference.type == "reference") {
 
 ```
 
-```{r evaluation neg, include = FALSE, eval = run.neg}
+```{r evaluation neg, eval = run.neg}
 
 plt <- create_qc(sampled_data = combined_file,
                  figure_height = figure_height,
@@ -446,11 +429,11 @@ summary <-
   relocate(rt.diff, .after = median.rt) %>% 
   relocate(mz.diff, .after = median.mz)
 
-qc_is_pos <- list(combined_file = combined_file,
+qc_is_neg <- list(combined_file = combined_file,
                   plt = plt,
                   summary = summary)
 
-saveRDS(qc_is_pos, file = paste0(path_result, "/data/QC_IS_pos.rds"))
+saveRDS(qc_is_neg, file = rds_qc_is_neg)
 ```
 
 ## Overall
