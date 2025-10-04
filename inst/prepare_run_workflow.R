@@ -27,13 +27,13 @@ path_yaml <- dplyr::coalesce(get_arg("--yaml"), defaults$path_yaml)
 # Prepare workflow
 prepare_workflow <- system.file("prepare_workflow.R", package = "metpipe")
 
-system(paste0("Rscript ", prepare_workflow, 
-              " --raw ", path_raw, 
-              " --temp ", path_temp
-              # " --workflow ", path_workflow,
-              # " --mzmine ", path_mzmine,
-              # " --result ", path_result,
-              # " --yaml ", path_yaml
+system(paste0('Rscript ', prepare_workflow, 
+              ' --raw ', path_raw, 
+              ' --temp ', path_temp,
+              ' --workflow ', path_workflow,
+              ' --mzmine ', path_mzmine,
+              ' --result ', path_result,
+              ' --yaml ', path_yaml
 ))
 
 # Run workflow
