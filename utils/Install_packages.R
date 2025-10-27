@@ -29,8 +29,8 @@ if( length(new.pkgs.from.bioc) ) {
   
 }
 
-remotes::install_github("https://github.com/qian-gao/metpipe", 
-                         auth_token = "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")
+remotes::install_github("https://github.com/qian-gao/metpipe",
+                        auth_token = "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")
 
 
 install.packages("C:/Users/zfj107/Downloads/ggrepel_0.9.2.tar.gz", repos = NULL, type="source")
