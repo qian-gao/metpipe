@@ -27,7 +27,7 @@ create_qc <-
     # }
 
     plt <- htmltools::tagList()
-    plt[[1]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, file.rt, color = ISTD, text = File.name)) +
+    plt[[1]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, file.rt, color = ISTD, text = Sample)) +
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
@@ -40,7 +40,7 @@ create_qc <-
                                    , width = figure_width, height = figure_height
     ))
 
-    plt[[2]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, rt.dev, color = ISTD, text = File.name)) +
+    plt[[2]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, rt.dev, color = ISTD, text = Sample)) +
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
@@ -54,7 +54,7 @@ create_qc <-
     ))
     plt[[2]] <- style(plt[[2]], showlegend = FALSE)
 
-    plt[[3]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, mz, color = ISTD, text = File.name)) +
+    plt[[3]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, mz, color = ISTD, text = Sample)) +
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
@@ -67,7 +67,7 @@ create_qc <-
                                    , width = figure_width, height = figure_height
     ))
 
-    plt[[4]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, mz.dev, color = ISTD, text = File.name)) +
+    plt[[4]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, mz.dev, color = ISTD, text = Sample)) +
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
@@ -81,7 +81,7 @@ create_qc <-
     ))
     plt[[4]] <- style(plt[[4]], showlegend = FALSE)
 
-    plt[[5]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, file.area, color = ISTD, text = File.name)) +
+    plt[[5]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, file.area, color = ISTD, text = Sample)) +
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
@@ -94,13 +94,13 @@ create_qc <-
                                    , width = figure_width, height = figure_height
     ))
 
-    plt[[6]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, Intensity.dev, color = ISTD, text = File.name)) +
+    plt[[6]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, Intensity.dev, color = ISTD, text = Sample)) +
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
                                      labs(#title = "Peak area deviation as a Function of Running Time",
                                        x = "Running order",
-                                       y = "Deviation: Peak area (%)",
+                                       y = "Deviation: Peak area (SD)",
                                        color = "", shape ="") +
                                      scale_x_continuous(limits = c(0, sample_nr)) #, breaks = integer_breaks(sample_nr))
 

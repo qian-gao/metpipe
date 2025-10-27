@@ -13,12 +13,12 @@ output:
     number_sections: true
     df_print: paged
 
-params:
-  path_raw: ""
-  path_result: ""
-  path_workflow: ""
-  path_mzmine: ""
-  path_temp: ""
+# params:
+#   path_raw: ""
+#   path_result: ""
+#   path_workflow: ""
+#   path_mzmine: ""
+#   path_temp: ""
 ---
 <style type="text/css">
 body{
@@ -77,6 +77,20 @@ knitr::opts_chunk$set(
 # Global input
 ```{r}
 
+# path_raw = "F:/Projects/MP207/raw/ME_LIPL_FDDA"
+# path_result = "F:/Projects/MP207/peaktable/ME_LIPL_FDDA"
+path_raw = "F:/Projects/MP207/raw/ME_zHILIC_FDDA"
+path_result = "F:/Projects/MP207/peaktable/ME_zHILIC_FDDA"
+path_workflow = "E:/Qian/workflow"
+path_mzmine = "E:/Qian/workflow/mzmine_windows/mzmine_console.exe"
+path_temp = "F:/Temp"
+
+if (!dir.exists(path_result)) dir.create(path_result)
+
+```
+
+```{r, eval = FALSE}
+
 path_raw = params$path_raw
 path_result = params$path_result
 path_workflow = params$path_workflow
@@ -114,48 +128,15 @@ meta_neg <- NULL
 if (dir.exists(path_files_pos)){
   run.pos <- TRUE
   raw_files_pos <- list.files(path_files_pos, full.names = TRUE, pattern = ".d$")
-  meta_pos <- 
-    metpipe::map_filename_to_meta(raw_files_pos) 
-  
-  if (grepl("DDA", method_name)){
-    meta_pos <- 
-      meta_pos %>% 
-      mutate(Sample.type = ifelse(grepl("PASEF", Method), paste0(Sample.type, "_MS2"), Sample.type))
-  }
-  
-  meta_pos <-
-    meta_pos %>% 
-    mutate(Sample = paste0(Sample.type, "_", Extract.rep)) %>% 
-    arrange(Sample.seq) %>% 
-    group_by(Sample) %>% 
-    mutate(n = n(), 
-           Sample = ifelse(n > 1, paste0(Sample, "-", row_number()), Sample)) %>% 
-    ungroup() %>% 
-    select(-n)
-  
+  meta_pos <- map_standard_name_to_meta(raw_files_pos)
+    #metpipe::map_standard_name_to_meta(raw_files_pos) 
 }
 
 if (dir.exists(path_files_neg)){
   run.neg <- TRUE
   raw_files_neg <- list.files(path_files_neg, full.names = TRUE, pattern = ".d$")
-  meta_neg <- 
-    metpipe::map_filename_to_meta(raw_files_neg) 
-  
-  if (grepl("DDA", method_name)){
-    meta_neg <- 
-      meta_neg %>% 
-      mutate(Sample.type = ifelse(grepl("PASEF", Method), paste0(Sample.type, "_MS2"), Sample.type))
-  }
-  
-  meta_neg <-
-    meta_neg %>%
-    mutate(Sample = paste0(Sample.type, "_", Extract.rep)) %>% 
-    arrange(Sample.seq) %>% 
-    group_by(Sample) %>% 
-    mutate(n = n(), 
-           Sample = ifelse(n > 1, paste0(Sample, "-", row_number()), Sample)) %>% 
-    ungroup() %>% 
-    select(-n)
+  meta_neg <- map_standard_name_to_meta(raw_files_neg)
+    #metpipe::map_standard_name_to_meta(raw_files_neg) 
 }
 
 
@@ -168,8 +149,8 @@ if (dir.exists(path_files_neg)){
 mzmine_params <- paste0(path_workflow, method$mzmine_params)
 path_lib_istd_pos <- ifelse(!is.na(method$path_lib_istd_pos), paste0(path_workflow, method$path_lib_istd_pos), NA)
 path_lib_istd_neg <- ifelse(!is.na(method$path_lib_istd_neg), paste0(path_workflow, method$path_lib_istd_neg), NA)
-path_lib_pos <- ifelse(!is.na(method$path_lib_pos), paste0(path_workflow, method$path_lib_pos), NA)
-path_lib_neg <- ifelse(!is.na(method$path_lib_neg), paste0(path_workflow, method$path_lib_neg), NA)
+# path_lib_pos <- ifelse(!is.na(method$path_lib_pos), paste0(path_workflow, method$path_lib_pos), NA)
+# path_lib_neg <- ifelse(!is.na(method$path_lib_neg), paste0(path_workflow, method$path_lib_neg), NA)
 spectral_lib <- strsplit(method$path_spectral, "|", fixed = TRUE)[[1]]
 path_spectral_lib <- paste0(path_workflow, spectral_lib)
 mzmine_user <- paste0(path_workflow, "/parameters/qiangao.mzuser")
@@ -188,13 +169,14 @@ figure_width = 1000
 ## Clean peaktable
 ```{r}
 
-mean.filter <- list(c( 2, "BL", "<", "NIST"),
-                   c( 1, "Sample", ">", 100))
-rsd.filter <- list(c(1, "NIST", "<", 0.5))
+mean.filter <- list(c( 2, "BL", "<", "PO"),
+                   c( 1, "Sample", ">", 500))
+rsd.filter <- list(c(1, "PO", "<", 0.3))
 rt.range <- c(0, 30)
-filter_by_missing_feature_pct <- 30
+filter_by_missing_feature_pct <- 50
+filter_by_missing_sample_type <- "Sample"
 outliers.sample <- c()
-clean.po.sample.to.use <- "NIST"
+clean.po.sample.to.use <- "PO"
 
 ```
 
@@ -203,9 +185,9 @@ clean.po.sample.to.use <- "NIST"
 
 impute.method.sample <- "HF"
 impute.method.is <- "HF"
-norm.po.sample.to.use <- "CP"
-norm.method <- c("bestis", "low_cv", "sum")
-sample.type.keep <- c("NIST", "CP", "POK")
+norm.po.sample.to.use <- "PO"
+norm.method <- c("bestis", "low_cv", "sum", "median")
+sample.type.keep <- c("NIST", "PO")
 
 ```
 
@@ -213,8 +195,8 @@ sample.type.keep <- c("NIST", "CP", "POK")
 ```{r}
 
 final.norm <- "bestis"
-final.eval.sample.to.use <- "NIST"
-final.sample.type.keep <- c("Sample", "POK", "NIST")
+final.eval.sample.to.use <- "PO"
+final.sample.type.keep <- c("Sample", "PO", "NIST")
 ```
 
 ## Others
@@ -240,31 +222,23 @@ config <- list(
   path_raw = path_raw,
   path_workflow = path_workflow,
   path_mzmine = path_mzmine,
+  mzmine_threads = mzmine_threads,
   path_temp = path_temp,
   method_name = method_name,
   run.pos = run.pos,
-  raw_files_pos = raw_files_pos,
-  meta_pos = meta_pos,
-  run.neg = run.neg,
-  raw_files_neg = raw_files_neg,
-  meta_neg = meta_neg,
-  path_result = path_result,
+  run.neg = run.neg,  
+  path_result = path_result, 
   mzmine_params = mzmine_params, 
   path_lib_istd_pos = path_lib_istd_pos, 
-  path_lib_istd_neg = path_lib_istd_neg,
-  path_lib_pos = path_lib_pos,
-  path_lib_neg = path_lib_neg,
-  spectral_lib = spectral_lib,
-  path_spectral_lib = path_spectral_lib,
+  path_lib_istd_neg = path_lib_istd_neg,  
+  path_spectral_lib = path_spectral_lib,  
   figure_height = figure_height,
-  figure_width = figure_width,
-  mzmine_user = mzmine_user,
-  mzmine_memory = mzmine_memory,
-  mzmine_threads = mzmine_threads,
+  figure_width = figure_width,  
   mean.filter = mean.filter,
   rsd.filter = rsd.filter,
   rt.range = rt.range,
   filter_by_missing_feature_pct = filter_by_missing_feature_pct,
+  filter_by_missing_sample_type = filter_by_missing_sample_type,
   outliers.sample = outliers.sample,
   clean.po.sample.to.use = clean.po.sample.to.use,
   impute.method.sample = impute.method.sample,
@@ -274,8 +248,17 @@ config <- list(
   sample.type.keep = sample.type.keep,
   final.norm = final.norm,
   final.eval.sample.to.use = final.eval.sample.to.use,
-  final.sample.type.keep = final.sample.type.keep,
+  final.sample.type.keep = final.sample.type.keep,  
   
+  raw_files_pos = raw_files_pos,
+  meta_pos = meta_pos,
+  raw_files_neg = raw_files_neg,
+  meta_neg = meta_neg,
+  # path_lib_pos = path_lib_pos,
+  # path_lib_neg = path_lib_neg,
+  spectral_lib = spectral_lib,
+  mzmine_user = mzmine_user,
+  mzmine_memory = mzmine_memory,
   mzmine_peaktable_pos = mzmine_peaktable_pos,
   mzmine_peaktable_neg = mzmine_peaktable_neg,
   path_peaktable_pos = path_peaktable_pos,
@@ -293,6 +276,9 @@ cat(yaml_str)
 writeLines(yaml_str, paste0(path_result, "/config.yml"))
 ```
 
+```{r}
+
+```
 
 
 

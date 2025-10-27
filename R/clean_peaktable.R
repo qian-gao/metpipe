@@ -37,11 +37,19 @@ clean_peaktable <-
     features.all <- datalist$features
     meta <- datalist$meta
     
+    # Remove outliers
+    index <- !meta$Sample %in% outliers.sample
+    peaks.all <- peaks.all[, index]
+    meta <- meta[index, ]
+    cat("The following outliers have been removed:\n")
+    cat(outliers.sample, "\n")
+    
     data.all <- cbind(features.all[, c("rt", "mz", "Identity")], peaks.all)
     is.index <- features.all$Feature_type == "IS"
     
     peaks <- data.all[!is.index, , drop = FALSE]
     peaks.is <- data.all[is.index, , drop = FALSE]
+    cat("Detected number of features:", nrow(peaks))
     
     # Filtering based on rsd, rt, mean
     mzrt.filtered <-
@@ -130,11 +138,8 @@ clean_peaktable <-
       
     }
     
-    # Remove outliers
-    index <- !meta$Sample %in% outliers.sample
-    peaks <- rbind(peaks.filtered, peaks.is.filtered)[, index]
+    peaks <- rbind(peaks.filtered, peaks.is.filtered)
     features <- rbind(features.filtered, features.is.filtered)
-    meta <- meta[index, ]
     
     rownames(peaks) <- features$Feature_ID
     

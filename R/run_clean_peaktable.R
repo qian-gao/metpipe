@@ -21,7 +21,7 @@ run_clean_peaktable <-
     rsd.filter = NULL,      
     rt.range = NULL, 
     filter_by_missing_feature_pct = NULL,
-    
+    filter_by_missing_sample_type = NULL,
     # Outliers
     outliers.sample = NULL,
     outliers.sample.pos = NULL,
@@ -42,6 +42,7 @@ run_clean_peaktable <-
           rsd.filter = rsd.filter,      
           rt.range = rt.range, 
           filter_by_missing_feature_pct = filter_by_missing_feature_pct,
+          filter_by_missing_sample_type = filter_by_missing_sample_type,
           outliers.sample = outliers.sample.pos,
           po.sample.to.use = po.sample.to.use
         )
