@@ -109,7 +109,7 @@ path_peaktable <- mzmine_peaktable_pos
 mode <- "pos"
 
 raw <- 
-  read.table(path_peaktable, sep = ';', header = TRUE) 
+  read.csv(path_peaktable, sep = ';', header = TRUE) 
 
 raw_features <- 
   plyr::rbind.fill(df_temp, raw) %>% 
@@ -185,7 +185,7 @@ path_peaktable <- mzmine_peaktable_neg
 mode <- "neg"
 
 raw <- 
-  read.table(path_peaktable, sep = ';', header = TRUE) 
+  read.csv(path_peaktable, sep = ';', header = TRUE) 
 
 raw_features <- 
   plyr::rbind.fill(df_temp, raw) %>% 

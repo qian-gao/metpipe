@@ -66,6 +66,8 @@ library(kableExtra)
 library(tidyr)
 library(dplyr)
 library(stringr)
+library(htmltools)
+library(ggsci)
 
 knitr::opts_chunk$set(
   message = FALSE,
@@ -128,7 +130,7 @@ path_peaktable <- peaktable_pos
 path_lib_is <- path_lib_istd_pos
 
 lib.is <- 
-  read.table(path_lib_is, sep = ";", header = TRUE) %>% 
+  read.csv(path_lib_is, sep = ";", header = TRUE) %>% 
   dplyr::rename(Theoretical.mz = mz,
                 Theoretical.rt = rt,
                 Formula = formula,
@@ -177,6 +179,7 @@ combined_file <-
     median.rt        = median(file.rt,  na.rm = TRUE),
     median.mz        = median(file.mz, na.rm = TRUE),
     median.intensity = median(file.area, na.rm = TRUE),
+    sd.intensity = sd(file.area, na.rm = TRUE),
     RSD.intensity    = sd(file.area, na.rm = TRUE) / mean(file.area, na.rm = TRUE)*100) %>%
   group_by(ISTD, File.name) %>% 
   arrange(desc(median.intensity)) %>% 
@@ -192,7 +195,9 @@ if (reference.type == "reference") {
     mutate(
       rt.dev = file.rt - Theoretical.rt,
       mz.dev = (file.mz - Theoretical.mz)/Theoretical.mz*1E6,
-      Intensity.dev = (file.area - median.intensity)/median.intensity*100)
+      #Intensity.dev = (file.area - median.intensity)/median.intensity*100
+      Intensity.dev = (file.area - median.intensity)/sd.intensity
+      )
 
 } else if (reference.type == "median") {
 
@@ -201,7 +206,9 @@ if (reference.type == "reference") {
     mutate(
       rt.dev = file.rt - median.rt,
       mz.dev = (file.mz - median.mz)/median.mz*1E6,
-      Intensity.dev = (file.area - median.intensity)/median.intensity*100)
+      #Intensity.dev = (file.area - median.intensity)/median.intensity*100
+      Intensity.dev = (file.area - median.intensity)/sd.intensity
+      )
 }
 
 ```
@@ -299,6 +306,40 @@ subplot(plt[[5]], plt[[6]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TR
 
 ```
 
+```{r, eval = run.pos}
+
+istd <- unique(combined_file$ISTD)
+
+plt.int <- htmltools::tagList()
+for (i in istd) {
+  
+  data.istd.plot <- 
+    combined_file %>% 
+    filter(ISTD == i)
+  
+  if (!is.na(data.istd.plot$median.intensity[1])){
+    p <-
+      ggplot(data.istd.plot,
+             aes(x = Run.order, y = file.area, fill = Sample.type, text = Sample)) +
+      geom_col() +
+      theme(axis.title.x = element_blank(),
+            axis.text.x = element_blank(),
+            axis.ticks.x = element_blank()) +
+      labs( x = "Run.order",
+            y = "Intensity",
+            title = i) +
+      theme_bw() +
+      scale_fill_npg() 
+  
+    plt.int[[i]] <- as_widget(ggplotly(p))
+  }
+
+}
+
+plt.int
+
+```
+
 ## Shift
 ```{r, eval = run.pos, fig.width = 8, fig.height = 4}
 p1 <- 
@@ -334,11 +375,12 @@ path_peaktable <- peaktable_neg
 path_lib_is <- path_lib_istd_neg
 
 lib.is <- 
-  read.table(path_lib_is, sep = ";", header = TRUE) %>% 
+  read.csv(path_lib_is, sep = ";", header = TRUE) %>% 
   dplyr::rename(Theoretical.mz = mz,
                 Theoretical.rt = rt,
                 Formula = formula,
-                Ion = adduct)
+                Ion = adduct) %>% 
+  filter(grepl("'", Formula))
 
 peaktable.is <-
   openxlsx::read.xlsx(path_peaktable)
@@ -384,6 +426,7 @@ combined_file <-
     median.rt        = median(file.rt,  na.rm = TRUE),
     median.mz        = median(file.mz, na.rm = TRUE),
     median.intensity = median(file.area, na.rm = TRUE),
+    sd.intensity = sd(file.area, na.rm = TRUE),
     RSD.intensity    = sd(file.area, na.rm = TRUE) / mean(file.area, na.rm = TRUE)*100) %>%
   group_by(ISTD, File.name) %>% 
   arrange(desc(median.intensity)) %>% 
@@ -399,7 +442,9 @@ if (reference.type == "reference") {
     mutate(
       rt.dev = file.rt - Theoretical.rt,
       mz.dev = (file.mz - Theoretical.mz)/Theoretical.mz*1E6,
-      Intensity.dev = (file.area - median.intensity)/median.intensity*100)
+      #Intensity.dev = (file.area - median.intensity)/median.intensity*100
+      Intensity.dev = (file.area - median.intensity)/sd.intensity
+      )
 
 } else if (reference.type == "median") {
 
@@ -408,7 +453,9 @@ if (reference.type == "reference") {
     mutate(
       rt.dev = file.rt - median.rt,
       mz.dev = (file.mz - median.mz)/median.mz*1E6,
-      Intensity.dev = (file.area - median.intensity)/median.intensity*100)
+      #Intensity.dev = (file.area - median.intensity)/median.intensity*100
+      Intensity.dev = (file.area - median.intensity)/sd.intensity
+      )
 }
 
 
@@ -507,8 +554,42 @@ subplot(plt[[5]], plt[[6]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TR
 
 ```
 
+```{r, eval = run.neg}
+
+istd <- unique(combined_file$ISTD)
+
+plt.int <- htmltools::tagList()
+for (i in istd) {
+  
+  data.istd.plot <- 
+    combined_file %>% 
+    filter(ISTD == i)
+  
+  if (!is.na(data.istd.plot$median.intensity[1])){
+    p <-
+      ggplot(data.istd.plot,
+             aes(x = Run.order, y = file.area, fill = Sample.type, text = Sample)) +
+      geom_col() +
+      theme(axis.title.x = element_blank(),
+            axis.text.x = element_blank(),
+            axis.ticks.x = element_blank()) +
+      labs( x = "Run.order",
+            y = "Intensity",
+            title = i) +
+      theme_bw() +
+      scale_fill_npg() 
+  
+    plt.int[[i]] <- as_widget(ggplotly(p))
+  }
+
+}
+
+plt.int
+
+```
+
 ## Shift
-```{r, eval = run.pos, fig.width = 8, fig.height = 4}
+```{r, eval = run.neg, fig.width = 8, fig.height = 4}
 p1 <- 
   ggplot(summary) +
     geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=rt.diff), color="grey") +
@@ -534,7 +615,6 @@ p2 <-
 subplot(p1, p2, nrows = 1, margin = 0.04, titleX = TRUE, titleY = TRUE, shareY = TRUE) 
 
 ```
-
 
 ```{r session info, include = FALSE}
 

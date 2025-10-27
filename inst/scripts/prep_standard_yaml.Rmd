@@ -13,12 +13,12 @@ output:
     number_sections: true
     df_print: paged
 
-# params:
-#   path_raw: ""
-#   path_result: ""
-#   path_workflow: ""
-#   path_mzmine: ""
-#   path_temp: ""
+params:
+  path_raw: ""
+  path_result: ""
+  path_workflow: ""
+  path_mzmine: ""
+  path_temp: ""
 ---
 <style type="text/css">
 body{

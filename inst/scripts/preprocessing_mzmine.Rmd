@@ -85,8 +85,8 @@ raw_files_pos = config$raw_files_pos
 run.neg = config$run.neg
 raw_files_neg = config$raw_files_neg
 mzmine_params = config$mzmine_params 
-path_lib_pos = config$path_lib_pos
-path_lib_neg = config$path_lib_neg
+# path_lib_pos = config$path_lib_pos
+# path_lib_neg = config$path_lib_neg
 path_lib_istd_pos = config$path_lib_istd_pos
 path_lib_istd_neg = config$path_lib_istd_neg
 sepectral_lib = config$sepectral_lib
@@ -106,8 +106,8 @@ cat("Method name: ", method_name, "\n")
 cat("In house libraries used for preprocessing: \n")
 if (!is.na(path_lib_istd_pos)) cat(path_lib_istd_pos, "\n")
 if (!is.na(path_lib_istd_neg)) cat(path_lib_istd_neg, "\n")
-if (!is.na(path_lib_pos)) cat(path_lib_pos, "\n")
-if (!is.na(path_lib_neg)) cat(path_lib_neg, "\n")
+# if (!is.na(path_lib_pos)) cat(path_lib_pos, "\n")
+# if (!is.na(path_lib_neg)) cat(path_lib_neg, "\n")
 cat("Spectral libraries used for preprocessing: \n")
 cat(path_spectral_lib, "\n")
 cat("mzmine parameter file used for preprocessing: \n")
@@ -138,8 +138,9 @@ cat("Processed data in positive mode is stored in: \n")
 cat(path_output, "\n")
 
 raw_files <- raw_files_pos
-path_lib <- list(path_lib_istd_pos, path_lib_pos)
-path_lib <- path_lib[!is.na(path_lib)]
+# path_lib <- list(path_lib_istd_pos, path_lib_pos)
+# path_lib <- path_lib[!is.na(path_lib)]
+path_lib <- path_lib_istd_pos
 parameters <- read_xml(mzmine_params)
 param_file <- paste0(path_output, "/mzmine_parameters_pos.mzbatch")
 
@@ -153,9 +154,9 @@ if (!file.exists(param_file)){
   
   file_names_node <- xml_find_first(parameters, "//parameter[@name='Database file']")
   
-  for (f in path_lib) {
-    xml_add_child(file_names_node, "current_file", f)
-  }  
+  #for (f in path_lib) {
+    xml_add_child(file_names_node, "current_file", path_lib)
+  #}  
   
   file_names_node <- xml_find_first(parameters, "//parameter[@name='Spectral library files']")
   
@@ -199,8 +200,9 @@ cat("Processed data in negative mode is stored in: \n")
 cat(path_output, "\n")
 
 raw_files <- raw_files_neg
-path_lib <- list(path_lib_istd_neg, path_lib_neg)
-path_lib <- path_lib[!is.na(path_lib)]
+# path_lib <- list(path_lib_istd_neg, path_lib_neg)
+# path_lib <- path_lib[!is.na(path_lib)]
+path_lib <- path_lib_istd_neg
 parameters <- read_xml(mzmine_params)
 param_file <- paste0(path_output, "/mzmine_parameters_neg.mzbatch")
 
@@ -214,9 +216,9 @@ if (!file.exists(param_file)){
   
   file_names_node <- xml_find_first(parameters, "//parameter[@name='Database file']")
   
-  for (f in path_lib) {
-    xml_add_child(file_names_node, "current_file", f)
-  }
+  #for (f in path_lib) {
+    xml_add_child(file_names_node, "current_file", path_lib)
+  #}
   
   file_names_node <- xml_find_first(parameters, "//parameter[@name='Spectral library files']")
   

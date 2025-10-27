@@ -86,6 +86,7 @@ mean.filter = config$mean.filter
 rsd.filter = config$rsd.filter
 rt.range = config$rt.range
 filter_by_missing_feature_pct = config$filter_by_missing_feature_pct
+filter_by_missing_sample_type = config$filter_by_missing_sample_type
 outliers.sample = config$outliers.sample
 clean.po.sample.to.use = config$clean.po.sample.to.use
 impute.method.sample = config$impute.method.sample
@@ -143,6 +144,7 @@ datalist <-
     rsd.filter = rsd.filter,
     rt.range = rt.range, 
     filter_by_missing_feature_pct = filter_by_missing_feature_pct,
+    filter_by_missing_sample_type = filter_by_missing_sample_type,
     
     # Outliers
     outliers.sample = outliers.sample,

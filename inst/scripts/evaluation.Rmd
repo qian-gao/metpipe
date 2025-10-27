@@ -601,6 +601,8 @@ if (!"Metabolite.class" %in% names(features)) features$Metabolite.class <- featu
 data.plot <- data.frame(table(features$Metabolite.class))
 names(data.plot)[1] <- "Class"
 
+if (nrow(data.plot) == 0) data.plot <- data.frame(Class = NA, Freq = nrow(features))
+
 plot_ly(data.plot, labels = ~Class, values = ~Freq, type = 'pie',
                marker = list(line = list(color = '#FFFFFF', width = 1)))
 

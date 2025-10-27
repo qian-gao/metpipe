@@ -7,7 +7,8 @@ install.packages(c(
   "plotly",
   "openxlsx",
   "xml2",
-), repos = "https://cloud.r-project.org/", lib='./Rlibs')
+  "VIM"
+), repos = "https://cloud.r-project.org/")
 
 remotes::install_github("https://github.com/qian-gao/metpipe",
                          auth_token = "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")
