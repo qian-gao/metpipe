@@ -56,7 +56,7 @@ pre { /* Code block - determines code spacing between lines */
 }
 </style>
 
-```{r setup environment, include = FALSE}
+```{r setup environment, include = FALSE, warning = FALSE}
 
 library(dplyr)
 library(tibble)
@@ -72,7 +72,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r pipeline input, include = FALSE}
+```{r pipeline input}
 
 config <- read_yaml(params$config)
 

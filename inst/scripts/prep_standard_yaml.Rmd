@@ -60,7 +60,7 @@ pre { /* Code block - determines code spacing between lines */
 }
 </style>
 
-```{r setup environment, include = FALSE}
+```{r setup environment, include = FALSE, warning = FALSE}
 
 library(yaml)
 library(dplyr)
@@ -76,20 +76,6 @@ knitr::opts_chunk$set(
 
 # Global input
 ```{r}
-
-# path_raw = "F:/Projects/MP207/raw/ME_LIPL_FDDA"
-# path_result = "F:/Projects/MP207/peaktable/ME_LIPL_FDDA"
-path_raw = "F:/Projects/MP207/raw/ME_zHILIC_FDDA"
-path_result = "F:/Projects/MP207/peaktable/ME_zHILIC_FDDA"
-path_workflow = "E:/Qian/workflow"
-path_mzmine = "E:/Qian/workflow/mzmine_windows/mzmine_console.exe"
-path_temp = "F:/Temp"
-
-if (!dir.exists(path_result)) dir.create(path_result)
-
-```
-
-```{r, eval = FALSE}
 
 path_raw = params$path_raw
 path_result = params$path_result
@@ -125,18 +111,22 @@ raw_files_neg <- NULL
 meta_pos <- NULL
 meta_neg <- NULL
 
+qc_types = c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix")
+
 if (dir.exists(path_files_pos)){
   run.pos <- TRUE
   raw_files_pos <- list.files(path_files_pos, full.names = TRUE, pattern = ".d$")
-  meta_pos <- map_standard_name_to_meta(raw_files_pos)
-    #metpipe::map_standard_name_to_meta(raw_files_pos) 
+  meta_pos <- 
+    metpipe::map_standard_name_to_meta(raw_files_pos,
+                                       qc_types = qc_types) 
 }
 
 if (dir.exists(path_files_neg)){
   run.neg <- TRUE
   raw_files_neg <- list.files(path_files_neg, full.names = TRUE, pattern = ".d$")
-  meta_neg <- map_standard_name_to_meta(raw_files_neg)
-    #metpipe::map_standard_name_to_meta(raw_files_neg) 
+  meta_neg <- 
+    metpipe::map_standard_name_to_meta(raw_files_neg,
+                                       qc_types = qc_types) 
 }
 
 

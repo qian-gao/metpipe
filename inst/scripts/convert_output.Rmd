@@ -56,7 +56,7 @@ pre { /* Code block - determines code spacing between lines */
 }
 </style>
 
-```{r setup environment, include = FALSE}
+```{r setup environment, include = FALSE, warning = FALSE}
 
 library(yaml)
 library(dplyr)
