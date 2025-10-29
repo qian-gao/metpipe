@@ -115,7 +115,7 @@ qc_types = c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix")
 
 if (dir.exists(path_files_pos)){
   run.pos <- TRUE
-  raw_files_pos <- list.files(path_files_pos, full.names = TRUE, pattern = ".d$")
+  raw_files_pos <- list.files(path_files_pos, full.names = TRUE, pattern = ".d$|.mzML")
   meta_pos <- 
     metpipe::map_standard_name_to_meta(raw_files_pos,
                                        qc_types = qc_types) 
@@ -123,7 +123,7 @@ if (dir.exists(path_files_pos)){
 
 if (dir.exists(path_files_neg)){
   run.neg <- TRUE
-  raw_files_neg <- list.files(path_files_neg, full.names = TRUE, pattern = ".d$")
+  raw_files_neg <- list.files(path_files_neg, full.names = TRUE, pattern = ".d$|.mzML")
   meta_neg <- 
     metpipe::map_standard_name_to_meta(raw_files_neg,
                                        qc_types = qc_types) 

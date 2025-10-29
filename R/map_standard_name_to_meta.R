@@ -12,7 +12,7 @@ map_standard_name_to_meta <-
            qc_types = c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix")){
     
     File.name <- basename(raw_files)
-    Run.order <- as.numeric(gsub(".d", "", str_extract(File.name, "[0-9]+.d$")))
+    Run.order <- as.numeric(gsub(".d|.mzML", "", str_extract(File.name, "[0-9]+.d$|[0-9]+.mzML$")))
     
     file <-
       data.frame(
