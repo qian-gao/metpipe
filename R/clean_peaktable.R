@@ -110,11 +110,11 @@ clean_peaktable <-
       peaks.is.filtered[, sample.index] <- feature_filter.is$x
       
       features.is.filtered <- 
-        features.is.filtered[feature_filter.is$index, ]
+        features.is.filtered[feature_filter.is$index, , drop = FALSE]
     }
     
     # Remove duplicate internal standard
-    if (nrow(peaks.is > 0)){
+    if (nrow(features.is.filtered > 0)){
       
       features.is.keep <-
         features.is.filtered %>%
