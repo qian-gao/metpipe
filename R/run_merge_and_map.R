@@ -145,7 +145,8 @@ run_merge_amd_map <-
                           name_col = 4,
                           sep = ';',
                           db_file = db_file) %>% 
-      select(-Metabolite_name_original)
+      select(-Metabolite_name_original) %>% 
+      relocate(c(Identity, Identity_raw), .after = Metabolite_name)
     
     map.names <- feature.info.seq$Metabolite_name
     names(map.names) <- feature.info.seq$Identity
