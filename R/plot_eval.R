@@ -95,8 +95,13 @@ plot_eval <-
               })
     
     plt.mad.data <- 
-      data.table::rbindlist(mad, idcol = "Method") %>%
-      select( -Sample) %>%
+      data.table::rbindlist(mad, idcol = "Method") %>% 
+      as.data.frame()
+    
+    plt.mad.data <- plt.mad.data[, !colnames(plt.mad.data) %in% c("Sample"), drop = FALSE]
+    
+    plt.mad.data <- 
+      plt.mad.data %>%
       pivot_longer( -c("Method", "Identity"), names_to = "Sample.type", values_to = "MAD") %>%
       mutate(Method = factor(Method, levels = methods))
     
@@ -140,8 +145,13 @@ plot_eval <-
               })
     
     plt.var.data <- 
-      data.table::rbindlist(var, idcol = "Method") %>%
-      select( -Sample) %>%
+      data.table::rbindlist(var, idcol = "Method") %>% 
+      as.data.frame()
+    
+    plt.var.data <- plt.var.data[, !colnames(plt.var.data) %in% c("Sample"), drop = FALSE]
+    
+    plt.var.data <- 
+      plt.var.data %>%
       pivot_longer( -c("Method", "Identity"), names_to = "Sample.type", values_to = "VAR") %>%
       mutate(Method = factor(Method, levels = methods))
     
