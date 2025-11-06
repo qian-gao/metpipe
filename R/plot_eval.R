@@ -34,8 +34,12 @@ plot_eval <-
               })
     
     plt.rsd.data <- 
-      data.table::rbindlist(rsd, idcol = "Method") %>%
-      select( -Sample) %>%
+      data.table::rbindlist(rsd, idcol = "Method") 
+    
+    plt.rsd.data <- plt.rsd.data[, !colnames(plt.rsd.data) %in% c("Sample")]
+      
+    plt.rsd.data <- 
+      plt.rsd.data %>%
       pivot_longer( -c("Method", "Identity"), names_to = "Sample.type", values_to = "RSD") %>%
       mutate(RSD = RSD*100) %>%
       mutate(Method = factor(Method, levels = methods))
