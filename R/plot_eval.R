@@ -34,9 +34,10 @@ plot_eval <-
               })
     
     plt.rsd.data <- 
-      data.table::rbindlist(rsd, idcol = "Method") 
+      data.table::rbindlist(rsd, idcol = "Method") %>% 
+      as.data.frame()
     
-    plt.rsd.data <- plt.rsd.data[, !colnames(plt.rsd.data) %in% c("Sample")]
+    plt.rsd.data <- plt.rsd.data[, !colnames(plt.rsd.data) %in% c("Sample"), drop = FALSE]
       
     plt.rsd.data <- 
       plt.rsd.data %>%
