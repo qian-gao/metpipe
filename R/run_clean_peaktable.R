@@ -59,6 +59,7 @@ run_clean_peaktable <-
           rsd.filter = rsd.filter,      
           rt.range = rt.range, 
           filter_by_missing_feature_pct = filter_by_missing_feature_pct,
+          filter_by_missing_sample_type = filter_by_missing_sample_type,
           outliers.sample = outliers.sample.neg,
           po.sample.to.use = po.sample.to.use
         )

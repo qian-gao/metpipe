@@ -108,6 +108,41 @@ rds_datalist <- config$rds_datalist
 path_datatable <- config$path_datatable
 ```
 
+```{r, include = FALSE, eval = FALSE}
+
+config <- read_yaml("E:/Projects/MP0065/peaktable/PL_LIPS_PASEF/config.yml")
+
+path_workflow = config$path_workflow
+run.pos = config$run.pos
+run.neg = config$run.neg
+meta_pos = config$meta_pos
+meta_neg = config$meta_neg
+mean.filter = config$mean.filter
+rsd.filter = config$rsd.filter
+rt.range = config$rt.range
+filter_by_missing_feature_pct = config$filter_by_missing_feature_pct
+filter_by_missing_sample_type = config$filter_by_missing_sample_type
+outliers.sample = config$outliers.sample
+clean.po.sample.to.use = config$clean.po.sample.to.use
+impute.method.sample = config$impute.method.sample
+impute.method.is = config$impute.method.is
+norm.po.sample.to.use = config$norm.po.sample.to.use
+norm.method = config$norm.method
+sample.type.keep = config$sample.type.keep
+final.norm = config$final.norm
+final.eval.sample.to.use = config$final.eval.sample.to.use
+final.sample.type.keep = config$final.sample.type.keep
+
+peaktable_pos = gsub("/mnt/e", "E:", config$path_peaktable_pos)
+peaktable_neg = gsub("/mnt/e", "E:", config$path_peaktable_neg)
+meta_pos = data.frame(config$meta_pos)
+meta_neg = data.frame(config$meta_neg)
+
+# output
+rds_datalist <- config$rds_datalist
+path_datatable <- config$path_datatable
+```
+
 # Import peak table
 ```{r}
 
