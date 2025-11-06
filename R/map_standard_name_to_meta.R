@@ -48,12 +48,6 @@ map_standard_name_to_meta <-
         group_by(Sample) %>% 
         mutate(n = n(),
                Sample = ifelse(n > 1, 
-                               paste0(Sample, "_", Tech.rep),
-                               Sample)) %>%
-        ungroup() %>% 
-        group_by(Sample) %>% 
-        mutate(n = n(),
-               Sample = ifelse(n > 1, 
                                paste0(Sample, "-", row_number()),
                                Sample)) %>%
         ungroup() %>% 
@@ -74,12 +68,6 @@ map_standard_name_to_meta <-
         arrange(Run.order) %>% 
         mutate(Sample.batch = paste0("Batch ", row_number() %/% 100 + 1)) %>% 
         #arrange(Sample.seq) %>% 
-        group_by(Sample) %>% 
-        mutate(n = n(),
-               Sample = ifelse(n > 1, 
-                               paste0(Sample, "_", Tech.rep),
-                               Sample)) %>%
-        ungroup() %>% 
         group_by(Sample) %>% 
         mutate(n = n(),
                Sample = ifelse(n > 1, 
