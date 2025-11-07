@@ -88,6 +88,21 @@ path_peaktable_istd_neg <- config$path_peaktable_istd_neg
   
 ```
 
+```{r, eval = FALSE, include = FALSE}
+config <- read_yaml("E:/Projects/MP0065/peaktable/PL_LIPS_PASEF/config.yml")
+
+run.pos = config$run.pos
+run.neg = config$run.neg
+mzmine_peaktable_pos <- gsub("/mnt/e", "E:", config$mzmine_peaktable_pos)
+mzmine_peaktable_neg <- gsub("/mnt/e", "E:", config$mzmine_peaktable_neg)
+
+# output
+path_peaktable_pos <- config$path_peaktable_pos
+path_peaktable_neg <- config$path_peaktable_neg
+path_peaktable_istd_pos <- config$path_peaktable_istd_pos
+path_peaktable_istd_neg <- config$path_peaktable_istd_neg
+```
+
 # Convert output
 ```{r}
 
@@ -160,7 +175,8 @@ cat(file_name, "\n")
 ### ISTD
 ```{r, eval = run.pos}
 
-row_index <- grepl("-D[0-9]+$", features$identity)
+row_index <- grepl("'", features$formula)
+#row_index <- grepl("-D[0-9]+$", features$identity)
 sample_index <- grepl("^datafile.", colnames(raw))
 rt_index <- grepl("*.rt$", colnames(raw))
 mz_index <- grepl("*.mz$", colnames(raw))
@@ -236,7 +252,8 @@ cat(file_name, "\n")
 ### ISTD
 ```{r, eval = run.neg}
 
-row_index <- grepl("-D[0-9]+$", features$identity)
+row_index <- grepl("'", features$formula)
+#row_index <- grepl("-D[0-9]+$", features$identity)
 sample_index <- grepl("^datafile.", colnames(raw))
 rt_index <- grepl("*.rt$", colnames(raw))
 mz_index <- grepl("*.mz$", colnames(raw))
