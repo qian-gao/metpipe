@@ -63,7 +63,9 @@ import_peaktable <-
       features <- 
         features %>% 
         mutate(Feature_type = ifelse( Feature_type == "Known" & 
-                                        (grepl("^[0-9][0-9]\\.|-D[0-9]+$", substr(Identity_raw, 1, 3)) | grepl("-D[0-9]+$", Identity_raw)),
+                                        #(grepl("^[0-9][0-9]\\.|-D[0-9]+$", substr(Identity_raw, 1, 3)) | grepl("-D[0-9]+$", Identity_raw)),
+                                        (grepl("-13C[0-9]+", Identity_raw) | grepl("-13C$", Identity_raw) | 
+                                         grepl("-D[0-9]+$", Identity_raw) | grepl("-15N$", Identity_raw)),
                                       "IS",
                                       Feature_type))
     }
@@ -165,6 +167,12 @@ import_peaktable <-
         arrange(Sample.seq)
       
     }
+    
+    # Adjust sequence
+    peak_colnames <- colnames(peaks)
+    samples <- make.names(file$File.name)
+    seq <- match(samples, peak_colnames)
+    peaks <- peaks[, seq]
     
     rownames(peaks) <- features$Feature_ID
     colnames(peaks) <- file$Sample
