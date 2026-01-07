@@ -1,0 +1,145 @@
+---
+title: "Remove theoretical annotation"
+author: "CBMR Metabolomics Platform"
+date: "`r base::Sys.Date()`"
+          
+output:
+  html_document:
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: false
+    toc_depth: '3'
+    number_sections: true
+    df_print: paged
+
+params:
+  config: ""
+---
+<style type="text/css">
+body{
+  font-size: 12px;
+  }
+td {
+  font-size: 14px;
+}
+h1.title {
+  font-size: 22px;
+}
+h4.author {
+  font-size: 16px;
+}
+h4.date {
+  font-size: 16px;
+}
+
+h1 {
+  font-size: 18px;
+}
+h2 {
+  font-size: 16px;
+}
+h3 {
+  font-size: 14px;
+}
+h4 {
+  font-size: 12px;
+}
+h5 {
+  font-size: 12px;
+}
+code.r{
+  font-size: 12px;
+}
+pre { /* Code block - determines code spacing between lines */
+  font-size: 14px;
+}
+</style>
+
+```{r setup environment, include = FALSE, warning = FALSE}
+
+library(dplyr)
+library(tibble)
+library(plotly)
+library(metpipe)
+library(ggsci)
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+```
+
+```{r pipeline input}
+
+config <- read_yaml(params$config)
+
+rds_datalist <- config$rds_datalist
+path_datatable <- config$path_datatable
+
+```
+
+```{r, eval = FALSE, include = FALSE}
+rds_datalist <- "E:/Projects/MP0065/peaktable/PL_LIPS_FPASEF/datalist.rds"
+
+```
+
+```{r}
+
+datalist <- readRDS(rds_datalist)
+
+# change theoretical annotation to unknown
+sample.info <- datalist$sample.info
+feature.info <- datalist$feature.info
+datatable <- datalist$datatable
+peaks <- datatable[, (ncol(sample.info) + 1):ncol(datatable)]
+
+
+feature.info.no.theo <- 
+  feature.info %>% 
+  mutate(flag = grepl("*", Metabolite_name, fixed = TRUE),
+         Feature_type = ifelse(flag, "Unknown", Feature_type),
+         Identity = ifelse(flag, paste0("Unknown_MZ_", round(mz, 3), "_RT_", round(rt, 3)), Identity),
+         identity_source = ifelse(flag, NA, identity_source))
+
+names(peaks)[feature.info.no.theo$flag] <- feature.info.no.theo$Identity[feature.info.no.theo$flag]
+
+feature.info.no.theo <- 
+  feature.info.no.theo %>% 
+  mutate(Metabolite_name = ifelse(flag, Identity, Metabolite_name)) %>% 
+  arrange(desc(Polarity), identity_source, Metabolite_name) %>% 
+  select(-flag)
+
+peaks.new <- 
+  peaks[match(feature.info.no.theo$Metabolite_name, names(peaks))]
+
+
+datatable.new <- cbind(sample.info, peaks.new)
+
+datalist$datatable.no.theo <- datatable.new
+datalist$feature.info.no.theo <- feature.info.no.theo
+
+saveRDS(datalist, rds_datalist)
+```
+
+# Export
+```{r}
+wb <- createWorkbook()
+addWorksheet(wb, "datatable")
+writeData(wb, "datatable", datalist$datatable.no.theo)
+addWorksheet(wb, "feature.info")
+writeData(wb, "feature.info", datalist$feature.info.no.theo)
+saveWorkbook(wb, path_datatable, overwrite = TRUE)
+
+```
+
+
+```{r session info, include = FALSE}
+
+# Session info
+
+utils::sessionInfo()
+
+```
