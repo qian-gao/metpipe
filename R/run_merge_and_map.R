@@ -44,7 +44,7 @@ run_merge_amd_map <-
       feature.info <-
         feature.info.temp %>%
         group_by(Identity_raw) %>%
-        arrange(Identity_raw, Polarity, desc(get(paste0("mean.", eval.sample.to.use)))) %>%
+        arrange(Identity_raw, desc(get(paste0("mean.", eval.sample.to.use)))) %>%
         filter(row_number() == 1) %>%
         mutate(n = n(),
                Identity_clean = ifelse(n > 1, 
@@ -64,6 +64,8 @@ run_merge_amd_map <-
         inner_join(peaks.neg[, c("Sample", feature.info$Identity[feature.info$Polarity == "neg"])], 
                    by = "Sample")
       
+      datatable.keep <- datatable.keep[, c("Sample", feature.info$Identity)]
+      
       sample.info <-
         meta.pos[match(datatable.keep$Sample, meta.pos$Sample), ] %>%
         select(-c("File.name")) 
@@ -80,7 +82,7 @@ run_merge_amd_map <-
       feature.info <-
         feature.info.temp %>%
         group_by(Identity_raw) %>%
-        arrange(Identity_raw, Polarity, desc(get(paste0("mean.", eval.sample.to.use)))) %>%
+        arrange(Identity_raw, desc(get(paste0("mean.", eval.sample.to.use)))) %>%
         filter(row_number() == 1) %>%
         mutate(n = n(),
                Identity_clean = ifelse(n > 1, 
@@ -113,7 +115,7 @@ run_merge_amd_map <-
       feature.info <-
         feature.info.temp %>%
         group_by(Identity_raw) %>%
-        arrange(Identity_raw, Polarity, desc(get(paste0("mean.", eval.sample.to.use)))) %>%
+        arrange(Identity_raw, desc(get(paste0("mean.", eval.sample.to.use)))) %>%
         filter(row_number() == 1) %>%
         mutate(n = n(),
                Identity_clean = ifelse(n > 1, 

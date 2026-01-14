@@ -110,7 +110,7 @@ path_datatable <- config$path_datatable
 
 ```{r, include = FALSE, eval = FALSE}
 
-config <- read_yaml("E:/Projects/MP0065/peaktable/PL_LIPS_PASEF/config.yml")
+config <- read_yaml("D:/Projects/MP207/peaktable/ME_zHILIC_FDDA/config.yml")
 
 path_workflow = config$path_workflow
 run.pos = config$run.pos
@@ -133,8 +133,8 @@ final.norm = config$final.norm
 final.eval.sample.to.use = config$final.eval.sample.to.use
 final.sample.type.keep = config$final.sample.type.keep
 
-peaktable_pos = gsub("/mnt/e", "E:", config$path_peaktable_pos)
-peaktable_neg = gsub("/mnt/e", "E:", config$path_peaktable_neg)
+peaktable_pos = gsub("/mnt/d", "D:", config$path_peaktable_pos)
+peaktable_neg = gsub("/mnt/d", "D:", config$path_peaktable_neg)
 meta_pos = data.frame(config$meta_pos)
 meta_neg = data.frame(config$meta_neg)
 

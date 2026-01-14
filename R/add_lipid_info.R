@@ -20,8 +20,9 @@ add_lipid_info <-
            keep.lipid.orig = NULL){
     output <- 
       df %>% 
-        mutate(Identity_sum = ifelse(Feature_type == "Known", Identity_raw, NA),
-               istd = grepl("^[0-9][0-9]\\.", substr(Identity_raw, 1, 3))) %>%
+        mutate(Identity_sum = ifelse(Feature_type == "Known", Identity_raw, NA)
+               #istd = grepl("^[0-9][0-9]\\.", substr(Identity_raw, 1, 3))
+               ) %>%
           rowwise() %>%
           mutate(Note.2 = trimws(str_split(Identity_sum, "[/_]")[[1]][2]),
                  Note.3 = trimws(str_split(Identity_sum, "[/_]")[[1]][3]),
@@ -66,14 +67,17 @@ add_lipid_info <-
                                         Identity_sum),
                  Identity_sum = if_else(grepl("O ", Identity_sum),
                                         gsub("O ", "O-", Identity_sum), 
-                                        Identity_sum)
+                                        Identity_sum),
+                 Identity_sum = if_else(Feature_type != "Known", Identity_raw, Identity_sum)
                  
           ) %>%
-          select(-c(N.carbons.1, N.carbons.2, N.carbons.3, N.double.bonds.1, N.double.bonds.2, N.double.bonds.3, N.O.1, N.O.2, N.O.3)) %>%
+          select(-c(N.carbons.1, N.carbons.2, N.carbons.3, N.double.bonds.1, N.double.bonds.2, N.double.bonds.3, 
+                    N.O.1, N.O.2, N.O.3, Note.2, Note.3, N.O)) %>%
           ungroup() %>%
           group_by(Identity_sum) %>%
-          mutate(Rep = row_number(),
-                 Identity_sum = ifelse(Rep > 1, paste0(Identity_sum, "_rep", Rep), Identity_sum)) %>%
+          mutate(Rep = row_number()
+                 #Identity_sum = ifelse(Rep > 1 & Feature_type == "Known", paste0(Identity_sum, "_rep", Rep), Identity_sum)
+                 ) %>%
           ungroup()
     
     return(output)
