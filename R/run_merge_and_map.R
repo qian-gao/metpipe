@@ -45,14 +45,19 @@ run_merge_amd_map <-
         feature.info.temp %>%
         group_by(Identity_raw) %>%
         arrange(Identity_raw, desc(get(paste0("mean.", eval.sample.to.use)))) %>%
-        filter(row_number() == 1) %>%
-        mutate(n = n(),
-               Identity_clean = ifelse(n > 1, 
-                                       paste0(Identity_raw, "-iso", row_number()),
-                                       Identity_raw)) %>% 
+        mutate(first_rt = first(rt),
+               diff_to_first_rt = abs(rt - first_rt) > 0.2) %>% 
+        filter(row_number() == 1 | diff_to_first_rt == TRUE) %>% 
         ungroup() %>% 
-        select(-n) %>% 
-        relocate(Identity_clean, .before = Identity) %>% 
+        select(-c(first_rt, diff_to_first_rt)) %>% 
+        group_by(Identity_raw) %>%
+        # mutate(n = n(),
+        #        Identity_clean = ifelse(n > 1, 
+        #                                paste0(Identity_raw, "-iso", row_number()),
+        #                                Identity_raw)) %>% 
+        # ungroup() %>% 
+        # select(-n) %>% 
+        # relocate(Identity_clean, .before = Identity) %>% 
         group_by(Polarity, iin_id) %>% 
         arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
         filter(is.na(iin_id) | row_number() == 1) %>% 
@@ -83,14 +88,19 @@ run_merge_amd_map <-
         feature.info.temp %>%
         group_by(Identity_raw) %>%
         arrange(Identity_raw, desc(get(paste0("mean.", eval.sample.to.use)))) %>%
-        filter(row_number() == 1) %>%
-        mutate(n = n(),
-               Identity_clean = ifelse(n > 1, 
-                                       paste0(Identity_raw, "-iso", row_number()),
-                                       Identity_raw)) %>% 
+        mutate(first_rt = first(rt),
+               diff_to_first_rt = abs(rt - first_rt) > 0.2) %>% 
+        filter(row_number() == 1 | diff_to_first_rt == TRUE) %>% 
         ungroup() %>% 
-        select(-n) %>% 
-        relocate(Identity_clean, .before = Identity) %>% 
+        select(-c(first_rt, diff_to_first_rt)) %>% 
+        # group_by(Identity_raw) %>%
+        # mutate(n = n(),
+        #        Identity_clean = ifelse(n > 1, 
+        #                                paste0(Identity_raw, "-iso", row_number()),
+        #                                Identity_raw)) %>% 
+        # ungroup() %>% 
+        # select(-n) %>% 
+        # relocate(Identity_clean, .before = Identity) %>% 
         group_by(Polarity, iin_id) %>% 
         arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
         filter(is.na(iin_id) | row_number() == 1) %>% 
@@ -116,14 +126,19 @@ run_merge_amd_map <-
         feature.info.temp %>%
         group_by(Identity_raw) %>%
         arrange(Identity_raw, desc(get(paste0("mean.", eval.sample.to.use)))) %>%
-        filter(row_number() == 1) %>%
-        mutate(n = n(),
-               Identity_clean = ifelse(n > 1, 
-                                       paste0(Identity_raw, "-iso", row_number()),
-                                       Identity_raw)) %>% 
+        mutate(first_rt = first(rt),
+               diff_to_first_rt = abs(rt - first_rt) > 0.2) %>% 
+        filter(row_number() == 1 | diff_to_first_rt == TRUE) %>% 
         ungroup() %>% 
-        select(-n) %>% 
-        relocate(Identity_clean, .before = Identity) %>% 
+        select(-c(first_rt, diff_to_first_rt)) %>% 
+        # group_by(Identity_raw) %>%
+        # mutate(n = n(),
+        #        Identity_clean = ifelse(n > 1, 
+        #                                paste0(Identity_raw, "-iso", row_number()),
+        #                                Identity_raw)) %>% 
+        # ungroup() %>% 
+        # select(-n) %>% 
+        # relocate(Identity_clean, .before = Identity) %>% 
         group_by(Polarity, iin_id) %>% 
         arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
         filter(is.na(iin_id) | row_number() == 1) %>% 
@@ -140,15 +155,23 @@ run_merge_amd_map <-
     feature.info.seq <- 
       data.frame(Identity = names(datatable.keep)[-1]) %>% 
       left_join(feature.info, by = "Identity") %>% 
-      dplyr::rename(Formula = formula)
+      dplyr::rename(Formula = formula) %>% 
+      mutate(name_search = Identity_raw)
     
     feature.info.seq <- 
       map_metabolite_info(input_file = feature.info.seq,
-                          name_col = 4,
+                          name_col = match("name_search", names(feature.info.seq)),
                           sep = ';',
                           db_file = db_file) %>% 
       select(-Metabolite_name_original) %>% 
-      relocate(c(Identity, Identity_raw), .after = Metabolite_name)
+      relocate(c(Identity, Identity_raw), .after = Metabolite_name) %>% 
+      group_by(Identity_raw) %>% 
+      mutate(n = n(),
+             Metabolite_name = ifelse(n > 1,
+                                     paste0(Metabolite_name, "-iso", row_number()),
+                                     Metabolite_name)) %>%
+      ungroup() %>%
+      select(-n)
     
     map.names <- feature.info.seq$Metabolite_name
     names(map.names) <- feature.info.seq$Identity

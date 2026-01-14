@@ -133,7 +133,7 @@ cat(nrow(feature.info) - nrow(feature.info.clean), " features have been removed"
 
 feature.info.clean.map <- 
   map_metabolite_info(input_file = feature.info.clean,
-                      name_col = 3,
+                      name_col = match("Identity_sum", names(feature.info.clean)),
                       sep = ';',
                       db_file = paste0(path_workflow, '/library/metabolomics_workbench_refmet_20250515.csv')) %>% 
   select(-Metabolite_name_original)

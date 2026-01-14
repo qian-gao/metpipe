@@ -33,7 +33,7 @@ map_metabolite_info <-
     names(raw)[name_col] <- "Metabolite_name_original"
     
     input_names <- 
-      raw$Metabolite_name_original[!is.na(raw$Metabolite_name_original)] %>% 
+      raw$Metabolite_name_original[!is.na(raw$Metabolite_name_original) & !grepl("Unknown_", raw$Metabolite_name_original)] %>% 
       unique()
     
     mets = stringi::stri_join_list(list(input_names), sep="\n")
