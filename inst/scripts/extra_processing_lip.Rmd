@@ -124,7 +124,7 @@ feature.info.clean <-
 
 peaks.clean <- peaks[, feature.info.clean$Metabolite_name_chain]
 
-cat("For repeating features, the one with higher mean intensity in ", eval.sample.to.use, " was kept: \n")
+cat("For repeating features, the one with higher mean intensity in ", final.eval.sample.to.use, " was kept: \n")
 cat(nrow(feature.info) - nrow(feature.info.clean), " features have been removed")
 ```
 
