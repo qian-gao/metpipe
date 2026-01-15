@@ -30,15 +30,20 @@ run_merge_amd_map <-
       
       features.pos <- 
         datalist$pos$features_norm %>% 
-        mutate(Polarity = "pos")
+        mutate(Polarity = "pos",
+               identifier = paste0("pos_", Feature_ID))
       
       features.neg <- 
         datalist$neg$features_norm %>% 
-        mutate(Polarity = "neg")
+        mutate(Polarity = "neg",
+               identifier = paste0("neg_", Feature_ID))
       
       feature.info.temp <-
         rbind(features.pos,
               features.neg)
+      
+      colnames(peaks.pos) <- features.pos$identifier
+      colnames(peaks.neg) <- features.neg$identifier
       
       # Remove repeating features
       feature.info <-
@@ -51,13 +56,12 @@ run_merge_amd_map <-
         ungroup() %>% 
         select(-c(first_rt, diff_to_first_rt)) %>% 
         group_by(Identity_raw) %>%
-        # mutate(n = n(),
-        #        Identity_clean = ifelse(n > 1, 
-        #                                paste0(Identity_raw, "-iso", row_number()),
-        #                                Identity_raw)) %>% 
-        # ungroup() %>% 
-        # select(-n) %>% 
-        # relocate(Identity_clean, .before = Identity) %>% 
+        mutate(n = n(),
+               Identity = ifelse(n > 1,
+                                       paste0(Identity_raw, "-iso", row_number()),
+                                       Identity_raw)) %>%
+        ungroup() %>%
+        select(-n) %>%
         group_by(Polarity, iin_id) %>% 
         arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
         filter(is.na(iin_id) | row_number() == 1) %>% 
@@ -65,15 +69,20 @@ run_merge_amd_map <-
         arrange(identity_source, Identity_raw)
       
       datatable.keep <-
-        peaks.pos[, c("Sample", feature.info$Identity[feature.info$Polarity == "pos"])] %>%
-        inner_join(peaks.neg[, c("Sample", feature.info$Identity[feature.info$Polarity == "neg"])], 
+        peaks.pos[, c("Sample", feature.info$identifier[feature.info$Polarity == "pos"])] %>%
+        inner_join(peaks.neg[, c("Sample", feature.info$identifier[feature.info$Polarity == "neg"])], 
                    by = "Sample")
       
-      datatable.keep <- datatable.keep[, c("Sample", feature.info$Identity)]
+      datatable.keep <- datatable.keep[, c("Sample", feature.info$identifier)]
+      colnames(datatable.keep) <- c("Sample", feature.info$Identity)
       
       sample.info <-
         meta.pos[match(datatable.keep$Sample, meta.pos$Sample), ] %>%
         select(-c("File.name")) 
+      
+      feature.info <- 
+        feature.info %>% 
+        select(-identifier)
       
     } else if (!is.null(datalist$pos) & is.null(datalist$neg)) {
       
