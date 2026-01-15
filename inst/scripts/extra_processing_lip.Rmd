@@ -155,7 +155,8 @@ feature.info.no.theo <-
          Metabolite_name = if_else(n > 1, paste0(Metabolite_name, "-iso", row_number()), Metabolite_name)) %>% 
   ungroup() %>% 
   arrange(identity_source, Metabolite_name) %>% 
-  select(-c(flag, n, Rep))
+  select(-c(flag, n, Rep)) %>% 
+  relocate(Metabolite_name, .after = mz)
 
 peaks.new <- peaks.clean[, feature.info.no.theo$Metabolite_name_chain]
 
