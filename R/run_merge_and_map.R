@@ -42,8 +42,8 @@ run_merge_amd_map <-
         rbind(features.pos,
               features.neg)
       
-      colnames(peaks.pos) <- features.pos$identifier
-      colnames(peaks.neg) <- features.neg$identifier
+      colnames(peaks.pos) <- c("Sample", features.pos$identifier)
+      colnames(peaks.neg) <- c("Sample", features.neg$identifier)
       
       # Remove repeating features
       feature.info <-
