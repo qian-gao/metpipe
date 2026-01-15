@@ -62,7 +62,7 @@ run_merge_amd_map <-
         arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
         filter(is.na(iin_id) | row_number() == 1) %>% 
         ungroup() %>% 
-        arrange(identity_source, Identity_clean)
+        arrange(identity_source, Identity_raw)
       
       datatable.keep <-
         peaks.pos[, c("Sample", feature.info$Identity[feature.info$Polarity == "pos"])] %>%
@@ -105,7 +105,7 @@ run_merge_amd_map <-
         arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
         filter(is.na(iin_id) | row_number() == 1) %>% 
         ungroup() %>% 
-        arrange(identity_source, Identity_clean)
+        arrange(identity_source, Identity_raw)
       
       datatable.keep <- peaks.pos[, c("Sample", feature.info$Identity)]
       
@@ -143,7 +143,7 @@ run_merge_amd_map <-
         arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
         filter(is.na(iin_id) | row_number() == 1) %>% 
         ungroup() %>% 
-        arrange(identity_source, Identity_clean)
+        arrange(identity_source, Identity_raw)
       
       datatable.keep <- peaks.neg[, c("Sample", feature.info$Identity)]
       
