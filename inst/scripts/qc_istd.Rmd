@@ -134,7 +134,8 @@ lib.is <-
   dplyr::rename(Theoretical.mz = mz,
                 Theoretical.rt = rt,
                 Formula = formula,
-                Ion = adduct)
+                Ion = adduct) %>% 
+  filter(grepl("'", Formula))
 
 peaktable.is <-
   openxlsx::read.xlsx(path_peaktable)
