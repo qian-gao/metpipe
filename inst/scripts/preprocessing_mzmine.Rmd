@@ -224,7 +224,7 @@ if (!file.exists(param_file)){
   file_names_node <- xml_find_first(parameters, "//parameter[@name='Spectral library files']")
   
   for (f in path_spectral_lib) {
-    xml_add_child(file_names_node, "file", f)
+    if (!is.na(f)) xml_add_child(file_names_node, "file", f)
   }
     
   write_xml(parameters, param_file)
