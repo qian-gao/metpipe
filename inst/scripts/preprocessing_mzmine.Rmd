@@ -91,6 +91,7 @@ path_lib_istd_pos = config$path_lib_istd_pos
 path_lib_istd_neg = config$path_lib_istd_neg
 sepectral_lib = config$sepectral_lib
 path_spectral_lib = config$path_spectral_lib
+path_spectral_lib = ifelse(grepl("/wdNA", path_spectral_lib), NA, path_spectral_lib) 
 mzmine_user = config$mzmine_user
 mzmine_memory <- config$mzmine_memory
 mzmine_threads <- config$mzmine_threads
@@ -161,7 +162,7 @@ if (!file.exists(param_file)){
   file_names_node <- xml_find_first(parameters, "//parameter[@name='Spectral library files']")
   
   for (f in path_spectral_lib) {
-    xml_add_child(file_names_node, "file", f)
+    if (!is.na(f)) xml_add_child(file_names_node, "file", f)
   }
   
   write_xml(parameters, param_file)
