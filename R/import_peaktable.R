@@ -1,17 +1,31 @@
-#' @title import_peaktable
+#' Import a metabolomics peak table and construct a mode-level datalist
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' Reads a peak table file (typically `.xlsx`), splits feature metadata and
+#' sample-intensity matrix, harmonizes identities, and attaches sample metadata.
 #'
-#' @param dat A data set object
-#' @param id Scope (e.g., country codes or individual IDs)
-#' @param time Time (e.g., time periods are given by years, months, ...)
+#' @param peaktable Path to peak table file.
+#' @param meta Optional sample metadata as a file path or data frame.
+#' @param rt_col_nr Column index for retention time.
+#' @param mz_col_nr Column index for m/z.
+#' @param identity_col_nr Column index for raw feature identity.
+#' @param sample_col_nr First sample-intensity column index.
+#' @param find_is Logical; detect isotope-labelled internal standards by name.
+#' @param add_lipid_info Logical; parse lipid annotations via [add_lipid_info()].
+#' @param keep.lipid.orig Logical; keep original lipid names when parsing.
+#' @param standardized.name Logical; infer metadata from standardized file names.
+#' @param standerdized.name Deprecated alias for `standardized.name`.
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#' @return A list with `peaks`, `features`, and `meta` (plus raw copies).
 #' @examples
-#' data(toydata)
-#' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
+#' \dontrun{
+#' dat <- import_peaktable(
+#'   peaktable = "peaktable_pos.xlsx",
+#'   rt_col_nr = 1,
+#'   mz_col_nr = 2,
+#'   identity_col_nr = 3,
+#'   sample_col_nr = 8
+#' )
+#' }
 #' @export
 #' @import dplyr 
 #' 
@@ -26,12 +40,36 @@ import_peaktable <-
       find_is = FALSE,
       add_lipid_info = FALSE,
       keep.lipid.orig = NULL,
-      standerdized.name = FALSE
+      standardized.name = FALSE,
+      standerdized.name = NULL
   ){
+
+    if (!is.null(standerdized.name)) {
+      warning("'standerdized.name' is deprecated; use 'standardized.name'", call. = FALSE)
+      standardized.name <- standerdized.name
+    }
+
+    if (is.null(peaktable) || !nzchar(peaktable) || !file.exists(peaktable)) {
+      stop("peaktable must be an existing file path")
+    }
+
+    required_cols <- c(rt_col_nr, mz_col_nr, identity_col_nr, sample_col_nr)
+    if (any(is.null(required_cols))) {
+      stop("rt_col_nr, mz_col_nr, identity_col_nr, and sample_col_nr must be provided")
+    }
 
     datalist <- list()
     
     file <- openxlsx::read.xlsx(peaktable)
+
+    if (sample_col_nr > ncol(file)) {
+      stop("sample_col_nr exceeds number of columns in peaktable")
+    }
+
+    idx_check <- c(rt_col_nr, mz_col_nr, identity_col_nr)
+    if (any(idx_check > ncol(file))) {
+      stop("One or more feature column indices exceed number of columns in peaktable")
+    }
     peaks <- 
       file[, c(sample_col_nr:ncol(file))] %>% 
       mutate(across(where(is.character), as.numeric))
@@ -96,7 +134,7 @@ import_peaktable <-
           select(-n)
         
       
-    } else if (standerdized.name) {
+    } else if (standardized.name) {
       
       File.name <- colnames(peaks)
       Run.order <- as.numeric(gsub(".d", "", str_extract(File.name, "[0-9]+.d$")))

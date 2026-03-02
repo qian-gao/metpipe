@@ -65,6 +65,48 @@ pre { /* Code block - determines code spacing between lines */
 library(yaml)
 library(dplyr)
 
+load_metpipe_runtime <- function() {
+  package_mode <- tolower(trimws(Sys.getenv("METPIPE_PACKAGE_MODE", unset = "local")))
+  if (!package_mode %in% c("local", "installed")) package_mode <- "local"
+
+  if (identical(package_mode, "installed")) {
+    if (!requireNamespace("metpipe", quietly = TRUE)) {
+      stop("METPIPE_PACKAGE_MODE='installed' but package 'metpipe' is not installed")
+    }
+    library(metpipe)
+    return("installed")
+  }
+
+  candidates <- unique(Filter(nzchar, c(
+    Sys.getenv("METPIPE_LOCAL_ROOT", ""),
+    "H:/Documents/CBMR_workflow/packages/metpipe",
+    normalizePath(getwd(), winslash = "/", mustWork = FALSE),
+    normalizePath(file.path(getwd(), ".."), winslash = "/", mustWork = FALSE),
+    normalizePath(file.path(getwd(), "..", ".."), winslash = "/", mustWork = FALSE)
+  )))
+
+  is_pkg_root <- function(path) {
+    dir.exists(path) &&
+      file.exists(file.path(path, "DESCRIPTION")) &&
+      dir.exists(file.path(path, "R"))
+  }
+
+  roots <- candidates[vapply(candidates, is_pkg_root, logical(1))]
+  if (length(roots) == 0) {
+    stop("Cannot locate local metpipe package root. Set METPIPE_LOCAL_ROOT to your metpipe folder.")
+  }
+
+  if (!requireNamespace("pkgload", quietly = TRUE)) {
+    stop("pkgload is required for local source loading. Install with install.packages('pkgload').")
+  }
+
+  Sys.setenv(METPIPE_LOCAL_ROOT = roots[[1]])
+  pkgload::load_all(path = roots[[1]], export_all = FALSE, quiet = TRUE)
+  "local"
+}
+
+metpipe_runtime <- load_metpipe_runtime()
+
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
@@ -117,16 +159,16 @@ if (dir.exists(path_files_pos)){
   run.pos <- TRUE
   raw_files_pos <- list.files(path_files_pos, full.names = TRUE, pattern = ".d$|.mzML")
   meta_pos <- 
-    metpipe::map_standard_name_to_meta(raw_files_pos,
-                                       qc_types = qc_types) 
+    map_standard_name_to_meta(raw_files_pos,
+                              qc_types = qc_types) 
 }
 
 if (dir.exists(path_files_neg)){
   run.neg <- TRUE
   raw_files_neg <- list.files(path_files_neg, full.names = TRUE, pattern = ".d$|.mzML")
   meta_neg <- 
-    metpipe::map_standard_name_to_meta(raw_files_neg,
-                                       qc_types = qc_types) 
+    map_standard_name_to_meta(raw_files_neg,
+                              qc_types = qc_types) 
 }
 
 

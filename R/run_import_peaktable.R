@@ -1,21 +1,37 @@
-#' run_import_peaktable
+#' Import peak tables for positive/negative modes
 #'
-#' @param peaktable_pos 
-#' @param peaktable_neg 
-#' @param rt_col_nr 
-#' @param mz_col_nr 
-#' @param identity_col_nr 
-#' @param sample_col_nr 
-#' @param meta_file_pos 
-#' @param meta_file_neg 
-#' @param find_is 
-#' @param add_lipid_info 
-#' @param keep.lipid.orig 
+#' Wrapper around [import_peaktable()] that loads one or both ionization modes
+#' and returns a combined `datalist` object used by downstream workflow steps.
 #'
-#' @return
+#' @param peaktable_pos Path to positive-mode peak table file.
+#' @param peaktable_neg Path to negative-mode peak table file.
+#' @param rt_col_nr Column index of retention time in the peak table.
+#' @param mz_col_nr Column index of m/z in the peak table.
+#' @param identity_col_nr Column index of feature identity annotation.
+#' @param sample_col_nr First sample-intensity column index.
+#' @param meta_file_pos Optional metadata file/data frame for positive mode.
+#' @param meta_file_neg Optional metadata file/data frame for negative mode.
+#' @param find_is Logical; detect isotope-labelled internal standards by name.
+#' @param add_lipid_info Logical; enrich annotations with lipid class parsing.
+#' @param keep.lipid.orig Logical; keep original lipid names when parsing.
+#' @param standardized.name Logical; infer metadata fields from standardized file names.
+#' @param standerdized.name Deprecated alias for `standardized.name`.
+#'
+#' @return A `metpipe_datalist` with `pos` and/or `neg` elements,
+#'   each returned by [import_peaktable()].
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' datalist <- run_import_peaktable(
+#'   peaktable_pos = "pos.xlsx",
+#'   peaktable_neg = "neg.xlsx",
+#'   rt_col_nr = 1,
+#'   mz_col_nr = 2,
+#'   identity_col_nr = 3,
+#'   sample_col_nr = 8
+#' )
+#' }
 run_import_peaktable <- 
   function(
     peaktable_pos = NULL,
@@ -32,12 +48,22 @@ run_import_peaktable <-
     find_is = FALSE,
     add_lipid_info = FALSE,
     keep.lipid.orig = NULL,
-    standerdized.name = FALSE
+    standardized.name = FALSE,
+    standerdized.name = NULL
   ){
+
+    if (!is.null(standerdized.name)) {
+      warning("'standerdized.name' is deprecated; use 'standardized.name'", call. = FALSE)
+      standardized.name <- standerdized.name
+    }
+
+    has_file <- function(path) {
+      !is.null(path) && nzchar(path) && file.exists(path)
+    }
     
-    datalist <- list()
+    datalist <- list(pos = NULL, neg = NULL)
     
-    if (file.exists(peaktable_pos)){
+    if (has_file(peaktable_pos)){
       datalist$pos <- 
         import_peaktable(
           peaktable = peaktable_pos,
@@ -49,13 +75,13 @@ run_import_peaktable <-
           find_is = find_is,
           add_lipid_info = add_lipid_info,
           keep.lipid.orig = keep.lipid.orig,
-          standerdized.name = standerdized.name
+          standardized.name = standardized.name
         )
     } else {
       datalist$pos <- NULL
     }
     
-    if (file.exists(peaktable_neg)){
+    if (has_file(peaktable_neg)){
       datalist$neg <- 
         import_peaktable(
           peaktable = peaktable_neg,
@@ -67,11 +93,15 @@ run_import_peaktable <-
           find_is = find_is,
           add_lipid_info = add_lipid_info,
           keep.lipid.orig = keep.lipid.orig,
-          standerdized.name = standerdized.name
+          standardized.name = standardized.name
         )
     } else {
       datalist$neg <- NULL
     }
-    
-    return(datalist)
+
+    if (is.null(datalist$pos) && is.null(datalist$neg)) {
+      stop("No valid peak table was found. Provide existing file path(s) via peaktable_pos and/or peaktable_neg.")
+    }
+
+    return(as_metpipe_datalist(datalist, stage = "imported"))
   }

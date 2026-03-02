@@ -1,14 +1,17 @@
 #' @title create_qc
 #'
-#' @description Create qc plots for internal standards
+#' @description Create QC plots for internal standards across run order.
 #'
-#' @param sampled_data A dataframe containing IS in samples
-#' @param figure_height Figure height for plot
-#' @param figure_width Figure width for plot
+#' @param sampled_data A data frame containing internal-standard measurements.
+#' @param figure_height Plot height in pixels.
+#' @param figure_width Plot width in pixels.
 #'
-#' @return A list qc figures
+#' @return A list of plotly/htmlwidget QC plots.
 #'
 #' @examples
+#' \dontrun{
+#' qc_plots <- create_qc(sampled_data)
+#' }
 #'
 #' @export
 #' @import dplyr
@@ -18,6 +21,23 @@ create_qc <-
   function(sampled_data = NULL,
            figure_height = NULL,
            figure_width = 600) {
+
+    required_cols <- c(
+      "Run.order", "file.rt", "ISTD", "Sample", "rt.dev", "mz",
+      "mz.dev", "file.area", "Intensity.dev", "Sample.type",
+      "Theoretical.rt", "median.rt", "Theoretical.mz", "median.mz",
+      "median.intensity", "RSD.intensity"
+    )
+
+    if (!is.data.frame(sampled_data)) {
+      stop("sampled_data must be a data.frame")
+    }
+    if (!all(required_cols %in% names(sampled_data))) {
+      stop("sampled_data is missing required QC columns")
+    }
+    if (is.null(figure_height)) {
+      figure_height <- 400
+    }
 
     sample_nr <- max(sampled_data$Run.order, na.rm = TRUE)
     # figure_width <- sample_nr*40

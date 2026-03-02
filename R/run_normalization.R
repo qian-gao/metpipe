@@ -1,13 +1,16 @@
-#' run_normalization
+#' Normalize data for positive/negative modes
 #'
-#' @param datalist 
-#' @param impute.method.sample 
-#' @param impute.method.is 
-#' @param po.sample.to.use 
-#' @param norm.method 
-#' @param sample.type.keep 
+#' Runs [normalization()] for each available mode in a `datalist`, including
+#' missing-value imputation and one or more normalization methods.
 #'
-#' @return
+#' @param datalist A `metpipe_datalist` (or compatible list) from import/cleaning steps.
+#' @param impute.method.sample Imputation method for non-IS features.
+#' @param impute.method.is Imputation method for internal standards.
+#' @param po.sample.to.use Sample type used for pool/control-based normalization.
+#' @param norm.method Character vector of normalization methods to apply.
+#' @param sample.type.keep Sample types retained in the output normalized table.
+#'
+#' @return Updated `metpipe_datalist` with normalized outputs in `pos` and/or `neg`.
 #' @export
 #'
 #' @examples
@@ -28,8 +31,13 @@ run_normalization <-
     # Sample types to keep in datatable
     sample.type.keep = "Sample"
   ){
+
+    datalist <- as_metpipe_datalist(datalist, stage = "imported")
+
+    has_pos <- !is.null(datalist$pos)
+    has_neg <- !is.null(datalist$neg)
     
-    if (!is.null(datalist$pos)){
+    if (has_pos){
       cat("Positive mode: \n")
       datalist$pos <- 
         normalization(
@@ -42,7 +50,7 @@ run_normalization <-
         )
     }
     
-    if (!is.null(datalist$neg)){
+    if (has_neg){
       cat("Negative mode: \n")
       datalist$neg <- 
         normalization(
@@ -55,6 +63,7 @@ run_normalization <-
         )
     }
 
+    validate_metpipe_datalist(datalist, stage = "normalized")
     return(datalist)
   }
   

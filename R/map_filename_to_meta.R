@@ -1,14 +1,20 @@
 #' Map file names to meta
 #'
-#' @param raw_files 
+#' Parse raw file names into metadata fields.
 #'
-#' @returns
+#' @param raw_files Character vector of raw data file paths or names.
+#'
+#' @returns A metadata data frame with sample type, run order, and batch columns.
 #' @export
 #' 
 #' @import stringr dplyr
 #' @examples
 map_filename_to_meta <- 
   function(raw_files){
+
+    if (is.null(raw_files) || length(raw_files) == 0) {
+      stop("raw_files must be a non-empty character vector")
+    }
     
     File.name <- basename(raw_files)
     Run.order <- as.numeric(gsub(".d", "", str_extract(File.name, "[0-9]+.d$")))

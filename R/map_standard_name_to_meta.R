@@ -1,8 +1,12 @@
 #' Map file names to meta
 #'
-#' @param raw_files 
+#' Parse standardized raw file names into metadata fields.
 #'
-#' @returns
+#' @param raw_files Character vector of raw data file paths or names.
+#' @param qc_types Character vector of QC sample labels recognized in names.
+#' @param pasef_as_dda Logical; treat PASEF acquisitions as DDA.
+#'
+#' @returns A metadata data frame with sample type, run order, and batch columns.
 #' @export
 #' 
 #' @import stringr dplyr
@@ -11,6 +15,10 @@ map_standard_name_to_meta <-
   function(raw_files,
            qc_types = c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix"),
            pasef_as_dda = FALSE){
+
+    if (is.null(raw_files) || length(raw_files) == 0) {
+      stop("raw_files must be a non-empty character vector")
+    }
     
     File.name <- basename(raw_files)
     Run.order <- as.numeric(gsub(".d|.mzML", "", str_extract(File.name, "[0-9]+.d$|[0-9]+.mzML$")))

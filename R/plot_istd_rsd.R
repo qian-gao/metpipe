@@ -1,20 +1,23 @@
 #' @title plot_istd_rsd
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Plot internal-standard intensity trends and RSD by sample type.
 #'
-#' @param dat A data set object
-#' @param id Scope (e.g., country codes or individual IDs)
-#' @param time Time (e.g., time periods are given by years, months, ...)
+#' @param datalist List containing `data.istd` and `sample.info`.
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#' @return A list with plotly intensity plots and a ggplot RSD summary.
 #' @examples
+#' \dontrun{
+#' p <- plot_istd_rsd(datalist)
+#' }
 #' @export
 #' @import ggplot2 ggsci htmltools dplyr tidyr
 #'
 plot_istd_rsd <-
   function( datalist = NULL){
+
+    if (!is.list(datalist) || is.null(datalist$data.istd) || is.null(datalist$sample.info)) {
+      stop("datalist must contain data.istd and sample.info")
+    }
 
     data.istd <- datalist$data.istd
     #data <- datalist$data

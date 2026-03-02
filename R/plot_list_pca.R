@@ -1,15 +1,17 @@
 #' @title plot_list_pca
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Generate PCA plots for a list of normalized matrices.
 #'
-#' @param dat A data set object
-#' @param id Scope (e.g., country codes or individual IDs)
-#' @param time Time (e.g., time periods are given by years, months, ...)
+#' @param x Named list of matrices/data frames (sample x feature).
+#' @param group Optional grouping vector for sample coloring.
+#' @param group.label Legend title for grouping variable.
+#' @param plotly.text Optional hover labels.
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using
+#' @return A named list of PCA ggplot objects.
 #' @examples
+#' \dontrun{
+#' pca_plots <- plot_list_pca(peaks_norm, group = sample_info$Sample.type)
+#' }
 #' @export
 #' @import ggplot2 ggsci
 
@@ -20,6 +22,10 @@ plot_list_pca <-
     group.label = NULL,
     plotly.text = NULL
   ){
+
+    if (!is.list(x) || length(x) == 0) {
+      stop("x must be a non-empty list")
+    }
 
     plt.pca <-
       lapply(x, function(x) {

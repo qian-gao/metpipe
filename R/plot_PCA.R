@@ -1,17 +1,28 @@
 #' @title plot_PCA
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Compute PCA and produce score/loading/biplot visualizations.
 #'
-#' @param dat A data set object
-#' @param id Scope (e.g., country codes or individual IDs)
-#' @param time Time (e.g., time periods are given by years, months, ...)
+#' @param x Numeric matrix/data frame (sample x feature).
+#' @param group Optional grouping vector for sample coloring.
+#' @param group.label Legend title for grouping variable.
+#' @param plotly.text Optional point labels.
+#' @param alpha Point transparency.
+#' @param print Logical; print plot before returning.
+#' @param plot.type One of `"score"`, `"loading"`, `"loading_arrow"`, `"biplot"`.
+#' @param ratio Aspect ratio for `coord_fixed()`.
+#' @param color.manual Optional manual color vector.
+#' @param color.scheme Optional `ggsci` color scheme suffix.
+#' @param xlim,ylim Optional axis limits.
+#' @param pcs Length-2 vector of principal components to plot.
+#' @param text.size Text size used by ggbiplot labels.
+#' @param circle,ellipse Logical controls for score/biplot overlays.
+#' @param ... Additional arguments passed to [ggbiplot()].
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using
+#' @return A ggplot object.
 #' @examples
-#' data(toydata)
-#' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
+#' \dontrun{
+#' p <- plot_PCA(x = peaks, group = sample_info$Sample.type)
+#' }
 #' @export
 #' @import ggplot2 ggsci
 #'
@@ -35,6 +46,16 @@ plot_PCA <-
     ellipse = TRUE,
     ...
   ) {
+
+    if (!is.data.frame(x) && !is.matrix(x)) {
+      stop("x must be a matrix or data.frame")
+    }
+    if (length(pcs) != 2) {
+      stop("pcs must contain exactly two component indices")
+    }
+    if (!plot.type %in% c("score", "loading", "loading_arrow", "biplot")) {
+      stop("plot.type must be one of: score, loading, loading_arrow, biplot")
+    }
 
     y <- x
 
@@ -175,19 +196,27 @@ plot_PCA <-
 
 #' @title ggbiplot
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Internal helper to draw score/loading/biplot views from PCA objects.
 #'
-#' @param dat A data set object
-#' @param id Scope (e.g., country codes or individual IDs)
-#' @param time Time (e.g., time periods are given by years, months, ...)
+#' @param pcobj PCA-like object (`prcomp`, `princomp`, `PCA`, or `lda`).
+#' @param plotly.text Optional point labels.
+#' @param plot.type Plot mode (`score`, `loading`, `loading_arrow`, `biplot`).
+#' @param choices Principal components to display.
+#' @param scale,pc.biplot,obs.scale,var.scale Scaling controls.
+#' @param groups Optional grouping vector.
+#' @param ellipse,ellipse.prob Ellipse controls.
+#' @param labels,labels.size Optional text labels and size.
+#' @param alpha Point alpha.
+#' @param var.axes,circle,circle.prob Axis/circle controls.
+#' @param varname.size,varname.adjust,varname.abbrev Variable label controls.
+#' @param text.size Text size.
+#' @param ... Additional plotting arguments.
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#' @return A ggplot object.
 #' @examples
+#' \dontrun{ ggbiplot(prcomp(matrix(rnorm(100), ncol = 5))) }
 #'
 #' @import ggplot2
-#' @import tidyverse
 #' @import scales
 #' @import grid
 #'
@@ -201,10 +230,6 @@ ggbiplot <-
             text.size = text.size,
             ...)
   {
-    library(ggplot2)
-    library(tidyverse)
-    library(scales)
-    library(grid)
     stopifnot(length(choices) == 2)
     if (inherits(pcobj, "prcomp")) {
       nobs.factor <- sqrt(nrow(pcobj$x) - 1)

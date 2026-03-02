@@ -4,3 +4,6 @@
 .Ruserdata
 .html
 /*/*/*.html
+R/.Rhistory
+utils/.Rhistory
+/workflow/*

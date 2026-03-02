@@ -1,11 +1,18 @@
-#' run_merge_amd_map
+#' Merge positive/negative modes and map metabolite names
 #'
-#' @param datalist 
-#' @param final.norm 
-#' @param eval.sample.to.use 
-#' @param sample.type.keep 
+#' Combines normalized outputs across ionization modes, removes duplicated
+#' annotations by intensity/retention-time logic, and maps feature identities
+#' to metabolite names via [map_metabolite_info()].
 #'
-#' @return
+#' @param datalist A `metpipe_datalist` (or compatible list) containing
+#'   normalized `pos` and/or `neg` mode outputs.
+#' @param final.norm Name of normalized matrix to use from `peaks_norm`.
+#' @param eval.sample.to.use Sample type used to rank duplicate feature identities.
+#' @param sample.type.keep Additional sample types to retain besides `"Sample"`.
+#' @param db_file Optional database file used by [map_metabolite_info()].
+#'
+#' @return Updated `metpipe_datalist` with merged `datatable`,
+#'   `sample.info`, and `feature.info`.
 #' @export
 #'
 #' @examples
@@ -17,16 +24,37 @@ run_merge_amd_map <-
     sample.type.keep = NULL,
     db_file = NULL
   ){
+
+    datalist <- as_metpipe_datalist(datalist, stage = "imported")
+
+    has_pos <- !is.null(datalist$pos)
+    has_neg <- !is.null(datalist$neg)
+
+    if (is.null(final.norm) || !nzchar(final.norm)) {
+      stop("final.norm must be provided (e.g. a name in peaks_norm)")
+    }
+
+    if (is.null(eval.sample.to.use) || !nzchar(eval.sample.to.use)) {
+      stop("eval.sample.to.use must be provided")
+    }
+
+    get_peaks_norm <- function(mode_data, mode_name) {
+      peaks <- mode_data$peaks_norm[[final.norm]]
+      if (is.null(peaks)) {
+        stop("Normalization '", final.norm, "' was not found in datalist$", mode_name, "$peaks_norm")
+      }
+      peaks
+    }
     
-    sample.type.keep <- c("Sample", sample.type.keep)
+    sample.type.keep <- unique(c("Sample", sample.type.keep))
     
-    meta.pos <- datalist$pos$meta_norm
-    peaks.pos <- cbind(Sample = meta.pos[, "Sample"], datalist$pos$peaks_norm[[final.norm]])
-    
-    meta.neg <- datalist$neg$meta_norm
-    peaks.neg <- cbind(Sample = meta.neg[, "Sample"], datalist$neg$peaks_norm[[final.norm]])
-    
-    if (!is.null(datalist$pos) & !is.null(datalist$neg)){
+    if (has_pos && has_neg){
+
+      meta.pos <- datalist$pos$meta_norm
+      peaks.pos <- cbind(Sample = meta.pos[, "Sample"], get_peaks_norm(datalist$pos, "pos"))
+
+      meta.neg <- datalist$neg$meta_norm
+      peaks.neg <- cbind(Sample = meta.neg[, "Sample"], get_peaks_norm(datalist$neg, "neg"))
       
       features.pos <- 
         datalist$pos$features_norm %>% 
@@ -84,7 +112,10 @@ run_merge_amd_map <-
         feature.info %>% 
         select(-identifier)
       
-    } else if (!is.null(datalist$pos) & is.null(datalist$neg)) {
+    } else if (has_pos && !has_neg) {
+
+      meta.pos <- datalist$pos$meta_norm
+      peaks.pos <- cbind(Sample = meta.pos[, "Sample"], get_peaks_norm(datalist$pos, "pos"))
       
       features.pos <- 
         datalist$pos$features_norm %>% 
@@ -122,7 +153,10 @@ run_merge_amd_map <-
         meta.pos[match(datatable.keep$Sample, meta.pos$Sample), ] %>%
         select(-c("File.name")) 
       
-    } else if (is.null(datalist$pos) & !is.null(datalist$neg)) {
+    } else if (!has_pos && has_neg) {
+
+      meta.neg <- datalist$neg$meta_norm
+      peaks.neg <- cbind(Sample = meta.neg[, "Sample"], get_peaks_norm(datalist$neg, "neg"))
       
       features.neg <- 
         datalist$neg$features_norm %>% 
@@ -199,8 +233,33 @@ run_merge_amd_map <-
     datalist$sample.info <- sample.info
     datalist$feature.info <- feature.info.seq
     
+    validate_metpipe_datalist(datalist, stage = "merged")
     return(datalist)
 
+}
+
+
+#' run_merge_and_map
+#'
+#' Backward-compatible alias for [run_merge_amd_map()].
+#'
+#' @inheritParams run_merge_amd_map
+#' @return Same as [run_merge_amd_map()].
+#' @export
+run_merge_and_map <- function(
+    datalist = NULL,
+    final.norm = NULL,
+    eval.sample.to.use = NULL,
+    sample.type.keep = NULL,
+    db_file = NULL
+) {
+  run_merge_amd_map(
+    datalist = datalist,
+    final.norm = final.norm,
+    eval.sample.to.use = eval.sample.to.use,
+    sample.type.keep = sample.type.keep,
+    db_file = db_file
+  )
 }
 
 

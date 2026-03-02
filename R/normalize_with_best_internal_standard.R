@@ -1,15 +1,22 @@
 #' @title normalize_with_best_internal_standard
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Normalize each feature using the most correlated internal standard.
 #'
-#' @param dat A data set object
-#' @param id Scope (e.g., country codes or individual IDs)
-#' @param time Time (e.g., time periods are given by years, months, ...)
+#' @param x Feature intensity matrix/data frame (sample x feature).
+#' @param istds Internal-standard matrix/data frame (sample x IS features).
+#' @param batch Batch vector aligned with samples.
+#' @param batch.wise Logical; perform selection independently per batch.
+#' @param cor.method Correlation method used in IS selection.
+#' @param type Optional sample-type vector.
+#' @param use.type Optional sample type to restrict IS selection.
+#' @param verbose Logical; print progress information.
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#' @return A list with normalized matrix (`x`), selected IS map (`best.istd`),
+#' and logical matrix of normalized cells (`is.normalized`).
 #' @examples
+#' \dontrun{
+#' out <- normalize_with_best_internal_standard(x, istds, batch = rep("B1", nrow(x)))
+#' }
 #' @export
 #'
 normalize_with_best_internal_standard <-
@@ -23,6 +30,19 @@ normalize_with_best_internal_standard <-
     use.type = NULL,
     verbose = FALSE
   ) {
+
+    if (!is.data.frame(x) && !is.matrix(x)) {
+      stop("x must be a data.frame or matrix")
+    }
+    if (!is.data.frame(istds) && !is.matrix(istds)) {
+      stop("istds must be a data.frame or matrix")
+    }
+    if (nrow(x) != nrow(istds)) {
+      stop("x and istds must have the same number of rows")
+    }
+    if (length(batch) != nrow(x)) {
+      stop("batch must have the same length as nrow(x)")
+    }
 
     if ( verbose ) {
 
@@ -75,7 +95,7 @@ normalize_with_best_internal_standard <-
     is.normalized <- y
     is.normalized[] <- FALSE
 
-    for ( j in 1:length( batches ) ) {
+    for ( j in seq_along( batches ) ) {
 
       idx.j <- which( batch == batches[ j ] )
 
@@ -115,7 +135,7 @@ normalize_with_best_internal_standard <-
 
       if ( length( names.istds.j ) > 0 ) {
 
-        for ( i in 1:length( names.istds.j ) ) { # Go through selected istds.
+        for ( i in seq_along( names.istds.j ) ) { # Go through selected istds.
 
           istd.i <- unlist( istds[ idx.j, names.istds.j[ i ] ] )
 

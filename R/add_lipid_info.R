@@ -1,23 +1,31 @@
 #' @title add_lipid_info
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Parse lipid annotations and add summarized lipid identities.
 #'
-#' @param dat A data set object
-#' @param id Scope (e.g., country codes or individual IDs)
-#' @param time Time (e.g., time periods are given by years, months, ...)
+#' @param df Feature table containing `Identity_raw` and `Feature_type` columns.
+#' @param keep.lipid.orig Optional character vector of identities to keep unchanged.
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#' @return Input feature table with additional lipid annotation columns,
+#' including `Identity_sum`, `Class`, and elemental summary fields.
 #' @examples
-#' data(toydata)
-#' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
+#' \dontrun{
+#' annotated <- add_lipid_info(features)
+#' }
 #' @export
 #' @import dplyr
 
 add_lipid_info <- 
   function(df,
            keep.lipid.orig = NULL){
+
+              if (!is.data.frame(df)) {
+                     stop("df must be a data.frame")
+              }
+              required_cols <- c("Identity_raw", "Feature_type")
+              if (!all(required_cols %in% names(df))) {
+                     stop("df must contain columns: Identity_raw, Feature_type")
+              }
+
     output <- 
       df %>% 
         mutate(Identity_sum = ifelse(Feature_type == "Known", Identity_raw, NA)

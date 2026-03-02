@@ -2,6 +2,7 @@
 % Please edit documentation in R/run_merge_and_map.R
 \name{run_merge_amd_map}
 \alias{run_merge_amd_map}
+\alias{run_merge_and_map}
 \title{run_merge_amd_map}
 \usage{
 run_merge_amd_map(
@@ -13,14 +14,21 @@ run_merge_amd_map(
 )
 }
 \arguments{
-\item{datalist}{}
+\item{datalist}{A \code{metpipe_datalist} (or compatible list) containing
+normalized \code{pos} and/or \code{neg} mode outputs.}
 
-\item{final.norm}{}
+\item{final.norm}{Name of normalized matrix to use from \code{peaks_norm}.}
 
-\item{eval.sample.to.use}{}
+\item{eval.sample.to.use}{Sample type used to rank duplicate feature identities.}
 
-\item{sample.type.keep}{}
+\item{sample.type.keep}{Additional sample types to retain besides \code{"Sample"}.}
+
+\item{db_file}{Optional database file used by \code{map_metabolite_info()}.}
 }
 \description{
-run_merge_amd_map
+Merge positive/negative modes and map metabolite names
+}
+\value{
+Updated \code{metpipe_datalist} with merged \code{datatable},
+\code{sample.info}, and \code{feature.info}.
 }

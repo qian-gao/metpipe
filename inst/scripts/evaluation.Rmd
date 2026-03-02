@@ -61,8 +61,50 @@ pre { /* Code block - determines code spacing between lines */
 library(dplyr)
 library(tibble)
 library(plotly)
-library(metpipe)
 library(ggsci)
+library(yaml)
+
+load_metpipe_runtime <- function() {
+  package_mode <- tolower(trimws(Sys.getenv("METPIPE_PACKAGE_MODE", unset = "local")))
+  if (!package_mode %in% c("local", "installed")) package_mode <- "local"
+
+  if (identical(package_mode, "installed")) {
+    if (!requireNamespace("metpipe", quietly = TRUE)) {
+      stop("METPIPE_PACKAGE_MODE='installed' but package 'metpipe' is not installed")
+    }
+    library(metpipe)
+    return("installed")
+  }
+
+  candidates <- unique(Filter(nzchar, c(
+    Sys.getenv("METPIPE_LOCAL_ROOT", ""),
+    "H:/Documents/CBMR_workflow/packages/metpipe",
+    normalizePath(getwd(), winslash = "/", mustWork = FALSE),
+    normalizePath(file.path(getwd(), ".."), winslash = "/", mustWork = FALSE),
+    normalizePath(file.path(getwd(), "..", ".."), winslash = "/", mustWork = FALSE)
+  )))
+
+  is_pkg_root <- function(path) {
+    dir.exists(path) &&
+      file.exists(file.path(path, "DESCRIPTION")) &&
+      dir.exists(file.path(path, "R"))
+  }
+
+  roots <- candidates[vapply(candidates, is_pkg_root, logical(1))]
+  if (length(roots) == 0) {
+    stop("Cannot locate local metpipe package root. Set METPIPE_LOCAL_ROOT to your metpipe folder.")
+  }
+
+  if (!requireNamespace("pkgload", quietly = TRUE)) {
+    stop("pkgload is required for local source loading. Install with install.packages('pkgload').")
+  }
+
+  Sys.setenv(METPIPE_LOCAL_ROOT = roots[[1]])
+  pkgload::load_all(path = roots[[1]], export_all = FALSE, quiet = TRUE)
+  "local"
+}
+
+metpipe_runtime <- load_metpipe_runtime()
 
 knitr::opts_chunk$set(
   message = FALSE,
@@ -70,13 +112,37 @@ knitr::opts_chunk$set(
   echo = FALSE,
   include = TRUE
 )
+
+is_blank <- function(x) {
+  is.null(x) || length(x) == 0 || all(is.na(x)) || !nzchar(trimws(as.character(x[1])))
+}
+
+has_cols <- function(df, cols) {
+  !is.null(df) && is.data.frame(df) && all(cols %in% names(df))
+}
 ```
 
 ```{r pipeline input}
 
+if (is_blank(params$config)) {
+  stop("params$config is required")
+}
+if (!file.exists(params$config)) {
+  stop("Config file does not exist: ", params$config)
+}
+
 config <- read_yaml(params$config)
+if (is.null(config) || !is.list(config)) {
+  stop("Invalid YAML config: expected a named list")
+}
 
 rds_datalist <- config$rds_datalist
+if (is_blank(rds_datalist)) {
+  stop("Missing required config field: rds_datalist")
+}
+if (!file.exists(rds_datalist)) {
+  stop("datalist file not found: ", rds_datalist)
+}
 
 ```
 
@@ -85,12 +151,25 @@ rds_datalist <- config$rds_datalist
 
 datalist <- readRDS(rds_datalist)
 
-run.clean.pos <- !is.null(datalist$pos$peaks_cleaned)
-run.clean.neg <- !is.null(datalist$neg$peaks_cleaned)
-run.istd.pos <- "IS" %in% datalist$pos$features_cleaned$Feature_type
-run.istd.neg <- "IS" %in% datalist$neg$features_cleaned$Feature_type
-run.norm.pos <- !is.null(datalist$pos$peaks_norm)
-run.norm.neg <- !is.null(datalist$neg$peaks_norm)
+if (!is.list(datalist)) {
+  stop("Invalid datalist object: expected a list")
+}
+
+pos <- datalist$pos
+neg <- datalist$neg
+
+run.clean.pos <- !is.null(pos) && !is.null(pos$peaks_cleaned) && has_cols(pos$features_cleaned, c("Identity", "Feature_type"))
+run.clean.neg <- !is.null(neg) && !is.null(neg$peaks_cleaned) && has_cols(neg$features_cleaned, c("Identity", "Feature_type"))
+
+run.istd.pos <- run.clean.pos && any(pos$features_cleaned$Feature_type == "IS", na.rm = TRUE)
+run.istd.neg <- run.clean.neg && any(neg$features_cleaned$Feature_type == "IS", na.rm = TRUE)
+
+run.norm.pos <- !is.null(pos) && !is.null(pos$peaks_norm) && length(pos$peaks_norm) > 0 && has_cols(pos$meta_norm, c("Sample", "Sample.type", "Sample.batch"))
+run.norm.neg <- !is.null(neg) && !is.null(neg$peaks_norm) && length(neg$peaks_norm) > 0 && has_cols(neg$meta_norm, c("Sample", "Sample.type", "Sample.batch"))
+
+run.merged <- !is.null(datalist$datatable) && has_cols(datalist$sample.info, c("Sample", "Sample.batch", "Run.order"))
+run.feature.summary <- !is.null(datalist$feature.info) && is.data.frame(datalist$feature.info)
+
 ```
 
 # Positive mode
@@ -541,7 +620,7 @@ $~$
 
 # Merged data {.tabset .tabset-pills}
 ## PCA
-```{r, fig.height = 4, fig.width = 6}
+```{r, fig.height = 4, fig.width = 6, eval = run.merged}
 
 data_all <- datalist$datatable
 sample.info <- datalist$sample.info
@@ -559,7 +638,7 @@ ggplotly(p)
 ```
 
 ## Sample mean across batches
-```{r, fig.height = 4, fig.width = 8}
+```{r, fig.height = 4, fig.width = 8, eval = run.merged}
 
 Sample.mean <- 
   apply(data_all[, -c(1:ncol(sample.info))], 1, function(x) mean(x, na.rm = TRUE))
@@ -592,7 +671,7 @@ ggplotly(p)
 
 # Metabolites summary {.tabset .tabset-pills}
 ## Metabolites class
-```{r, fig.height = 4, fig.width = 8}
+```{r, fig.height = 4, fig.width = 8, eval = run.feature.summary}
 features <- 
   datalist$feature.info
 
@@ -609,7 +688,7 @@ plot_ly(data.plot, labels = ~Class, values = ~Freq, type = 'pie',
 ```
 
 ## Identification level
-```{r, fig.height = 4, fig.width = 8}
+```{r, fig.height = 4, fig.width = 8, eval = run.feature.summary}
 data.plot <- 
   data.frame(table(features$identity_source, useNA = "ifany")) %>% 
   mutate(Source = case_when( !is.na(Var1) ~ Var1,

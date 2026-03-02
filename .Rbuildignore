@@ -2,3 +2,8 @@
 ^renv\.lock$
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^\.Rhistory$
+^R/\.Rhistory$
+^utils$
+^ref$
+^post_processing\.Rmd$

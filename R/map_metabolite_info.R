@@ -1,12 +1,13 @@
 #' map_metabolite_info
 #'
-#' @param input_file A feature table in dataframe, xlsx or csv format. contains at least one
-#'                   columns: metabolite name
-#' @param name_col Position of the column containing metabolite names
-#' @param sep Separator in input_file if it is csv format
-#' @param db_file Database file to use for mapping metabolite info in csv format
-#' @param db_sep Separator in db_file in csv format
-#' @param path_output The path to store output .xlsx file
+#' Map metabolite names to standardized RefMet annotations.
+#'
+#' @param input_file Feature table as data frame, `.xlsx`, or delimited text path.
+#' @param name_col Position of the column containing metabolite names.
+#' @param sep Delimiter used when `input_file` is text.
+#' @param db_file Local metabolite database file (required) for additional mapping.
+#' @param db_sep Delimiter used in `db_file`.
+#' @param path_output Optional output folder for writing mapped feature table.
 #'
 #' @return A feature table with metabolite information
 #' @importFrom magrittr %>%
@@ -20,14 +21,25 @@ map_metabolite_info <-
            db_file = NULL,
            db_sep = ',',
            path_output = NULL){
+
+    if (is.null(input_file)) {
+      stop("input_file must be provided")
+    }
+    if (is.null(db_file) || !file.exists(db_file)) {
+      stop("db_file must be provided and exist")
+    }
     
     
     if (is.data.frame(input_file)){
       raw <- input_file
-    } else if (substr(input_file, nchar(input_file)-4, nchar(input_file)) == '.xlsx') {
+    } else if (grepl("\\.xlsx$", input_file, ignore.case = TRUE)) {
       raw <- readxl::read_excel(input_file)
     } else{
       raw <- read.table(input_file, header = TRUE, sep = sep)
+    }
+
+    if (name_col > ncol(raw)) {
+      stop("name_col exceeds the number of columns in input_file")
     }
     
     names(raw)[name_col] <- "Metabolite_name_original"

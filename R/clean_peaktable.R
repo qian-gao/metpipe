@@ -1,17 +1,22 @@
 #' @title clean_peaktable
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Clean one mode-level peak table by removing outliers, filtering
+#' features by quality metrics and missingness, and handling internal standards.
 #'
-#' @param dat A data set object
-#' @param id Scope (e.g., country codes or individual IDs)
-#' @param time Time (e.g., time periods are given by years, months, ...)
+#' @param datalist Mode-level list containing `peaks`, `features`, and `meta`.
+#' @param mean.filter Optional mean-intensity filter rule(s).
+#' @param rsd.filter Optional RSD filter rule(s).
+#' @param rt.range Optional retention-time range.
+#' @param filter_by_missing_feature_pct Missing-value threshold in percent.
+#' @param filter_by_missing_sample_type Sample type used in missingness filtering.
+#' @param outliers.sample Optional sample names removed before filtering.
+#' @param po.sample.to.use Sample type used to select duplicate internal standards.
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#' @return Updated mode-level datalist with cleaned peaks/features/meta.
 #' @examples
-#' data(toydata)
-#' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
+#' \dontrun{
+#' cleaned <- clean_peaktable(datalist)
+#' }
 #' @export
 #' @import dplyr
 #' 
@@ -32,6 +37,15 @@ clean_peaktable <-
     # Sample type to use to filter duplicate istd
     po.sample.to.use = NULL
     ){
+
+    if (!is.list(datalist) || is.null(datalist$peaks) || is.null(datalist$features) || is.null(datalist$meta)) {
+      stop("datalist must contain peaks, features, and meta")
+    }
+
+    if (!is.null(filter_by_missing_feature_pct) &&
+        (filter_by_missing_feature_pct < 0 || filter_by_missing_feature_pct > 100)) {
+      stop("filter_by_missing_feature_pct must be between 0 and 100")
+    }
   
     peaks.all <- datalist$peaks
     features.all <- datalist$features
@@ -50,6 +64,9 @@ clean_peaktable <-
     peaks <- data.all[!is.index, , drop = FALSE]
     peaks.is <- data.all[is.index, , drop = FALSE]
     cat("Detected number of features:", nrow(peaks))
+
+    peaks.is.filtered <- NULL
+    features.is.filtered <- NULL
     
     # Filtering based on rsd, rt, mean
     mzrt.filtered <-
@@ -66,7 +83,7 @@ clean_peaktable <-
       cbind( features.all[match(peaks.filtered$Identity, features.all$Identity),], mzrt.filtered$summary[, -1])
     
     ## IS
-    if (nrow(peaks.is > 0)){
+    if (nrow(peaks.is) > 0){
       
       mzrt.is.filtered <-
         filter_peaks( peaktable = peaks.is,
@@ -96,7 +113,7 @@ clean_peaktable <-
       features.filtered[feature_filter$index, , drop = FALSE]
     
     ## IS
-    if (nrow(peaks.is > 0)){
+    if (nrow(peaks.is) > 0){
       sample.index <- meta$Sample.type == filter_by_missing_sample_type
       
       cat("IS: ")
@@ -114,7 +131,7 @@ clean_peaktable <-
     }
     
     # Remove duplicate internal standard
-    if (nrow(features.is.filtered > 0)){
+    if (!is.null(features.is.filtered) && nrow(features.is.filtered) > 0){
       
       features.is.keep <-
         features.is.filtered %>%
@@ -138,8 +155,13 @@ clean_peaktable <-
       
     }
     
-    peaks <- rbind(peaks.filtered, peaks.is.filtered)
-    features <- rbind(features.filtered, features.is.filtered)
+    if (is.null(peaks.is.filtered) || nrow(peaks.is.filtered) == 0) {
+      peaks <- peaks.filtered
+      features <- features.filtered
+    } else {
+      peaks <- rbind(peaks.filtered, peaks.is.filtered)
+      features <- rbind(features.filtered, features.is.filtered)
+    }
     
     rownames(peaks) <- features$Feature_ID
     

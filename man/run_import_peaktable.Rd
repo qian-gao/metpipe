@@ -16,32 +16,41 @@ run_import_peaktable(
   find_is = FALSE,
   add_lipid_info = FALSE,
   keep.lipid.orig = NULL,
-  standerdized.name = FALSE
+  standardized.name = FALSE,
+  standerdized.name = NULL
 )
 }
 \arguments{
-\item{peaktable_pos}{}
+\item{peaktable_pos}{Path to positive-mode peak table file.}
 
-\item{peaktable_neg}{}
+\item{peaktable_neg}{Path to negative-mode peak table file.}
 
-\item{rt_col_nr}{}
+\item{rt_col_nr}{Column index of retention time in the peak table.}
 
-\item{mz_col_nr}{}
+\item{mz_col_nr}{Column index of m/z in the peak table.}
 
-\item{identity_col_nr}{}
+\item{identity_col_nr}{Column index of feature identity annotation.}
 
-\item{sample_col_nr}{}
+\item{sample_col_nr}{First sample-intensity column index.}
 
-\item{meta_file_pos}{}
+\item{meta_file_pos}{Optional metadata file/data frame for positive mode.}
 
-\item{meta_file_neg}{}
+\item{meta_file_neg}{Optional metadata file/data frame for negative mode.}
 
-\item{find_is}{}
+\item{find_is}{Logical; detect isotope-labelled internal standards by name.}
 
-\item{add_lipid_info}{}
+\item{add_lipid_info}{Logical; enrich annotations with lipid class parsing.}
 
-\item{keep.lipid.orig}{}
+\item{keep.lipid.orig}{Logical; keep original lipid names when parsing.}
+
+\item{standardized.name}{Logical; infer metadata fields from standardized file names.}
+
+\item{standerdized.name}{Deprecated alias for \code{standardized.name}.}
 }
 \description{
-run_import_peaktable
+Import peak tables for positive/negative modes
+}
+\value{
+A \code{metpipe_datalist} with \code{pos} and/or \code{neg} elements,
+each returned by \code{import_peaktable()}.
 }

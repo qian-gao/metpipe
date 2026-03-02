@@ -1,14 +1,20 @@
-#' run_clean_peaktable
+#' Clean peak tables for positive/negative modes
 #'
-#' @param datalist 
-#' @param mean.filter 
-#' @param rsd.filter 
-#' @param rt.range 
-#' @param filter_by_missing_feature_pct 
-#' @param outliers.sample 
-#' @param po.sample.to.use 
+#' Applies [clean_peaktable()] to each available mode in a `datalist`, using
+#' shared filtering settings and mode-specific outlier options.
 #'
-#' @return
+#' @param datalist A `metpipe_datalist` (or compatible list) returned by [run_import_peaktable()].
+#' @param mean.filter Optional mean-intensity filtering rule(s).
+#' @param rsd.filter Optional RSD-based filtering rule(s).
+#' @param rt.range Optional retention-time window for feature filtering.
+#' @param filter_by_missing_feature_pct Optional missing-value threshold for features.
+#' @param filter_by_missing_sample_type Sample type used for missing-value filtering.
+#' @param outliers.sample Optional sample names removed in both modes.
+#' @param outliers.sample.pos Optional positive-mode outlier sample names.
+#' @param outliers.sample.neg Optional negative-mode outlier sample names.
+#' @param po.sample.to.use Sample type used when filtering duplicate internal standards.
+#'
+#' @return Updated `metpipe_datalist` with cleaned `pos` and/or `neg` elements.
 #' @export
 #'
 #' @examples
@@ -30,8 +36,13 @@ run_clean_peaktable <-
     # Sample type to use to filter duplicate istd
     po.sample.to.use = NULL
     ){
+
+    datalist <- as_metpipe_datalist(datalist, stage = "imported")
+
+    has_pos <- !is.null(datalist$pos)
+    has_neg <- !is.null(datalist$neg)
     
-    if (!is.null(datalist$pos)){
+    if (has_pos){
       cat("Positive mode: \n")
       
       if (is.null(outliers.sample.pos)) outliers.sample.pos <- outliers.sample
@@ -48,7 +59,7 @@ run_clean_peaktable <-
         )
     }
 
-    if (!is.null(datalist$neg)){
+      if (has_neg){
       cat("Negative mode: \n")
 
       if (is.null(outliers.sample.neg)) outliers.sample.neg <- outliers.sample
@@ -65,5 +76,6 @@ run_clean_peaktable <-
         )
     }
     
+    validate_metpipe_datalist(datalist, stage = "cleaned")
     return(datalist)
   }

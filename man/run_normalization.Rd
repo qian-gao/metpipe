@@ -14,18 +14,21 @@ run_normalization(
 )
 }
 \arguments{
-\item{datalist}{}
+\item{datalist}{A \code{metpipe_datalist} (or compatible list) from import/cleaning steps.}
 
-\item{impute.method.sample}{}
+\item{impute.method.sample}{Imputation method for non-IS features.}
 
-\item{impute.method.is}{}
+\item{impute.method.is}{Imputation method for internal standards.}
 
-\item{po.sample.to.use}{}
+\item{po.sample.to.use}{Sample type used for pool/control-based normalization.}
 
-\item{norm.method}{}
+\item{norm.method}{Character vector of normalization methods to apply.}
 
-\item{sample.type.keep}{}
+\item{sample.type.keep}{Sample types retained in the output normalized table.}
 }
 \description{
-run_normalization
+Normalize data for positive/negative modes
+}
+\value{
+Updated \code{metpipe_datalist} with normalized outputs in \code{pos} and/or \code{neg}.
 }

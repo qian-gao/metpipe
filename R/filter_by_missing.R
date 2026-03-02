@@ -1,14 +1,14 @@
 #' @title filter_by_missing
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Filter rows or columns by missing-value percentage.
 #'
-#' @param x Input data frame with missing values
-#' @param method Filter based on sample or feature, c("sample", "feature")
-#' @param threshold Threshold for remove missings, percentage, e.g. 80
+#' @param x Input numeric data frame/matrix with missing values.
+#' @param method Filter mode: `"sample"` (filter columns) or `"feature"` (filter rows).
+#' @param threshold Maximum allowed missing percentage (0-100).
 #'
-#' @return A list containing a filtered dataframe and method used
+#' @return A list with filtered data (`x`), kept index (`index`), and `method` label.
 #' @examples
+#' filter_by_missing(matrix(c(1, NA, 3, 4), nrow = 2), "feature", 50)
 #'
 #' @export
 
@@ -17,6 +17,16 @@ filter_by_missing <-
            method,    #feature or sample
            threshold  #Percentage
   ) {
+
+    if (!is.data.frame(x) && !is.matrix(x)) {
+      stop("x must be a data.frame or matrix")
+    }
+    if (!method %in% c("sample", "feature")) {
+      stop("method must be either 'sample' or 'feature'")
+    }
+    if (!is.numeric(threshold) || length(threshold) != 1 || threshold < 0 || threshold > 100) {
+      stop("threshold must be a single number between 0 and 100")
+    }
 
     if ( method == "sample" ) {
 

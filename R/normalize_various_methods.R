@@ -1,17 +1,29 @@
 #' @title normalize_various_methods
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Apply a selected normalization method to metabolomics intensity data.
 #'
-#' @param dat A data set object
-#' @param id Scope (e.g., country codes or individual IDs)
-#' @param time Time (e.g., time periods are given by years, months, ...)
+#' @param x Input intensity matrix/data frame (sample x feature).
+#' @param istds Optional internal-standard matrix/data frame.
+#' @param method Normalization method name.
+#' @param type Optional sample-type vector.
+#' @param use.type Optional sample type used as reference in selected methods.
+#' @param reference Optional reference vector for PQN-style methods.
+#' @param use.reference Optional reference label to use within `reference`.
+#' @param group Optional covariate used in batch-correction models.
+#' @param verbose Logical; print progress messages.
+#' @param batch Optional batch vector.
+#' @param batch.wise Logical; perform selected methods per batch.
+#' @param sample.rate Quantile sampling rate for qspline.
+#' @param data.rsd.orig Optional precomputed baseline RSD table.
+#' @param export.path Deprecated/optional export path.
+#' @param prefix Deprecated/optional file prefix.
+#' @param feature.info Optional feature metadata to join into outputs.
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#' @return A list containing normalized data and evaluation tables.
 #' @examples
-#' data(toydata)
-#' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
+#' \dontrun{
+#' out <- normalize_various_methods(x = data, method = "median")
+#' }
 #' @export
 #' @import reshape2 dplyr tidyr
 #'
@@ -146,7 +158,7 @@ normalize_various_methods <-
       x_norm <- data.frame()
       minRSD <- data.frame()
 
-      for (i in 1:length(batch_nr)){
+      for (i in seq_along(batch_nr)){
 
         x.i <- x[batch == batch_nr[i], ]
         istds.i <- istds[batch == batch_nr[i], ]
@@ -162,7 +174,7 @@ normalize_various_methods <-
         mat.is.means <- apply(mat.istds, 2, function(x) {mean(x, na.rm = TRUE)})
 
         # Normalize to each internal Standard
-        for (j in 1:length(mat.is.means)) {
+        for (j in seq_along(mat.is.means)) {
 
           norms <- mat.raw  %>%
             sapply(FUN = function(x) x/mat.istds[ , j]) %>%
@@ -315,18 +327,20 @@ normalize_various_methods <-
 
 #' @title affy_normalize_loess
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Perform iterative loess-based normalization on matrix-like data.
 #'
-#' @param dat A data set object
-#' @param id Scope (e.g., country codes or individual IDs)
-#' @param time Time (e.g., time periods are given by years, months, ...)
+#' @param mat Numeric matrix (feature x sample).
+#' @param subset Feature indices used for fitting.
+#' @param epsilon Convergence tolerance.
+#' @param maxit Maximum number of iterations.
+#' @param log.it Logical; normalize in log2 space.
+#' @param verbose Logical; print iteration progress.
+#' @param span Loess span.
+#' @param family.loess Loess family.
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#' @return Normalized matrix.
 #' @examples
-#' data(toydata)
-#' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
+#' \dontrun{ affy_normalize_loess(mat) }
 #'
 affy_normalize_loess <-
   function(mat, subset=sample(1:(dim(mat)[1]), min(c(5000, nrow(mat)))),
@@ -372,7 +386,7 @@ affy_normalize_loess <-
 
     }
 
-    if ((change > epsilon) & (maxit > 1))
+    if ((change > epsilon) && (maxit > 1))
       warning(paste("No convergence after", maxit, "iterations.\n"))
 
     if(log.it) {
@@ -383,18 +397,25 @@ affy_normalize_loess <-
 
 #' @title affy_normalize_qspline
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Quantile-spline normalization adapted from affy-style workflows.
 #'
-#' @param dat A data set object
-#' @param id Scope (e.g., country codes or individual IDs)
-#' @param time Time (e.g., time periods are given by years, months, ...)
+#' @param x Numeric matrix (feature x sample).
+#' @param target Optional target profile.
+#' @param samples Number/fraction of quantile samples.
+#' @param fit.iters Number of fitting iterations.
+#' @param min.offset Minimum offset for fitting windows.
+#' @param spline.method Spline method.
+#' @param smooth Logical; smooth sampled quantiles.
+#' @param spar Smoothing parameter.
+#' @param p.min,p.max Quantile range to use.
+#' @param incl.ends Logical; include end points.
+#' @param converge Logical; use convergent fitting strategy.
+#' @param verbose Logical; print progress.
+#' @param na.rm Logical; ignore missing values during fitting.
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using
+#' @return Normalized matrix.
 #' @examples
-#' data(toydata)
-#' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
+#' \dontrun{ affy_normalize_qspline(x) }
 #'
 affy_normalize_qspline <- function(x,
                                    target        = NULL,
@@ -518,18 +539,20 @@ affy_normalize_qspline <- function(x,
 
 #' @title sva_ComBat
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description ComBat batch correction implementation used by normalization helpers.
 #'
-#' @param dat A data set object
-#' @param id Scope (e.g., country codes or individual IDs)
-#' @param time Time (e.g., time periods are given by years, months, ...)
+#' @param dat Data matrix (feature x sample).
+#' @param batch Batch labels.
+#' @param mod Optional model matrix of covariates.
+#' @param par.prior Logical; use parametric priors.
+#' @param prior.plots Logical; generate prior plots.
+#' @param mean.only Logical; apply mean-only adjustment.
+#' @param ref.batch Optional reference batch label.
+#' @param BPPARAM BiocParallel backend parameter.
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using
+#' @return Batch-corrected matrix.
 #' @examples
-#' data(toydata)
-#' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
+#' \dontrun{ sva_ComBat(dat, batch) }
 #' 
 sva_ComBat <-
 function (dat, batch, mod = NULL, par.prior = TRUE, prior.plots = FALSE,

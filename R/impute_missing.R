@@ -30,6 +30,27 @@ impute_missing <-
     missing_thres = 0.2,
     group.info = NULL
   ) {
+
+    if (!is.data.frame(x) && !is.matrix(x)) {
+      stop("x must be a data.frame or matrix")
+    }
+
+    valid_methods <- c(NULL, "HF", "LoD", "median", "min", "mean", "knn")
+    if (!is.null(method) && !method %in% valid_methods) {
+      stop("Unsupported method: ", method)
+    }
+
+    fill_missing <- function(v, fill_fun, scale = 1) {
+      miss <- which(is.na(v) | v <= 0)
+      if (length(miss) == 0) return(v)
+      observed <- v[setdiff(seq_along(v), miss)]
+      if (length(observed) == 0) {
+        v[miss] <- 0
+      } else {
+        v[miss] <- scale * fill_fun(observed, na.rm = TRUE)
+      }
+      v
+    }
     
     missings_nr <- sum( is.na(x) | x <= 0 )
     
@@ -40,62 +61,35 @@ impute_missing <-
       
     } else if (method == 'HF') {
       
-      x_imputed <- apply(x, 2, function(x){
-        miss <- which( is.na(x) | x <= 0 )
-        if (sum(miss) > 0) {
-          x[ miss ] <- 0.5*min(x[-miss], na.rm = TRUE)
-        }
-        return(x)
-      })
+      x_imputed <- apply(x, 2, fill_missing, fill_fun = min, scale = 0.5)
       
     } else if (method == 'LoD') {
       
-      x_imputed <- apply(x, 2, function(x){
-        miss <- which( is.na(x) | x <= 0 )
-        if (sum(miss) > 0) {
-          x[ miss ] <- 0.2*min(x[-miss], na.rm = TRUE)
-        }
-        return(x)
-      })
+      x_imputed <- apply(x, 2, fill_missing, fill_fun = min, scale = 0.2)
       
     } else if (method == 'median') {
       
-      x_imputed <- apply(x, 2, function(x){
-        miss <- which( is.na(x) | x <= 0 )
-        if (sum(miss) > 0) {
-          x[ miss ] <- median(x[-miss], na.rm = TRUE)
-        }
-        return(x)
-      })
+      x_imputed <- apply(x, 2, fill_missing, fill_fun = median, scale = 1)
       
     } else if (method == 'min') {
       
-      x_imputed <- apply(x, 2, function(x){
-        miss <- which( is.na(x) | x <= 0 )
-        if (sum(miss) > 0) {
-          x[ miss ] <- min(x[-miss], na.rm = TRUE)
-        }
-        return(x)
-      })
+      x_imputed <- apply(x, 2, fill_missing, fill_fun = min, scale = 1)
       
     } else if (method == 'mean') {
       
-      x_imputed <- apply(x, 2, function(x){
-        miss <- which( is.na(x) | x <= 0 )
-        if (sum(miss) > 0) {
-          x[ miss ] <- mean(x[-miss], na.rm = TRUE)
-        }
-        return(x)
-      })
+      x_imputed <- apply(x, 2, fill_missing, fill_fun = mean, scale = 1)
       
     } else if (method == "knn") {
       # if missing < 20% for each group, apply knn, otherwise LoD
-      
-      if (!is.null(group.info)){
-        grps <- unique(group.info)
-      } else {
-        grps <- "Group 0"
+
+      if (is.null(group.info)) {
+        group.info <- rep("Group 0", nrow(x))
       }
+      if (length(group.info) != nrow(x)) {
+        stop("group.info must have the same length as nrow(x)")
+      }
+      
+      grps <- unique(group.info)
       
       
       x_imputed <- x
@@ -113,15 +107,7 @@ impute_missing <-
         
       }
       
-      x_imputed <-
-        apply(x_imputed, 2,
-              function(x){
-                miss <- which( is.na(x) | x <= 0 )
-                if (sum(miss) > 0) {
-                  x[ miss ] <- 0.2*min(x[-miss], na.rm = TRUE)
-                }
-                return(x)
-              })
+      x_imputed <- apply(x_imputed, 2, fill_missing, fill_fun = min, scale = 0.2)
     }
     
     x_imputed <- data.frame(x_imputed)

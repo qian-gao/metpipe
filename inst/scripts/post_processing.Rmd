@@ -60,10 +60,51 @@ pre { /* Code block - determines code spacing between lines */
 
 library(dplyr)
 library(openxlsx)
-library(metpipe)
 library(stringr)
 library(tidyr)
 library(yaml)
+
+load_metpipe_runtime <- function() {
+  package_mode <- tolower(trimws(Sys.getenv("METPIPE_PACKAGE_MODE", unset = "local")))
+  if (!package_mode %in% c("local", "installed")) package_mode <- "local"
+
+  if (identical(package_mode, "installed")) {
+    if (!requireNamespace("metpipe", quietly = TRUE)) {
+      stop("METPIPE_PACKAGE_MODE='installed' but package 'metpipe' is not installed")
+    }
+    library(metpipe)
+    return("installed")
+  }
+
+  candidates <- unique(Filter(nzchar, c(
+    Sys.getenv("METPIPE_LOCAL_ROOT", ""),
+    "H:/Documents/CBMR_workflow/packages/metpipe",
+    normalizePath(getwd(), winslash = "/", mustWork = FALSE),
+    normalizePath(file.path(getwd(), ".."), winslash = "/", mustWork = FALSE),
+    normalizePath(file.path(getwd(), "..", ".."), winslash = "/", mustWork = FALSE)
+  )))
+
+  is_pkg_root <- function(path) {
+    dir.exists(path) &&
+      file.exists(file.path(path, "DESCRIPTION")) &&
+      dir.exists(file.path(path, "R"))
+  }
+
+  roots <- candidates[vapply(candidates, is_pkg_root, logical(1))]
+  if (length(roots) == 0) {
+    stop("Cannot locate local metpipe package root. Set METPIPE_LOCAL_ROOT to your metpipe folder.")
+  }
+
+  if (!requireNamespace("pkgload", quietly = TRUE)) {
+    stop("pkgload is required for local source loading. Install with install.packages('pkgload').")
+  }
+
+  Sys.setenv(METPIPE_LOCAL_ROOT = roots[[1]])
+  pkgload::load_all(path = roots[[1]], export_all = FALSE, quiet = TRUE)
+  "local"
+}
+
+metpipe_runtime <- load_metpipe_runtime()
 
 knitr::opts_chunk$set(
   message = FALSE,
@@ -71,17 +112,51 @@ knitr::opts_chunk$set(
   echo = FALSE,
   include = TRUE
 )
+
+is_blank <- function(x) {
+  is.null(x) || length(x) == 0 || all(is.na(x)) || !nzchar(trimws(as.character(x[1])))
+}
+
+as_flag <- function(x) {
+  if (is.logical(x)) return(isTRUE(x))
+  if (is.numeric(x)) return(!is.na(x[1]) && x[1] != 0)
+  if (is.character(x)) return(tolower(trimws(x[1])) %in% c("true", "t", "1", "y", "yes"))
+  FALSE
+}
+
+cfg_required <- function(cfg, name) {
+  val <- cfg[[name]]
+  if (is_blank(val)) stop("Missing required config field: ", name)
+  val
+}
+
+as_meta_df <- function(x) {
+  if (is.null(x)) return(NULL)
+  out <- data.frame(x, check.names = FALSE)
+  if (nrow(out) == 0) return(NULL)
+  out
+}
 ```
 
 ```{r pipeline input}
 
-config <- read_yaml(params$config)
+if (is_blank(params$config)) {
+  stop("params$config is required")
+}
+if (!file.exists(params$config)) {
+  stop("Config file does not exist: ", params$config)
+}
 
-path_workflow = config$path_workflow
-run.pos = config$run.pos
-run.neg = config$run.neg
-meta_pos = config$meta_pos
-meta_neg = config$meta_neg
+config <- read_yaml(params$config)
+if (is.null(config) || !is.list(config)) {
+  stop("Invalid YAML config: expected a named list")
+}
+
+path_workflow = cfg_required(config, "path_workflow")
+run.pos = as_flag(config$run.pos)
+run.neg = as_flag(config$run.neg)
+meta_pos = as_meta_df(config$meta_pos)
+meta_neg = as_meta_df(config$meta_neg)
 mean.filter = config$mean.filter
 rsd.filter = config$rsd.filter
 rt.range = config$rt.range
@@ -100,12 +175,42 @@ final.sample.type.keep = config$final.sample.type.keep
 
 peaktable_pos = config$path_peaktable_pos
 peaktable_neg = config$path_peaktable_neg
-meta_pos = data.frame(config$meta_pos)
-meta_neg = data.frame(config$meta_neg)
+
+if (run.pos && is_blank(peaktable_pos)) stop("run.pos=TRUE but path_peaktable_pos is missing")
+if (run.neg && is_blank(peaktable_neg)) stop("run.neg=TRUE but path_peaktable_neg is missing")
+if (!run.pos) {
+  peaktable_pos <- NULL
+  meta_pos <- NULL
+}
+if (!run.neg) {
+  peaktable_neg <- NULL
+  meta_neg <- NULL
+}
+
+if (!is.null(peaktable_pos) && !file.exists(peaktable_pos)) {
+  stop("Positive peaktable file not found: ", peaktable_pos)
+}
+if (!is.null(peaktable_neg) && !file.exists(peaktable_neg)) {
+  stop("Negative peaktable file not found: ", peaktable_neg)
+}
 
 # output
-rds_datalist <- config$rds_datalist
-path_datatable <- config$path_datatable
+rds_datalist <- cfg_required(config, "rds_datalist")
+path_datatable <- cfg_required(config, "path_datatable")
+
+for (out_path in c(rds_datalist, path_datatable)) {
+  out_dir <- dirname(out_path)
+  if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+}
+
+db_file <- file.path(path_workflow, "library", "metabolomics_workbench_refmet_20250515.csv")
+if (!file.exists(db_file)) {
+  stop("Metabolite mapping database file not found: ", db_file)
+}
+
+if (!run.pos && !run.neg) {
+  stop("Both run.pos and run.neg are FALSE. Nothing to post-process.")
+}
 ```
 
 ```{r, include = FALSE, eval = FALSE}
@@ -163,8 +268,8 @@ datalist <-
   )
 
 cat("Peaktable used for post processing are: \n")
-cat(peaktable_pos, "\n")
-cat(peaktable_neg, "\n")
+if (!is.null(peaktable_pos)) cat(peaktable_pos, "\n")
+if (!is.null(peaktable_neg)) cat(peaktable_neg, "\n")
 ```
 
 # Clean peaktable
@@ -212,12 +317,12 @@ datalist <-
 ```{r}
 
 datalist <- 
-  run_merge_amd_map(
+  run_merge_and_map(
     datalist = datalist,
     final.norm = final.norm,
     eval.sample.to.use = final.eval.sample.to.use,
     sample.type.keep = final.sample.type.keep,
-    db_file = paste0(path_workflow, '/library/metabolomics_workbench_refmet_20250515.csv')
+    db_file = db_file
   )
 
 cat("Final selected normalization method is: ", final.norm, "\n")

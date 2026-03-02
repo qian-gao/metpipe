@@ -1,17 +1,15 @@
 #' @title plot_eval
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Compare normalization methods using RSD, MAD, and variance summaries.
 #'
-#' @param dat A data set object
-#' @param id Scope (e.g., country codes or individual IDs)
-#' @param time Time (e.g., time periods are given by years, months, ...)
+#' @param x Named list of normalized data matrices/data frames (sample x feature).
+#' @param type Sample type vector aligned with rows of each matrix.
 #'
-#' @return A data frame object that contains a summary of a sample that
-#'     can later be converted to a TeX output using \code{overview_print}
+#' @return A list of ggplot objects and summary tables for method evaluation.
 #' @examples
-#' data(toydata)
-#' output_table <- overview_tab(dat = toydata, id = ccode, time = year)
+#' \dontrun{
+#' eval_plots <- plot_eval(x = peaks_norm, type = sample_info$Sample.type)
+#' }
 #' @export
 #' @import dplyr tidyr
 #' @import ggplot2 ggsci data.table
@@ -21,6 +19,13 @@ plot_eval <-
     x = NULL,
     type = NULL
   ){
+
+    if (!is.list(x) || length(x) == 0) {
+      stop("x must be a non-empty list of normalized matrices/data frames")
+    }
+    if (is.null(type)) {
+      stop("type must be provided")
+    }
     
     methods <- names(x)
     

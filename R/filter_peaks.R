@@ -1,7 +1,6 @@
 #' @title filter_peaks
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Filter metabolomics features by mean intensity, RSD, and RT range.
 #'
 #' @param XCMSnExp A XCMSnExp object. If null, peaktable should be mandatory
 #' @param peaktable A dataframe of peaktable, feature x sample. If null, XCMSnExp
@@ -18,7 +17,7 @@
 #'    certain types. e.g. list( c( "PO100", ">", 1, "PO25"),
 #'                              c( "PO25", ">", 1, "PO12.5") )
 #'
-#' @return A data frame object that contains filtered peaktable and summary statistics
+#' @return A list containing filtered peak table(s), feature summaries, and indices.
 #' @examples
 #'
 #' @export
@@ -33,6 +32,10 @@ filter_peaks <-
             rt.range = NULL,
             mean.filter = NULL
   ){
+
+    if (is.null(XCMSnExp) && is.null(peaktable)) {
+      stop("Provide either XCMSnExp or peaktable")
+    }
 
     if ( !is.null(XCMSnExp) ){
 
@@ -94,9 +97,9 @@ filter_peaks <-
 
     if (!is.null(mean.filter)){
 
-      for (i in 1:ifelse(is.list(mean.filter), length(mean.filter), 1)){
+      for (i in seq_len(ifelse(is.list(mean.filter), length(mean.filter), 1))){
 
-        if (i == 1 & !is.list(mean.filter)){
+        if (i == 1 && !is.list(mean.filter)){
           m.thres <- mean.filter
         } else {
           m.thres <- mean.filter[[i]]
@@ -136,9 +139,9 @@ filter_peaks <-
 
     if (!is.null(rsd.filter)){
 
-      for (i in 1:ifelse(is.list(rsd.filter), length(rsd.filter), 1)){
+      for (i in seq_len(ifelse(is.list(rsd.filter), length(rsd.filter), 1))){
 
-        if (i == 1 & !is.list(rsd.filter)){
+        if (i == 1 && !is.list(rsd.filter)){
           m.thres <- rsd.filter
         } else {
           m.thres <- rsd.filter[[i]]
@@ -235,13 +238,12 @@ filter_peaks <-
 
 #' @title mzrt_filter
 #'
-#' @description Provides an overview table for the time and scope conditions of
-#'     a data set
+#' @description Apply a logical feature index to all feature-level slots in an `mzrt` list.
 #'
 #' @param mzrt A list of dataframe or vectors containing peaktable, feature.info
 #' @param index Index of features to remove
 #'
-#' @return A list of filtered dataframe or vectors
+#' @return A filtered `mzrt` list.
 #' @examples
 #'
 mzrt_filter <-
@@ -251,7 +253,7 @@ mzrt_filter <-
     obj.names <- names(mzrt)
     obj.names <- obj.names[ !grepl( "sample.info", obj.names ) ]
 
-    for ( i in 1:length(obj.names) ){
+    for ( i in seq_along(obj.names) ){
 
       name <- obj.names[i]
 

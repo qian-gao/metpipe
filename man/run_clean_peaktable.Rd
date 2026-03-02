@@ -18,20 +18,29 @@ run_clean_peaktable(
 )
 }
 \arguments{
-\item{datalist}{}
+\item{datalist}{A \code{metpipe_datalist} (or compatible list) returned by \code{run_import_peaktable()}.}
 
-\item{mean.filter}{}
+\item{mean.filter}{Optional mean-intensity filtering rule(s).}
 
-\item{rsd.filter}{}
+\item{rsd.filter}{Optional RSD-based filtering rule(s).}
 
-\item{rt.range}{}
+\item{rt.range}{Optional retention-time window for feature filtering.}
 
-\item{filter_by_missing_feature_pct}{}
+\item{filter_by_missing_feature_pct}{Optional missing-value threshold for features.}
 
-\item{outliers.sample}{}
+\item{filter_by_missing_sample_type}{Sample type used for missing-value filtering.}
 
-\item{po.sample.to.use}{}
+\item{outliers.sample}{Optional sample names removed in both modes.}
+
+\item{outliers.sample.pos}{Optional positive-mode outlier sample names.}
+
+\item{outliers.sample.neg}{Optional negative-mode outlier sample names.}
+
+\item{po.sample.to.use}{Sample type used when filtering duplicate internal standards.}
 }
 \description{
-run_clean_peaktable
+Clean peak tables for positive/negative modes
+}
+\value{
+Updated \code{metpipe_datalist} with cleaned \code{pos} and/or \code{neg} elements.
 }

@@ -61,7 +61,8 @@ pre { /* Code block - determines code spacing between lines */
 library(yaml)
 library(dplyr)
 library(openxlsx)
-
+# params <- list()
+# params$config <- "E:/Projects/MP_workshop/peaktable/PL_LIPS_PASEF/config.yml"
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
@@ -69,22 +70,123 @@ knitr::opts_chunk$set(
   include = TRUE
 )
 
+is_blank <- function(x) {
+  is.null(x) || length(x) == 0 || all(is.na(x)) || !nzchar(trimws(as.character(x[1])))
+}
+
+as_flag <- function(x) {
+  if (is.logical(x)) return(isTRUE(x))
+  if (is.numeric(x)) return(!is.na(x[1]) && x[1] != 0)
+  if (is.character(x)) return(tolower(trimws(x[1])) %in% c("true", "t", "1", "y", "yes"))
+  FALSE
+}
+
+require_cfg <- function(cfg, name) {
+  val <- cfg[[name]]
+  if (is_blank(val)) stop("Missing required config field: ", name)
+  val
+}
+
+add_missing_cols <- function(df, cols) {
+  missing <- setdiff(cols, names(df))
+  if (length(missing) > 0) {
+    for (m in missing) df[[m]] <- NA
+  }
+  df[, cols, drop = FALSE]
+}
+
+convert_mode_output <- function(path_peaktable, path_peaktable_out, path_peaktable_istd_out, cols_to_save, df_temp) {
+  if (!file.exists(path_peaktable)) {
+    stop("Input mzMine peaktable not found: ", path_peaktable)
+  }
+
+  raw <- read.csv(path_peaktable, sep = ";", header = TRUE, check.names = TRUE)
+
+  raw_features <-
+    plyr::rbind.fill(df_temp, raw) %>%
+    add_missing_cols(cols_to_save) %>%
+    dplyr::rename(
+      spectral_similarity = spectral_db_matches.similarity_score,
+      iin_id = ion_identities.iin_id,
+      ion_identities = ion_identities.ion_identities
+    )
+
+  raw_features[is.na(raw_features) | raw_features == ""] <- NA
+
+  features <-
+    raw_features %>%
+    mutate(
+      identity = coalesce(compound_db_identity.compound_name, lipid_annotations.lipid_annotations, spectral_db_matches.compound_name),
+      ion = coalesce(compound_db_identity.adduct, lipid_annotations.ion_adduct, spectral_db_matches.ion_adduct, ion_identities),
+      formula = coalesce(compound_db_identity.mol_formula, lipid_annotations.mol_formula, spectral_db_matches.mol_formula, ion_identities.simple_formulas),
+      mz_diff_ppm = coalesce(compound_db_identity.mz_diff_ppm, lipid_annotations.mz_diff_ppm, spectral_db_matches.mz_diff_ppm),
+      rt_diff = compound_db_identity.rt_absolute_error,
+      identity_source = ifelse(
+        !is.na(compound_db_identity.compound_name), "In house library",
+        ifelse(!is.na(lipid_annotations.lipid_annotations), "Lipid annotations",
+               ifelse(!is.na(spectral_db_matches.compound_name), "Spectral library", NA))
+      )
+    ) %>%
+    relocate(c(id, mz, rt, ccs, identity, ion, formula, mz_diff_ppm, rt_diff, identity_source, spectral_similarity, iin_id, ion_identities), .before = 0)
+
+  sample_index <- grepl("^datafile\\.", colnames(raw))
+  area_index <- grepl("\\.area$", colnames(raw))
+  peaks <- raw[, (sample_index & area_index), drop = FALSE]
+  names(peaks) <- gsub("^datafile\\.", "", names(peaks))
+  names(peaks) <- gsub("\\.area$", "", names(peaks))
+
+  peaktable <- cbind(features, peaks)
+  openxlsx::write.xlsx(peaktable, file = path_peaktable_out)
+
+  row_index <- !is.na(features$formula) & grepl("'", features$formula, fixed = TRUE)
+  rt_index <- grepl("\\.rt$", colnames(raw))
+  mz_index <- grepl("\\.mz$", colnames(raw))
+
+  features_istd <- features[row_index, , drop = FALSE]
+  peaks_istd <- raw[row_index, (sample_index & (mz_index | rt_index | area_index)), drop = FALSE]
+  peaktable_istd <- cbind(features_istd, peaks_istd)
+
+  openxlsx::write.xlsx(peaktable_istd, file = path_peaktable_istd_out)
+
+  list(
+    peaktable_path = path_peaktable_out,
+    peaktable_istd_path = path_peaktable_istd_out,
+    n_features = nrow(features),
+    n_istd = nrow(features_istd)
+  )
+}
+
 ```
 
 ```{r pipeline input, include = FALSE}
 
-config <- read_yaml(params$config)
+if (is_blank(params$config)) {
+  stop("params$config is required")
+}
+if (!file.exists(params$config)) {
+  stop("Config file does not exist: ", params$config)
+}
 
-run.pos = config$run.pos
-run.neg = config$run.neg
-mzmine_peaktable_pos <- config$mzmine_peaktable_pos
-mzmine_peaktable_neg <- config$mzmine_peaktable_neg
+config <- read_yaml(params$config)
+if (is.null(config) || !is.list(config)) {
+  stop("Invalid YAML config: expected a named list")
+}
+
+run.pos = as_flag(config$run.pos)
+run.neg = as_flag(config$run.neg)
+mzmine_peaktable_pos <- require_cfg(config, "mzmine_peaktable_pos")
+mzmine_peaktable_neg <- require_cfg(config, "mzmine_peaktable_neg")
 
 # output
-path_peaktable_pos <- config$path_peaktable_pos
-path_peaktable_neg <- config$path_peaktable_neg
-path_peaktable_istd_pos <- config$path_peaktable_istd_pos
-path_peaktable_istd_neg <- config$path_peaktable_istd_neg
+path_peaktable_pos <- require_cfg(config, "path_peaktable_pos")
+path_peaktable_neg <- require_cfg(config, "path_peaktable_neg")
+path_peaktable_istd_pos <- require_cfg(config, "path_peaktable_istd_pos")
+path_peaktable_istd_neg <- require_cfg(config, "path_peaktable_istd_neg")
+
+for (out_path in c(path_peaktable_pos, path_peaktable_neg, path_peaktable_istd_pos, path_peaktable_istd_neg)) {
+  out_dir <- dirname(out_path)
+  if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+}
   
 ```
 
@@ -120,155 +222,61 @@ colnames(df_temp) <- cols_to_save
 ## Positive
 ```{r, eval = run.pos}
 
-path_peaktable <- mzmine_peaktable_pos
-mode <- "pos"
-
-raw <- 
-  read.csv(path_peaktable, sep = ';', header = TRUE) 
-
-raw_features <- 
-  plyr::rbind.fill(df_temp, raw) %>% 
-  select(id, mz, rt, ccs, 
-         compound_db_identity.compound_name, compound_db_identity.mz_diff_ppm, compound_db_identity.rt_absolute_error, compound_db_identity.adduct, compound_db_identity.mol_formula, 
-         spectral_db_matches.compound_name, spectral_db_matches.mz_diff_ppm, spectral_db_matches.similarity_score, spectral_db_matches.ion_adduct, spectral_db_matches.mol_formula,
-         lipid_annotations.lipid_annotations, lipid_annotations.mz_diff_ppm, lipid_annotations.ion_adduct, lipid_annotations.mol_formula, 
-         ion_identities.iin_id, ion_identities.ion_identities, ion_identities.simple_formulas) %>% 
-  dplyr::rename(
-    spectral_similarity = spectral_db_matches.similarity_score,
-    iin_id = ion_identities.iin_id,
-    ion_identities = ion_identities.ion_identities)
-
-raw_features[is.na(raw_features) | raw_features == ""] <- NA
-
-features <- 
-  raw_features %>% 
-  mutate(identity = coalesce(compound_db_identity.compound_name, lipid_annotations.lipid_annotations, spectral_db_matches.compound_name),
-         ion = coalesce(compound_db_identity.adduct, lipid_annotations.ion_adduct, spectral_db_matches.ion_adduct, ion_identities),
-         formula = coalesce(compound_db_identity.mol_formula, lipid_annotations.mol_formula, spectral_db_matches.mol_formula, ion_identities.simple_formulas), 
-         mz_diff_ppm = coalesce(compound_db_identity.mz_diff_ppm, lipid_annotations.mz_diff_ppm, spectral_db_matches.mz_diff_ppm),
-         rt_diff = compound_db_identity.rt_absolute_error,
-         identity_source = ifelse(!is.na(compound_db_identity.compound_name), "In house library", ifelse(!is.na(lipid_annotations.lipid_annotations), "Lipid annotations", ifelse(!is.na(spectral_db_matches.compound_name), "Spectral library", NA)))) %>% 
-  relocate(c(id, mz, rt, ccs, identity, ion, formula, mz_diff_ppm, rt_diff, identity_source, spectral_similarity, iin_id, ion_identities),
-           .before = 0)
+result_pos <- convert_mode_output(
+  path_peaktable = mzmine_peaktable_pos,
+  path_peaktable_out = path_peaktable_pos,
+  path_peaktable_istd_out = path_peaktable_istd_pos,
+  cols_to_save = cols_to_save,
+  df_temp = df_temp
+)
 
 ```
 
 ### Peaks
 ```{r, eval = run.pos}
 
-sample_index <- grepl("^datafile.", colnames(raw))
-area_index <- grepl(".area$", colnames(raw))
-peaks <- raw[, (sample_index & area_index)]
-
-names(peaks) <- gsub("datafile.|.area", "", names(peaks))
-
-peaktable <- cbind(features, peaks)
-
-file_name <- path_peaktable_pos
-write.xlsx(peaktable, file = file_name)
-
 cat("Converted peaktable is stored in: \n")
-cat(file_name, "\n")
+cat(result_pos$peaktable_path, "\n")
+cat("Number of converted features: ", result_pos$n_features, "\n")
 
 ```
 
 ### ISTD
 ```{r, eval = run.pos}
 
-row_index <- grepl("'", features$formula)
-#row_index <- grepl("-D[0-9]+$", features$identity)
-sample_index <- grepl("^datafile.", colnames(raw))
-rt_index <- grepl("*.rt$", colnames(raw))
-mz_index <- grepl("*.mz$", colnames(raw))
-area_index <- grepl("*.area$", colnames(raw))
-
-features_istd <- features[row_index, ]
-peaks_istd <- raw[row_index, (sample_index & (mz_index | rt_index | area_index))]
-
-peaktable_istd <- cbind(features_istd, peaks_istd)
-
-file_name <- path_peaktable_istd_pos
-write.xlsx(peaktable_istd, file = file_name)
-
 cat("Converted peaktable istd is stored in: \n")
-cat(file_name, "\n")
+cat(result_pos$peaktable_istd_path, "\n")
+cat("Number of ISTD rows: ", result_pos$n_istd, "\n")
 ```
 
 ## Negative
 ```{r, eval = run.neg}
 
-path_peaktable <- mzmine_peaktable_neg
-mode <- "neg"
-
-raw <- 
-  read.csv(path_peaktable, sep = ';', header = TRUE) 
-
-raw_features <- 
-  plyr::rbind.fill(df_temp, raw) %>% 
-  select(id, mz, rt, ccs, 
-         compound_db_identity.compound_name, compound_db_identity.mz_diff_ppm, compound_db_identity.rt_absolute_error, compound_db_identity.adduct, compound_db_identity.mol_formula, 
-         spectral_db_matches.compound_name, spectral_db_matches.mz_diff_ppm, spectral_db_matches.similarity_score, spectral_db_matches.ion_adduct, spectral_db_matches.mol_formula,
-         lipid_annotations.lipid_annotations, lipid_annotations.mz_diff_ppm, lipid_annotations.ion_adduct, lipid_annotations.mol_formula, 
-         ion_identities.iin_id, ion_identities.ion_identities, ion_identities.simple_formulas) %>% 
-  dplyr::rename(
-    spectral_similarity = spectral_db_matches.similarity_score,
-    iin_id = ion_identities.iin_id,
-    ion_identities = ion_identities.ion_identities)
-
-raw_features[is.na(raw_features) | raw_features == ""] <- NA
-
-features <- 
-  raw_features %>% 
-  mutate(identity = coalesce(compound_db_identity.compound_name, lipid_annotations.lipid_annotations, spectral_db_matches.compound_name),
-         ion = coalesce(compound_db_identity.adduct, lipid_annotations.ion_adduct, spectral_db_matches.ion_adduct, ion_identities),
-         formula = coalesce(compound_db_identity.mol_formula, lipid_annotations.mol_formula, spectral_db_matches.mol_formula, ion_identities.simple_formulas), 
-         mz_diff_ppm = coalesce(compound_db_identity.mz_diff_ppm, lipid_annotations.mz_diff_ppm, spectral_db_matches.mz_diff_ppm),
-         rt_diff = compound_db_identity.rt_absolute_error,
-         identity_source = ifelse(!is.na(compound_db_identity.compound_name), "In house library", ifelse(!is.na(lipid_annotations.lipid_annotations), "Lipid annotations", ifelse(!is.na(spectral_db_matches.compound_name), "Spectral library", NA)))) %>% 
-  relocate(c(id, mz, rt, ccs, identity, ion, formula, mz_diff_ppm, rt_diff, identity_source, spectral_similarity, iin_id, ion_identities),
-           .before = 0)
+result_neg <- convert_mode_output(
+  path_peaktable = mzmine_peaktable_neg,
+  path_peaktable_out = path_peaktable_neg,
+  path_peaktable_istd_out = path_peaktable_istd_neg,
+  cols_to_save = cols_to_save,
+  df_temp = df_temp
+)
 
 ```
 
 ### Peaks
 ```{r, eval = run.neg}
 
-sample_index <- grepl("^datafile.", colnames(raw))
-area_index <- grepl(".area$", colnames(raw))
-peaks <- raw[, (sample_index & area_index)]
-
-names(peaks) <- gsub("datafile.|.area", "", names(peaks))
-
-peaktable <- cbind(features, peaks)
-
-file_name <- path_peaktable_neg
-write.xlsx(peaktable, file = file_name)
-
 cat("Converted peaktable is stored in: \n")
-cat(file_name, "\n")
+cat(result_neg$peaktable_path, "\n")
+cat("Number of converted features: ", result_neg$n_features, "\n")
 
 ```
 
 ### ISTD
 ```{r, eval = run.neg}
 
-row_index <- grepl("'", features$formula)
-#row_index <- grepl("-D[0-9]+$", features$identity)
-sample_index <- grepl("^datafile.", colnames(raw))
-rt_index <- grepl("*.rt$", colnames(raw))
-mz_index <- grepl("*.mz$", colnames(raw))
-area_index <- grepl("*.area$", colnames(raw))
-
-features_istd <- features[row_index, ]
-peaks_istd <- raw[row_index, (sample_index & (mz_index | rt_index | area_index))]
-
-peaktable_istd <- cbind(features_istd, peaks_istd)
-
-file_name <- path_peaktable_istd_neg
-write.xlsx(peaktable_istd, file = file_name)
-
 cat("Converted peaktable istd is stored in: \n")
-cat(file_name, "\n")
+cat(result_neg$peaktable_istd_path, "\n")
+cat("Number of ISTD rows: ", result_neg$n_istd, "\n")
 
 ```
 

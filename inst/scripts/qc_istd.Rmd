@@ -60,7 +60,6 @@ pre { /* Code block - determines code spacing between lines */
 
 
 library(plotly)
-library(metpipe)
 library(knitr)
 library(kableExtra)
 library(tidyr)
@@ -68,6 +67,49 @@ library(dplyr)
 library(stringr)
 library(htmltools)
 library(ggsci)
+library(yaml)
+
+load_metpipe_runtime <- function() {
+  package_mode <- tolower(trimws(Sys.getenv("METPIPE_PACKAGE_MODE", unset = "local")))
+  if (!package_mode %in% c("local", "installed")) package_mode <- "local"
+
+  if (identical(package_mode, "installed")) {
+    if (!requireNamespace("metpipe", quietly = TRUE)) {
+      stop("METPIPE_PACKAGE_MODE='installed' but package 'metpipe' is not installed")
+    }
+    library(metpipe)
+    return("installed")
+  }
+
+  candidates <- unique(Filter(nzchar, c(
+    Sys.getenv("METPIPE_LOCAL_ROOT", ""),
+    "H:/Documents/CBMR_workflow/packages/metpipe",
+    normalizePath(getwd(), winslash = "/", mustWork = FALSE),
+    normalizePath(file.path(getwd(), ".."), winslash = "/", mustWork = FALSE),
+    normalizePath(file.path(getwd(), "..", ".."), winslash = "/", mustWork = FALSE)
+  )))
+
+  is_pkg_root <- function(path) {
+    dir.exists(path) &&
+      file.exists(file.path(path, "DESCRIPTION")) &&
+      dir.exists(file.path(path, "R"))
+  }
+
+  roots <- candidates[vapply(candidates, is_pkg_root, logical(1))]
+  if (length(roots) == 0) {
+    stop("Cannot locate local metpipe package root. Set METPIPE_LOCAL_ROOT to your metpipe folder.")
+  }
+
+  if (!requireNamespace("pkgload", quietly = TRUE)) {
+    stop("pkgload is required for local source loading. Install with install.packages('pkgload').")
+  }
+
+  Sys.setenv(METPIPE_LOCAL_ROOT = roots[[1]])
+  pkgload::load_all(path = roots[[1]], export_all = FALSE, quiet = TRUE)
+  "local"
+}
+
+metpipe_runtime <- load_metpipe_runtime()
 
 knitr::opts_chunk$set(
   message = FALSE,

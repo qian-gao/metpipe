@@ -1,14 +1,17 @@
 
-#' normalization
+#' Normalize metabolomics data within one ionization mode
 #'
-#' @param datalist 
-#' @param impute.method.sample 
-#' @param impute.method.is 
-#' @param po.sample.to.use 
-#' @param norm.method 
-#' @param sample.type.keep 
+#' Performs missing-value imputation, optional internal-standard handling,
+#' and one or more normalization methods for a single mode-level `datalist`.
 #'
-#' @return
+#' @param datalist Mode-level list containing `peaks`, `features`, and `meta`.
+#' @param impute.method.sample Imputation method for non-IS features.
+#' @param impute.method.is Imputation method for internal standards.
+#' @param po.sample.to.use Sample type used for pool/control-dependent methods.
+#' @param norm.method Character vector of normalization method names.
+#' @param sample.type.keep Sample types kept for normalization and output.
+#'
+#' @return Updated mode-level `datalist` with `peaks_norm`, `normalizer`, and metadata.
 #' @import dplyr
 #' @export
 #'
@@ -30,17 +33,31 @@ normalization <-
     # Sample types to keep in datatable
     sample.type.keep = "Sample"
     ){
+
+    if (!is.list(datalist) || is.null(datalist$peaks) || is.null(datalist$features) || is.null(datalist$meta)) {
+      stop("datalist must contain peaks, features, and meta")
+    }
     
     peaks.all <- datalist$peaks
     features.all <- datalist$features
     meta <- datalist$meta
-    
+
+    if (is.null(norm.method)) {
+      norm.method <- character(0)
+    }
+
     # Keep certain types of data
     type.keep <- c("Sample", sample.type.keep, po.sample.to.use)
     keep.index <- meta$Sample.type %in% type.keep
     
     peaks.all <- peaks.all[, keep.index, drop = FALSE]
     meta <- meta[keep.index, ,drop = FALSE]
+
+    batch <- dplyr::coalesce(meta$Batch, meta$Sample.batch)
+    if (is.null(batch)) {
+      batch <- rep("No batch", nrow(meta))
+    }
+    sample_group <- dplyr::coalesce(meta$Sample.group, meta$Sample.type)
     
     datalist$meta <- meta
     datalist$meta_norm <- meta
@@ -134,7 +151,7 @@ normalization <-
         normalize_with_best_internal_standard(
           x = data,
           istds = data.istd,
-          batch = sample.info$Batch,
+          batch = batch,
           batch.wise = FALSE,
           type = sample.info$Sample.type,
           use.type = po.sample.to.use
@@ -186,14 +203,12 @@ normalization <-
         normalize_various_methods(
           x = data,
           istds = data.istd,
-          batch = sample.info$Batch,
+          batch = batch,
           batch.wise = FALSE,
           method = 'low_cv',
           type = sample.info$"Sample.type",
           use.type = po.sample.to.use,
           data.rsd.orig = data.rsd.orig,
-          export.path = path.result,
-          prefix = prefix,
           feature.info = feature.info
         )
       
@@ -203,18 +218,16 @@ normalization <-
     
     if ("pqn" %in% norm.method){
       
-      if ("Control" %in% sample.info$Sample.group){
+      if ("Control" %in% sample_group){
         
         result.normalization <-
           normalize_various_methods(
             x = data,
             method = 'pqn',
             type = sample.info$Sample.type,
-            reference = sample.info$Sample.group,
+            reference = sample_group,
             use.reference = "Control",
             data.rsd.orig = data.rsd.orig,
-            export.path = path.result,
-            prefix = prefix,
             feature.info = feature.info
           )
         
@@ -225,11 +238,9 @@ normalization <-
             x = data,
             method = 'pqn',
             type = sample.info$Sample.type,
-            reference = sample.info$Sample.group,
+            reference = sample_group,
             use.reference = po.sample.to.use,
             data.rsd.orig = data.rsd.orig,
-            export.path = path.result,
-            prefix = prefix,
             feature.info = feature.info
           )
         
@@ -249,8 +260,6 @@ normalization <-
           method = "nomis",
           type = sample.info$Sample.type,
           data.rsd.orig = data.rsd.orig,
-          export.path = path.result,
-          prefix = prefix,
           feature.info = feature.info
         )
       
@@ -267,8 +276,6 @@ normalization <-
           method = 'qspline',
           type = sample.info$Sample.type,
           data.rsd.orig = data.rsd.orig,
-          export.path = path.result,
-          prefix = prefix,
           feature.info = feature.info
         )
       
@@ -284,8 +291,6 @@ normalization <-
           method = 'loess',
           type = sample.info$Sample.type,
           data.rsd.orig = data.rsd.orig,
-          export.path = path.result,
-          prefix = prefix,
           feature.info = feature.info
         )
       
@@ -298,12 +303,10 @@ normalization <-
       result.normalization <-
         normalize_various_methods(
           x = data,
-          batch = sample.info$Batch,
+          batch = batch,
           method = "combat",
           type = sample.info$Sample.type,
           data.rsd.orig = data.rsd.orig,
-          export.path = path.result,
-          prefix = prefix,
           feature.info = feature.info
         )
       
@@ -316,12 +319,10 @@ normalization <-
       result.normalization <-
         normalize_various_methods(
           x = data,
-          batch = sample.info$Batch,
+          batch = batch,
           method = "limma",
           type = sample.info$Sample.type,
           data.rsd.orig = data.rsd.orig,
-          export.path = path.result,
-          prefix = prefix,
           feature.info = feature.info
         )
       
@@ -337,8 +338,6 @@ normalization <-
           method = 'sum',
           type = sample.info$Sample.type,
           data.rsd.orig = data.rsd.orig,
-          export.path = path.result,
-          prefix = prefix,
           feature.info = feature.info
         )
       
@@ -354,8 +353,6 @@ normalization <-
           method = 'median',
           type = sample.info$Sample.type,
           data.rsd.orig = data.rsd.orig,
-          export.path = path.result,
-          prefix = prefix,
           feature.info = feature.info
         )
       

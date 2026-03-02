@@ -19,6 +19,7 @@ params:
   path_workflow: ""
   path_mzmine: ""
   path_temp: ""
+  qc_types: ""
 ---
 <style type="text/css">
 body{
@@ -60,10 +61,52 @@ pre { /* Code block - determines code spacing between lines */
 }
 </style>
 
-```{r setup environment, include = FALSE}
+```{r setup environment, include = FALSE, warning = FALSE}
 
 library(yaml)
 library(dplyr)
+
+load_metpipe_runtime <- function() {
+  package_mode <- tolower(trimws(Sys.getenv("METPIPE_PACKAGE_MODE", unset = "local")))
+  if (!package_mode %in% c("local", "installed")) package_mode <- "local"
+
+  if (identical(package_mode, "installed")) {
+    if (!requireNamespace("metpipe", quietly = TRUE)) {
+      stop("METPIPE_PACKAGE_MODE='installed' but package 'metpipe' is not installed")
+    }
+    library(metpipe)
+    return("installed")
+  }
+
+  candidates <- unique(Filter(nzchar, c(
+    Sys.getenv("METPIPE_LOCAL_ROOT", ""),
+    "H:/Documents/CBMR_workflow/packages/metpipe",
+    normalizePath(getwd(), winslash = "/", mustWork = FALSE),
+    normalizePath(file.path(getwd(), ".."), winslash = "/", mustWork = FALSE),
+    normalizePath(file.path(getwd(), "..", ".."), winslash = "/", mustWork = FALSE)
+  )))
+
+  is_pkg_root <- function(path) {
+    dir.exists(path) &&
+      file.exists(file.path(path, "DESCRIPTION")) &&
+      dir.exists(file.path(path, "R"))
+  }
+
+  roots <- candidates[vapply(candidates, is_pkg_root, logical(1))]
+  if (length(roots) == 0) {
+    stop("Cannot locate local metpipe package root. Set METPIPE_LOCAL_ROOT to your metpipe folder.")
+  }
+
+  if (!requireNamespace("pkgload", quietly = TRUE)) {
+    stop("pkgload is required for local source loading. Install with install.packages('pkgload').")
+  }
+
+  Sys.setenv(METPIPE_LOCAL_ROOT = roots[[1]])
+  pkgload::load_all(path = roots[[1]], export_all = FALSE, quiet = TRUE)
+  "local"
+}
+
+metpipe_runtime <- load_metpipe_runtime()
 
 knitr::opts_chunk$set(
   message = FALSE,
@@ -71,6 +114,22 @@ knitr::opts_chunk$set(
   echo = FALSE,
   include = TRUE
 )
+
+is_blank <- function(x) {
+  is.null(x) || length(x) == 0 || all(is.na(x)) || !nzchar(trimws(as.character(x[1])))
+}
+
+require_path <- function(path, name) {
+  if (is_blank(path)) stop(name, " is required")
+  path <- as.character(path)[1]
+  if (!dir.exists(path)) stop(name, " does not exist: ", path)
+  normalizePath(path, winslash = "/", mustWork = TRUE)
+}
+
+join_path <- function(base, rel) {
+  if (is_blank(rel) || is.na(rel)) return(NA_character_)
+  normalizePath(file.path(base, as.character(rel)[1]), winslash = "/", mustWork = FALSE)
+}
 
 ```
 
@@ -82,20 +141,71 @@ path_result = params$path_result
 path_workflow = params$path_workflow
 path_mzmine = params$path_mzmine
 path_temp = params$path_temp
+qc_types = params$qc_types
+
+path_raw <- require_path(path_raw, "path_raw")
+path_workflow <- require_path(path_workflow, "path_workflow")
+
+if (is_blank(path_result)) stop("path_result is required")
+path_result <- normalizePath(path_result, winslash = "/", mustWork = FALSE)
+if (!dir.exists(path_result)) dir.create(path_result, recursive = TRUE)
+
+if (is_blank(path_temp)) {
+  path_temp <- tempdir()
+} else {
+  path_temp <- normalizePath(path_temp, winslash = "/", mustWork = FALSE)
+  if (!dir.exists(path_temp)) dir.create(path_temp, recursive = TRUE)
+}
+
+if (length(qc_types) == 1 && grepl(",", qc_types, fixed = TRUE)) {
+  qc_types <- trimws(unlist(strsplit(qc_types, ",", fixed = TRUE)))
+}
+if (length(qc_types) == 1 && !nzchar(qc_types)) {
+  qc_types <- c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix", "PB",
+                "SP0625", "SP1125", "SP25", "SP5", "SP10", "SP", "SP40", "POJ", "POK")
+}
+
+```
+
+```{r, include = FALSE, eval = FALSE}
+
+path_raw = "E:/Projects/MP0065/mzML/PL_LIPS_FPASEF"
+path_result = "E:/Projects/MP0065/peaktable/PL_LIPS_FPASEF"
+path_workflow = "H:/Documents/CBMR_workflow/packages/metpipe_all/workflow"
+path_mzmine = "mzmine"
+path_temp = "temp"
+qc_types = c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix", "PB",
+             "SP0625", "SP1125", "SP25", "SP5", "SP10", "SP", "SP40", "POJ", "POK")
 
 ```
 
 # Workflow selection
 ```{r}
 
-method_all <- readRDS(paste0(path_workflow, "/parameters/method_configuration.rds"))
+path_method_cfg <- file.path(path_workflow, "parameters", "method_configuration.rds")
+if (!file.exists(path_method_cfg)) {
+  stop("Cannot find method configuration file: ", path_method_cfg)
+}
+
+method_all <- readRDS(path_method_cfg)
 
 method_name <- basename(path_raw)
-matrix_i <- strsplit(method_name, "_")[[1]][1]
-assay_i <- strsplit(method_name, "_")[[1]][2]
-analysis_i <- strsplit(method_name, "_")[[1]][3]
+method_tokens <- unlist(strsplit(method_name, "_"))
+if (length(method_tokens) < 3) {
+  stop("path_raw basename must follow MATRIX_ASSAY_ANALYSIS naming. Got: ", method_name)
+}
+
+matrix_i <- method_tokens[1]
+assay_i <- method_tokens[2]
+analysis_i <- method_tokens[3]
 
 method <- subset(method_all, assay == assay_i & analysis == analysis_i)
+if (nrow(method) == 0) {
+  stop("No method configuration found for assay=", assay_i, " and analysis=", analysis_i)
+}
+if (nrow(method) > 1) {
+  stop("Multiple method configurations found for assay=", assay_i, " and analysis=", analysis_i)
+}
 
 ```
 
@@ -111,51 +221,38 @@ raw_files_neg <- NULL
 meta_pos <- NULL
 meta_neg <- NULL
 
+if (analysis_i %in% c("FPASEF")){
+  pasef_as_dda <- TRUE
+} else {
+  pasef_as_dda <- FALSE
+}
+
 if (dir.exists(path_files_pos)){
-  run.pos <- TRUE
-  raw_files_pos <- list.files(path_files_pos, full.names = TRUE, pattern = ".d$")
+  raw_files_pos <- sort(list.files(path_files_pos, full.names = TRUE, pattern = "\\.(d|mzML)$", ignore.case = TRUE))
+  run.pos <- length(raw_files_pos) > 0
+}
+
+if (run.pos) {
   meta_pos <- 
-    metpipe::map_filename_to_meta(raw_files_pos) 
-  
-  if (grepl("DDA", method_name)){
-    meta_pos <- 
-      meta_pos %>% 
-      mutate(Sample.type = ifelse(grepl("PASEF", Method), paste0(Sample.type, "_MS2"), Sample.type))
-  }
-  
-  meta_pos <-
-    meta_pos %>% 
-    mutate(Sample = paste0(Sample.type, "_", Extract.rep)) %>% 
-    arrange(Sample.seq) %>% 
-    group_by(Sample) %>% 
-    mutate(n = n(), 
-           Sample = ifelse(n > 1, paste0(Sample, "-", row_number()), Sample)) %>% 
-    ungroup() %>% 
-    select(-n)
-  
+    map_standard_name_to_meta(raw_files_pos,
+                              qc_types = qc_types,
+                              pasef_as_dda = pasef_as_dda) 
 }
 
 if (dir.exists(path_files_neg)){
-  run.neg <- TRUE
-  raw_files_neg <- list.files(path_files_neg, full.names = TRUE, pattern = ".d$")
+  raw_files_neg <- sort(list.files(path_files_neg, full.names = TRUE, pattern = "\\.(d|mzML)$", ignore.case = TRUE))
+  run.neg <- length(raw_files_neg) > 0
+}
+
+if (run.neg) {
   meta_neg <- 
-    metpipe::map_filename_to_meta(raw_files_neg) 
-  
-  if (grepl("DDA", method_name)){
-    meta_neg <- 
-      meta_neg %>% 
-      mutate(Sample.type = ifelse(grepl("PASEF", Method), paste0(Sample.type, "_MS2"), Sample.type))
-  }
-  
-  meta_neg <-
-    meta_neg %>%
-    mutate(Sample = paste0(Sample.type, "_", Extract.rep)) %>% 
-    arrange(Sample.seq) %>% 
-    group_by(Sample) %>% 
-    mutate(n = n(), 
-           Sample = ifelse(n > 1, paste0(Sample, "-", row_number()), Sample)) %>% 
-    ungroup() %>% 
-    select(-n)
+    map_standard_name_to_meta(raw_files_neg,
+                              qc_types = qc_types,
+                              pasef_as_dda = pasef_as_dda) 
+}
+
+if (!run.pos && !run.neg) {
+  stop("No raw files found in pos/ or neg/ under path_raw: ", path_raw)
 }
 
 
@@ -164,17 +261,20 @@ if (dir.exists(path_files_neg)){
 # mzmine input
 ```{r}
 
-#path_result <- gsub("raw", "peaktable", path_raw)
-mzmine_params <- paste0(path_workflow, method$mzmine_params)
-path_lib_istd_pos <- ifelse(!is.na(method$path_lib_istd_pos), paste0(path_workflow, method$path_lib_istd_pos), NA)
-path_lib_istd_neg <- ifelse(!is.na(method$path_lib_istd_neg), paste0(path_workflow, method$path_lib_istd_neg), NA)
-path_lib_pos <- ifelse(!is.na(method$path_lib_pos), paste0(path_workflow, method$path_lib_pos), NA)
-path_lib_neg <- ifelse(!is.na(method$path_lib_neg), paste0(path_workflow, method$path_lib_neg), NA)
+mzmine_params <- join_path(path_workflow, method$mzmine_params)
+if (is.na(mzmine_params) || !file.exists(mzmine_params)) {
+  stop("Cannot find MZmine parameter file: ", mzmine_params)
+}
+
+path_lib_istd_pos <- join_path(path_workflow, method$path_lib_istd_pos)
+path_lib_istd_neg <- join_path(path_workflow, method$path_lib_istd_neg)
+# path_lib_pos <- ifelse(!is.na(method$path_lib_pos), paste0(path_workflow, method$path_lib_pos), NA)
+# path_lib_neg <- ifelse(!is.na(method$path_lib_neg), paste0(path_workflow, method$path_lib_neg), NA)
 spectral_lib <- strsplit(method$path_spectral, "|", fixed = TRUE)[[1]]
-path_spectral_lib <- paste0(path_workflow, spectral_lib)
-mzmine_user <- paste0(path_workflow, "/parameters/qiangao.mzuser")
+path_spectral_lib <- vapply(spectral_lib, function(s) join_path(path_workflow, s), character(1))
+mzmine_user <- file.path(path_workflow, "parameters", "qiangao.mzuser")
 mzmine_memory <- "-memory none"
-mzmine_threads <- "-threads auto"
+mzmine_threads <- "-threads 10"
 ```
 
 # QC
@@ -188,13 +288,14 @@ figure_width = 1000
 ## Clean peaktable
 ```{r}
 
-mean.filter <- list(c( 2, "BL", "<", "NIST"),
-                   c( 1, "Sample", ">", 100))
-rsd.filter <- list(c(1, "NIST", "<", 0.5))
+mean.filter <- list(c( 2, "BL", "<", "PO"),
+                   c( 1, "Sample", ">", 500))
+rsd.filter <- list(c(1, "PO", "<", 0.3))
 rt.range <- c(0, 30)
-filter_by_missing_feature_pct <- 30
+filter_by_missing_feature_pct <- 50
+filter_by_missing_sample_type <- "Sample"
 outliers.sample <- c()
-clean.po.sample.to.use <- "NIST"
+clean.po.sample.to.use <- "PO"
 
 ```
 
@@ -203,9 +304,9 @@ clean.po.sample.to.use <- "NIST"
 
 impute.method.sample <- "HF"
 impute.method.is <- "HF"
-norm.po.sample.to.use <- "CP"
-norm.method <- c("bestis", "low_cv", "sum")
-sample.type.keep <- c("NIST", "CP", "POK")
+norm.po.sample.to.use <- "PO"
+norm.method <- c("bestis", "low_cv", "sum", "median")
+sample.type.keep <- c("Sample", "PO", "NIST")
 
 ```
 
@@ -213,8 +314,18 @@ sample.type.keep <- c("NIST", "CP", "POK")
 ```{r}
 
 final.norm <- "bestis"
-final.eval.sample.to.use <- "NIST"
-final.sample.type.keep <- c("Sample", "POK", "NIST")
+final.eval.sample.to.use <- "PO"
+final.sample.type.keep <- c("PO", "NIST")
+```
+
+## Remove theoretical lipids
+```{r}
+if (assay_i %in% c("LIPS", "LIPL")){
+  extra_processing_lip <- "Y"
+} else {
+  extra_processing_lip <- "N"
+}
+
 ```
 
 ## Others
@@ -238,50 +349,59 @@ path_datatable <- paste0(path_result, "/datatable.xlsx")
 
 config <- list(
   path_raw = path_raw,
-  path_workflow = path_workflow,
-  path_mzmine = path_mzmine,
-  path_temp = path_temp,
-  method_name = method_name,
-  run.pos = run.pos,
-  raw_files_pos = raw_files_pos,
-  meta_pos = meta_pos,
-  run.neg = run.neg,
-  raw_files_neg = raw_files_neg,
-  meta_neg = meta_neg,
   path_result = path_result,
   mzmine_params = mzmine_params, 
-  path_lib_istd_pos = path_lib_istd_pos, 
-  path_lib_istd_neg = path_lib_istd_neg,
-  path_lib_pos = path_lib_pos,
-  path_lib_neg = path_lib_neg,
-  spectral_lib = spectral_lib,
-  path_spectral_lib = path_spectral_lib,
-  figure_height = figure_height,
-  figure_width = figure_width,
-  mzmine_user = mzmine_user,
-  mzmine_memory = mzmine_memory,
   mzmine_threads = mzmine_threads,
+  path_lib_istd_pos = path_lib_istd_pos, 
+  path_lib_istd_neg = path_lib_istd_neg,  
+  path_spectral_lib = path_spectral_lib,  
+  
   mean.filter = mean.filter,
   rsd.filter = rsd.filter,
   rt.range = rt.range,
   filter_by_missing_feature_pct = filter_by_missing_feature_pct,
+  filter_by_missing_sample_type = filter_by_missing_sample_type,
   outliers.sample = outliers.sample,
   clean.po.sample.to.use = clean.po.sample.to.use,
+  
   impute.method.sample = impute.method.sample,
   impute.method.is = impute.method.is,
   norm.po.sample.to.use = norm.po.sample.to.use,
   norm.method = norm.method,
   sample.type.keep = sample.type.keep,
+  
   final.norm = final.norm,
   final.eval.sample.to.use = final.eval.sample.to.use,
-  final.sample.type.keep = final.sample.type.keep,
+  final.sample.type.keep = final.sample.type.keep,  
   
+  extra_processing_lip = extra_processing_lip,
+  
+  raw_files_pos = raw_files_pos,
+  meta_pos = meta_pos,
+  raw_files_neg = raw_files_neg,
+  meta_neg = meta_neg,
+  
+  path_workflow = path_workflow,
+  path_mzmine = path_mzmine,
+  path_temp = path_temp,
+  method_name = method_name,
+  run.pos = run.pos,
+  run.neg = run.neg,  
+  # path_lib_pos = path_lib_pos,
+  # path_lib_neg = path_lib_neg,
+  # spectral_lib = spectral_lib,
+  mzmine_user = mzmine_user,
+  mzmine_memory = mzmine_memory,
   mzmine_peaktable_pos = mzmine_peaktable_pos,
   mzmine_peaktable_neg = mzmine_peaktable_neg,
   path_peaktable_pos = path_peaktable_pos,
   path_peaktable_neg = path_peaktable_neg,
   path_peaktable_istd_pos = path_peaktable_istd_pos,
   path_peaktable_istd_neg = path_peaktable_istd_neg,
+  
+  figure_height = figure_height,
+  figure_width = figure_width,  
+  
   rds_qc_is_pos = rds_qc_is_pos,
   rds_qc_is_neg = rds_qc_is_neg,
   rds_datalist = rds_datalist,
@@ -290,9 +410,12 @@ config <- list(
 
 yaml_str <- as.yaml(config)
 cat(yaml_str)
-writeLines(yaml_str, paste0(path_result, "/config.yml"))
+writeLines(yaml_str, file.path(path_result, "config.yml"))
 ```
 
+```{r}
+
+```
 
 
 
