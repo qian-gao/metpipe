@@ -28,6 +28,10 @@ get_arg <- function(name) {
   return(args[i + 1])
 }
 
+has_flag <- function(name) {
+  any(args == name)
+}
+
 is_blank <- wf_is_blank
 
 package_mode <- tolower(trimws(ifelse(
@@ -111,6 +115,7 @@ path_raw <- get_arg("--raw")
 start_from <- get_arg("--start-from")
 start_key <- normalize_start_from(start_from)
 requires_prepare <- is.null(start_key) || identical(start_key, "preprocessing_mzmine")
+prepare_only <- has_flag("--prepare-only") || has_flag("--prep-yaml-only")
 
 default_workflow <- if (dir.exists("/wd")) "/wd" else getwd()
 default_result <- if (!is.null(path_raw)) gsub("raw|mzML", "peaktable", path_raw) else NULL
@@ -181,6 +186,11 @@ if (!is_blank(config_override)) {
   }
 
   config_file <- config_candidate
+}
+
+if (prepare_only) {
+  message("Prepare-only mode enabled; skipping run_workflow.R")
+  quit(save = "no", status = 0)
 }
 
 run_args <- c(shQuote(run_workflow), shQuote(config_file))
