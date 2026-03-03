@@ -19,6 +19,7 @@ params:
   path_workflow: ""
   path_mzmine: ""
   path_temp: ""
+  author: ""
   qc_types: ""
 ---
 <style type="text/css">
@@ -100,6 +101,7 @@ path_result = params$path_result
 path_workflow = params$path_workflow
 path_mzmine = params$path_mzmine
 path_temp = params$path_temp
+author = params$author
 qc_types = params$qc_types
 
 path_raw <- require_path(path_raw, "path_raw")
@@ -124,6 +126,10 @@ if (length(qc_types) == 1 && !nzchar(qc_types)) {
                 "SP0625", "SP1125", "SP25", "SP5", "SP10", "SP", "SP40", "POJ", "POK")
 }
 
+if (is_blank(author)) {
+  author <- "CBMR Metabolomics Platform"
+}
+
 ```
 
 ```{r, include = FALSE, eval = FALSE}
@@ -133,6 +139,7 @@ path_result = "E:/Projects/MP0065/peaktable/PL_LIPS_FPASEF"
 path_workflow = "H:/Documents/CBMR_workflow/packages/metpipe_all/workflow"
 path_mzmine = "mzmine"
 path_temp = "temp"
+author = "CBMR Metabolomics Platform"
 qc_types = c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix", "PB",
              "SP0625", "SP1125", "SP25", "SP5", "SP10", "SP", "SP40", "POJ", "POK")
 
@@ -343,6 +350,7 @@ config <- list(
   path_workflow = path_workflow,
   path_mzmine = path_mzmine,
   path_temp = path_temp,
+  author = author,
   method_name = method_name,
   run.pos = run.pos,
   run.neg = run.neg,  

@@ -126,6 +126,7 @@ if (!file.exists(default_mzmine)) default_mzmine <- "/wd/mzmine_linux/bin/mzmine
 path_mzmine <- pick_first(get_arg("--mzmine"), default_mzmine)
 path_temp <- pick_first(get_arg("--temp"), default_temp)
 qc <- pick_first(get_arg("--qc"), "BL,NIST,PO,sol,CP,IQ,BPL,MMix,PB,SP0625,SP1125,SP25,SP5,SP10,SP,SP40,POJ,POK")
+author <- pick_first(get_arg("--author"), "CBMR Metabolomics Platform")
 config_override <- get_arg("--config")
 
 prepare_workflow <- wf_resolve_module_script(path_workflow, "prepare_workflow_qmd.R")
@@ -160,6 +161,7 @@ if (!is_blank(config_override)) {
         "--result", shQuote(path_result),
         "--yaml", shQuote(path_yaml),
         "--qc", shQuote(qc),
+        "--author", shQuote(author),
         "--package-mode", shQuote(package_mode),
         "--local-pkg-root", shQuote(local_pkg_root)
       )

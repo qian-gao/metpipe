@@ -46,6 +46,7 @@ path_yaml <- dplyr::coalesce(get_arg("--yaml"), defaults$path_yaml)
 path_temp <- dplyr::coalesce(get_arg("--temp"), defaults$path_temp)
 qc <- dplyr::coalesce(get_arg("--qc"), defaults$qc)
 qc_types <- unlist(strsplit(qc, ","))
+author <- dplyr::coalesce(get_arg("--author"), "CBMR Metabolomics Platform")
 
 package_mode <- tolower(trimws(dplyr::coalesce(get_arg("--package-mode"), Sys.getenv("METPIPE_PACKAGE_MODE", unset = "local"))))
 if (!package_mode %in% c("local", "installed")) {
@@ -72,6 +73,7 @@ wf_render_qmd_document(
     path_workflow = path_workflow,
     path_mzmine = path_mzmine,
     path_temp = path_temp,
+    author = author,
     qc_types = qc_types
   ),
   intermediates_dir = path_temp,
