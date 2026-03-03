@@ -5,13 +5,11 @@ date: "`r base::Sys.Date()`"
           
 format:
   html:
-    theme: flatly
     toc: true
     toc-depth: 3
     toc-expand: 2
     toc-location: left
-    number-sections: true
-    df-print: paged
+    theme: flatly
 self-contained: true
 
 params:
