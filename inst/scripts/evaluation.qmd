@@ -3,58 +3,20 @@ title: "Data preprocessing evaluation"
 author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
           
-output:
-  html_document:
+format:
+  html:
     theme: flatly
-    toc: yes
-    toc_float:
-      collapsed: false
-    toc_depth: '3'
-    number_sections: true
-    df_print: paged
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    toc-location: left
+    number-sections: true
+    df-print: paged
+self-contained: true
 
 params:
   config: ""
 ---
-<style type="text/css">
-body{
-  font-size: 12px;
-  }
-td {
-  font-size: 14px;
-}
-h1.title {
-  font-size: 22px;
-}
-h4.author {
-  font-size: 16px;
-}
-h4.date {
-  font-size: 16px;
-}
-
-h1 {
-  font-size: 18px;
-}
-h2 {
-  font-size: 16px;
-}
-h3 {
-  font-size: 14px;
-}
-h4 {
-  font-size: 12px;
-}
-h5 {
-  font-size: 12px;
-}
-code.r{
-  font-size: 12px;
-}
-pre { /* Code block - determines code spacing between lines */
-  font-size: 14px;
-}
-</style>
 
 ```{r setup environment, include = FALSE, warning = FALSE}
 
@@ -152,8 +114,9 @@ run.feature.summary <- !is.null(datalist$feature.info) && is.data.frame(datalist
 
 ```
 
-# Positive mode
-## Missing distribution {.tabset .tabset-pills}
+## Positive mode
+### Missing distribution
+::: panel-tabset
 ```{r, eval = run.clean.pos}
 
 data_cleaned <- datalist$pos$peaks_cleaned
@@ -163,43 +126,122 @@ figs <-
   missing_eval(data_cleaned = data_cleaned)
 ```
 
-### Overall
+#### Overall
 ```{r, eval = run.clean.pos, fig.width = 11, fig.height = 5}
 figs$p1
 ```
 
-### Missing in samples
+#### Missing in samples
 ```{r, eval = run.clean.pos, fig.width = 9, fig.height = 4}
 ggplotly(figs$p2)
 ```
-```{r pca-title-bestis-pos, results='asis', eval = run.norm.pos && show.bestis && !is.null(pca.plot$bestis)}
-cat("#### Best IS\n")
-```
-### Missing in features
-```{r PCA-Bestid pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.bestis && !is.null(pca.plot$bestis)}
+
+#### Missing in features
+```{r, eval = run.clean.pos, fig.width = 9, fig.height = 4}
 ggplotly(figs$p3)
+```
+:::
+
+### Internal standards
+::: panel-tabset
+```{r eval = run.istd.pos}
+
+istd.index <- datalist$pos$features_cleaned$Feature_type == "IS"
+features.istd <- datalist$pos$features_cleaned[istd.index, ]
+istd <- datalist$pos$peaks_cleaned[istd.index, ]
+
+data.istd <- data.frame(t(istd))
+names(data.istd) <- features.istd$Identity_raw
+
+data.input <- 
+  list(data.istd = data.istd, 
+       sample.info = datalist$pos$meta_cleaned)
+
+plt.is.rsd <-
+  plot_istd_rsd(datalist = data.input)
+
+```
+
+#### RSD
+```{r rsd.bar.plot pos, fig.height = 6, fig.width = 8, eval = run.istd.pos}
+
+ggplotly(plt.is.rsd$plt.rsd)
+
+```
+
+#### IS intensities in samples
+```{r rsd.sample pos, eval = run.istd.pos}
+
+plt.is.rsd$plt.int
+
+```
+:::
+
+### Normalization comparison
+
+```{r, eval = run.norm.pos}
+
+pca.plot <- 
+  plot_list_pca(
+    x = datalist$pos$peaks_norm,
+    group = datalist$pos$meta_norm$Sample.batch,
+    group.label = "Batch",
+    plotly.text = datalist$pos$meta_norm$Sample)
+
+pca.plot.type <- 
+  plot_list_pca(
+    x = datalist$pos$peaks_norm,
+    group = datalist$pos$meta_norm$Sample.type,
+    group.label = "Sample type",
+    plotly.text = datalist$pos$meta_norm$Sample)
+
+plt.eval <-
+  plot_eval( x = datalist$pos$peaks_norm,
+             type = datalist$pos$meta_norm$Sample.type)
+
+```
+
+#### PCA
+::: panel-tabset
+
+##### Raw Data
+
+```{r PCA-Loaded pos, fig.height = 4, fig.width = 8, eval = run.norm.pos}
+
+a <- ggplotly(pca.plot$raw, session="knitr", showlegend = T)
+b <- ggplotly(pca.plot.type$raw, session="knitr", showlegend = T)
+
+subplot(a, b)
+```
+
+```{r pca-title-bestis-pos, results='asis', eval = run.norm.pos && show.bestis && !is.null(pca.plot$bestis)}
+cat("##### Best IS\n")
+```
+
+```{r PCA-Bestid pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.bestis && !is.null(pca.plot$bestis)}
+
 a <- ggplotly(pca.plot$bestis, session="knitr")
 b <- ggplotly(pca.plot.type$bestis, session="knitr")
 
 subplot(a, b)
-istd <- datalist$pos$peaks_cleaned[istd.index, ]
 
-data.istd <- data.frame(t(istd))
+```
+
 ```{r pca-title-lowcv-pos, results='asis', eval = run.norm.pos && show.low_cv && !is.null(pca.plot$low_cv)}
-cat("#### Lowest CV\n")
+cat("##### Lowest CV\n")
 ```
 
 ```{r PCA-Lowest CV pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.low_cv && !is.null(pca.plot$low_cv)}
-  list(data.istd = data.istd, 
+
 a <- ggplotly(pca.plot$low_cv, session="knitr")
 b <- ggplotly(pca.plot.type$low_cv, session="knitr")
 
 subplot(a, b)
-### RSD
-```{r rsd.bar.plot pos, fig.height = 6, fig.width = 8, eval = run.istd.pos}
+
+```
 
 ```{r pca-title-sum-pos, results='asis', eval = run.norm.pos && show.sum && !is.null(pca.plot$sum)}
-cat("#### Sum\n")
+cat("##### Sum\n")
 ```
 
 ```{r PCA-Normalized_by_sum pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.sum && !is.null(pca.plot$sum)}
@@ -208,147 +250,75 @@ a <- ggplotly(pca.plot$sum, session="knitr")
 b <- ggplotly(pca.plot.type$sum, session="knitr")
 
 subplot(a, b)
-## Normalization comparison
-```{r, eval = run.norm.pos}
+```
+
 ```{r pca-title-median-pos, results='asis', eval = run.norm.pos && show.median && !is.null(pca.plot$median)}
-cat("#### Median\n")
+cat("##### Median\n")
 ```
 
 ```{r PCA-Normalized_by_median pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.median && !is.null(pca.plot$median)}
-  plot_list_pca(
+
 a <- ggplotly(pca.plot$median, session="knitr")
 b <- ggplotly(pca.plot.type$median, session="knitr")
 
 subplot(a, b)
-    x = datalist$pos$peaks_norm,
-    group = datalist$pos$meta_norm$Sample.type,
-    group.label = "Sample type",
+```
+
 ```{r pca-title-pqn-pos, results='asis', eval = run.norm.pos && show.pqn && !is.null(pca.plot$pqn)}
-cat("#### PQN\n")
+cat("##### PQN\n")
 ```
 
 ```{r PCA-Normalized_by_PQN pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.pqn && !is.null(pca.plot$pqn)}
-plt.eval <-
+
 a <- ggplotly(pca.plot$pqn, session="knitr")
 b <- ggplotly(pca.plot.type$pqn, session="knitr")
 
 subplot(a, b)
-#### Raw Data
+```
 
-```{r PCA-Loaded pos, fig.height = 4, fig.width = 8, eval = run.norm.pos}
 ```{r pca-title-loess-pos, results='asis', eval = run.norm.pos && show.loess && !is.null(pca.plot$loess)}
-cat("#### Loess\n")
+cat("##### Loess\n")
 ```
 
 ```{r PCA-Normalized_by_loess pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.loess && !is.null(pca.plot$loess)}
-b <- ggplotly(pca.plot.type$raw, session="knitr", showlegend = T)
+
 a <- ggplotly(pca.plot$loess, session="knitr")
 b <- ggplotly(pca.plot.type$loess, session="knitr")
 
 subplot(a, b)
-```{r PCA-Bestid pos, fig.height = 4, fig.width = 8, eval = run.norm.pos}
+```
 
-if (!is.null(pca.plot$bestis)){
 ```{r pca-title-combat-pos, results='asis', eval = run.norm.pos && show.combat && !is.null(pca.plot$combat)}
-cat("#### Combat\n")
+cat("##### Combat\n")
 ```
 
 ```{r PCA-Normalized_by_combat pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.combat && !is.null(pca.plot$combat)}
-  b <- ggplotly(pca.plot.type$bestis, session="knitr")
+
 a <- ggplotly(pca.plot$combat, session="knitr")
 b <- ggplotly(pca.plot.type$combat, session="knitr")
 
 subplot(a, b)
 
-```{r PCA-Lowest CV pos, fig.height = 4, fig.width = 8, eval = run.norm.pos}
+```
 
 ```{r pca-title-limma-pos, results='asis', eval = run.norm.pos && show.limma && !is.null(pca.plot$limma)}
-cat("#### limma\n")
+cat("##### limma\n")
 ```
 
 ```{r PCA-Normalized_by_limma pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.limma && !is.null(pca.plot$limma)}
-  a <- ggplotly(pca.plot$low_cv, session="knitr")
+
 a <- ggplotly(pca.plot$limma, session="knitr")
 b <- ggplotly(pca.plot.type$limma, session="knitr")
 
 subplot(a, b)
-#### Sum
-
-```{r PCA-Normalized_by_sum pos, fig.height = 4, fig.width = 8, eval = run.norm.pos}
-
-if (!is.null(pca.plot$sum)){
-
-  a <- ggplotly(pca.plot$sum, session="knitr")
-  b <- ggplotly(pca.plot.type$sum, session="knitr")
-  
-  subplot(a, b)
-}
-```
-
-#### Median
-```{r PCA-Normalized_by_median pos, fig.height = 4, fig.width = 8, eval = run.norm.pos}
-
-if (!is.null(pca.plot$median)){
-
-  a <- ggplotly(pca.plot$median, session="knitr")
-  b <- ggplotly(pca.plot.type$median, session="knitr")
-  
-  subplot(a, b)
-}
-```
-
-#### PQN
-```{r PCA-Normalized_by_PQN pos, fig.height = 4, fig.width = 8, eval = run.norm.pos}
-
-if (!is.null(pca.plot$pqn)){
-
-  a <- ggplotly(pca.plot$pqn, session="knitr")
-  b <- ggplotly(pca.plot.type$pqn, session="knitr")
-  
-  subplot(a, b)
-}
-```
-
-#### Loess
-```{r PCA-Normalized_by_loess pos, fig.height = 4, fig.width = 8, eval = run.norm.pos}
-
-if (!is.null(pca.plot$loess)){
-  a <- ggplotly(pca.plot$loess, session="knitr")
-  b <- ggplotly(pca.plot.type$loess, session="knitr")
-  
-  subplot(a, b)
-}
-```
-
-#### Combat
-```{r PCA-Normalized_by_combat pos, fig.height = 4, fig.width = 8, eval = run.norm.pos}
-
-if (!is.null(pca.plot$combat)){
-
-  a <- ggplotly(pca.plot$combat, session="knitr")
-  b <- ggplotly(pca.plot.type$combat, session="knitr")
-  
-  subplot(a, b)
-}
 
 ```
+:::
 
-#### limma
-```{r PCA-Normalized_by_limma pos, fig.height = 4, fig.width = 8, eval = run.norm.pos}
+#### RSD for all features in QC samples
+::: panel-tabset
 
-if (!is.null(pca.plot$limma)){
-
-  a <- ggplotly(pca.plot$limma, session="knitr")
-  b <- ggplotly(pca.plot.type$limma, session="knitr")
-  
-  subplot(a, b)
-}
-
-```
-
-### RSD for all features in QC samples {.tabset .tabset-pills}
-
-#### RSD
+##### RSD
 ```{r RSD pos, fig.height = 3, fig.width = 8, eval = run.norm.pos}
 
 plt.eval$plt.rsd
@@ -356,7 +326,7 @@ plt.eval$plt.rsd.mean
 
 ```
 
-#### MAD
+##### MAD
 ```{r MAD pos, fig.height = 3, fig.width = 8, eval = run.norm.pos}
 
 plt.eval$plt.mad
@@ -364,63 +334,168 @@ plt.eval$plt.mad.mean
 
 ```
 
-#### Variance
+##### Variance
 ```{r VAR pos, fig.height = 3, fig.width = 8, eval = run.norm.pos}
 
-```{r pca-title-bestis-neg, results='asis', eval = run.norm.neg && show.bestis && !is.null(pca.plot$bestis)}
-cat("#### Best IS\n")
-```
+plt.eval$plt.var
 plt.eval$plt.var.sum
-```{r PCA-Bestid neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.bestis && !is.null(pca.plot$bestis)}
+
 ```
+$~$
+:::
+
+## Negative mode
+### Missing distribution
+::: panel-tabset
+```{r, eval = run.clean.neg}
+
+data_cleaned <- datalist$neg$peaks_cleaned
+rownames(data_cleaned) <- datalist$neg$features_cleaned$Identity
+
+figs <- 
+  missing_eval(data_cleaned = data_cleaned)
+```
+
+#### Overall
+```{r, eval = run.clean.neg, fig.width = 11, fig.height = 5}
+figs$p1
+```
+
+#### Missing in samples
+```{r, eval = run.clean.neg, fig.width = 9, fig.height = 4}
+ggplotly(figs$p2)
+```
+
+#### Missing in features
+```{r, eval = run.clean.neg, fig.width = 9, fig.height = 4}
+ggplotly(figs$p3)
+```
+:::
+
+### Internal standards
+::: panel-tabset
+
+```{r eval = run.istd.neg}
+
+istd.index <- datalist$neg$features_cleaned$Feature_type == "IS"
+features.istd <- datalist$neg$features_cleaned[istd.index, ]
+istd <- datalist$neg$peaks_cleaned[istd.index, ]
+
+data.istd <- data.frame(t(istd))
+names(data.istd) <- features.istd$Identity_raw
+
+data.input <- 
+  list(data.istd = data.istd, 
+       sample.info = datalist$neg$meta_cleaned)
+
+plt.is.rsd <-
+  plot_istd_rsd(datalist = data.input)
+
+```
+
+#### RSD
+```{r rsd.bar.plot neg, fig.height = 6, fig.width = 8, eval = run.istd.neg}
+
+ggplotly(plt.is.rsd$plt.rsd)
+
+```
+
+#### IS intensities in samples
+```{r rsd.sample neg, eval = run.istd.neg}
+
+plt.is.rsd$plt.int
+
+```
+:::
+
+### Normalization comparison
+```{r, eval = run.norm.neg}
+
+pca.plot <- 
+  plot_list_pca(
+    x = datalist$neg$peaks_norm,
+    group = datalist$neg$meta_norm$Sample.batch,
+    group.label = "Batch",
+    plotly.text = datalist$neg$meta_norm$Sample)
+
+pca.plot.type <- 
+  plot_list_pca(
+    x = datalist$neg$peaks_norm,
+    group = datalist$neg$meta_norm$Sample.type,
+    group.label = "Sample type",
+    plotly.text = datalist$neg$meta_norm$Sample)
+
+plt.eval <-
+  plot_eval( x = datalist$neg$peaks_norm,
+             type = datalist$neg$meta_norm$Sample.type)
+
+```
+
+#### PCA
+::: panel-tabset
+
+##### Raw Data
+
+```{r PCA-Loaded neg, fig.height = 4, fig.width = 8, eval = run.norm.neg}
+
+a <- ggplotly(pca.plot$raw, session="knitr", showlegend = T)
+b <- ggplotly(pca.plot.type$raw, session="knitr", showlegend = T)
+
+subplot(a, b)
+```
+
+```{r pca-title-bestis-neg, results='asis', eval = run.norm.neg && show.bestis && !is.null(pca.plot$bestis)}
+cat("##### Best IS\n")
+```
+
+```{r PCA-Bestid neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.bestis && !is.null(pca.plot$bestis)}
+
 a <- ggplotly(pca.plot$bestis, session="knitr")
 b <- ggplotly(pca.plot.type$bestis, session="knitr")
 
 subplot(a, b)
-rownames(data_cleaned) <- datalist$neg$features_cleaned$Identity
 
-figs <- 
+```
+
 ```{r pca-title-lowcv-neg, results='asis', eval = run.norm.neg && show.low_cv && !is.null(pca.plot$low_cv)}
-cat("#### Lowest CV\n")
+cat("##### Lowest CV\n")
 ```
-```
+
 ```{r PCA-Lowest CV neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.low_cv && !is.null(pca.plot$low_cv)}
-### Overall
+
 a <- ggplotly(pca.plot$low_cv, session="knitr")
 b <- ggplotly(pca.plot.type$low_cv, session="knitr")
 
 subplot(a, b)
+
 ```
 
-### Missing in features
 ```{r pca-title-sum-neg, results='asis', eval = run.norm.neg && show.sum && !is.null(pca.plot$sum)}
-cat("#### Sum\n")
+cat("##### Sum\n")
 ```
-ggplotly(figs$p3)
+
 ```{r PCA-Normalized_by_sum neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.sum && !is.null(pca.plot$sum)}
 
 a <- ggplotly(pca.plot$sum, session="knitr")
 b <- ggplotly(pca.plot.type$sum, session="knitr")
 
 subplot(a, b)
-data.istd <- data.frame(t(istd))
-names(data.istd) <- features.istd$Identity_raw
+```
 
 ```{r pca-title-median-neg, results='asis', eval = run.norm.neg && show.median && !is.null(pca.plot$median)}
-cat("#### Median\n")
+cat("##### Median\n")
 ```
 
 ```{r PCA-Normalized_by_median neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.median && !is.null(pca.plot$median)}
-       sample.info = datalist$neg$meta_cleaned)
+
 a <- ggplotly(pca.plot$median, session="knitr")
 b <- ggplotly(pca.plot.type$median, session="knitr")
 
 subplot(a, b)
-```{r rsd.bar.plot neg, fig.height = 6, fig.width = 8, eval = run.istd.neg}
+```
 
-ggplotly(plt.is.rsd$plt.rsd)
 ```{r pca-title-pqn-neg, results='asis', eval = run.norm.neg && show.pqn && !is.null(pca.plot$pqn)}
-cat("#### PQN\n")
+cat("##### PQN\n")
 ```
 
 ```{r PCA-Normalized_by_PQN neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.pqn && !is.null(pca.plot$pqn)}
@@ -429,147 +504,51 @@ a <- ggplotly(pca.plot$pqn, session="knitr")
 b <- ggplotly(pca.plot.type$pqn, session="knitr")
 
 subplot(a, b)
-## Normalization comparison
-```{r, eval = run.norm.neg}
+```
 
 ```{r pca-title-loess-neg, results='asis', eval = run.norm.neg && show.loess && !is.null(pca.plot$loess)}
-cat("#### Loess\n")
+cat("##### Loess\n")
 ```
 
 ```{r PCA-Normalized_by_loess neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.loess && !is.null(pca.plot$loess)}
-    x = datalist$neg$peaks_norm,
+
 a <- ggplotly(pca.plot$loess, session="knitr")
 b <- ggplotly(pca.plot.type$loess, session="knitr")
 
 subplot(a, b)
-    x = datalist$neg$peaks_norm,
-    group = datalist$neg$meta_norm$Sample.type,
-    group.label = "Sample type",
+```
+
 ```{r pca-title-combat-neg, results='asis', eval = run.norm.neg && show.combat && !is.null(pca.plot$combat)}
-cat("#### Combat\n")
+cat("##### Combat\n")
 ```
 
 ```{r PCA-Normalized_by_combat neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.combat && !is.null(pca.plot$combat)}
-plt.eval <-
+
 a <- ggplotly(pca.plot$combat, session="knitr")
 b <- ggplotly(pca.plot.type$combat, session="knitr")
 
 subplot(a, b)
-#### Raw Data
 
-```{r PCA-Loaded neg, fig.height = 4, fig.width = 8, eval = run.norm.neg}
+```
+
 ```{r pca-title-limma-neg, results='asis', eval = run.norm.neg && show.limma && !is.null(pca.plot$limma)}
-cat("#### limma\n")
+cat("##### limma\n")
 ```
 
 ```{r PCA-Normalized_by_limma neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.limma && !is.null(pca.plot$limma)}
-b <- ggplotly(pca.plot.type$raw, session="knitr", showlegend = T)
+
 a <- ggplotly(pca.plot$limma, session="knitr")
 b <- ggplotly(pca.plot.type$limma, session="knitr")
 
 subplot(a, b)
 
-if (!is.null(pca.plot$bestis)){
-
-  a <- ggplotly(pca.plot$bestis, session="knitr")
-  b <- ggplotly(pca.plot.type$bestis, session="knitr")
-  
-  subplot(a, b)
-}
-
 ```
+:::
 
-#### Lowest CV
+#### RSD for all features in QC samples
+::: panel-tabset
 
-```{r PCA-Lowest CV neg, fig.height = 4, fig.width = 8, eval = run.norm.neg}
-
-if (!is.null(pca.plot$low_cv)){
-
-  a <- ggplotly(pca.plot$low_cv, session="knitr")
-  b <- ggplotly(pca.plot.type$low_cv, session="knitr")
-  
-  subplot(a, b)
-}
-
-```
-
-#### Sum
-
-```{r PCA-Normalized_by_sum neg, fig.height = 4, fig.width = 8, eval = run.norm.neg}
-
-if (!is.null(pca.plot$sum)){
-
-  a <- ggplotly(pca.plot$sum, session="knitr")
-  b <- ggplotly(pca.plot.type$sum, session="knitr")
-  
-  subplot(a, b)
-}
-```
-
-#### Median
-```{r PCA-Normalized_by_median neg, fig.height = 4, fig.width = 8, eval = run.norm.neg}
-
-if (!is.null(pca.plot$median)){
-
-  a <- ggplotly(pca.plot$median, session="knitr")
-  b <- ggplotly(pca.plot.type$median, session="knitr")
-  
-  subplot(a, b)
-}
-```
-
-#### PQN
-```{r PCA-Normalized_by_PQN neg, fig.height = 4, fig.width = 8, eval = run.norm.neg}
-
-if (!is.null(pca.plot$pqn)){
-
-  a <- ggplotly(pca.plot$pqn, session="knitr")
-  b <- ggplotly(pca.plot.type$pqn, session="knitr")
-  
-  subplot(a, b)
-}
-```
-
-#### Loess
-```{r PCA-Normalized_by_loess neg, fig.height = 4, fig.width = 8, eval = run.norm.neg}
-
-if (!is.null(pca.plot$loess)){
-  a <- ggplotly(pca.plot$loess, session="knitr")
-  b <- ggplotly(pca.plot.type$loess, session="knitr")
-  
-  subplot(a, b)
-}
-```
-
-#### Combat
-```{r PCA-Normalized_by_combat neg, fig.height = 4, fig.width = 8, eval = run.norm.neg}
-
-if (!is.null(pca.plot$combat)){
-
-  a <- ggplotly(pca.plot$combat, session="knitr")
-  b <- ggplotly(pca.plot.type$combat, session="knitr")
-  
-  subplot(a, b)
-}
-
-```
-
-#### limma
-```{r PCA-Normalized_by_limma neg, fig.height = 4, fig.width = 8, eval = run.norm.neg}
-
-if (!is.null(pca.plot$limma)){
-
-  a <- ggplotly(pca.plot$limma, session="knitr")
-  b <- ggplotly(pca.plot.type$limma, session="knitr")
-  
-  subplot(a, b)
-}
-
-```
-
-### RSD for all features in QC samples {.tabset .tabset-pills}
-
-#### RSD
+##### RSD
 ```{r RSD neg, fig.height = 3, fig.width = 8, eval = run.norm.neg}
 
 plt.eval$plt.rsd
@@ -577,7 +556,7 @@ plt.eval$plt.rsd.mean
 
 ```
 
-#### MAD
+##### MAD
 ```{r MAD neg, fig.height = 3, fig.width = 8, eval = run.norm.neg}
 
 plt.eval$plt.mad
@@ -585,7 +564,7 @@ plt.eval$plt.mad.mean
 
 ```
 
-#### Variance
+##### Variance
 ```{r VAR neg, fig.height = 3, fig.width = 8, eval = run.norm.neg}
 
 plt.eval$plt.var
@@ -593,9 +572,12 @@ plt.eval$plt.var.sum
 
 ```
 $~$
+:::
 
-# Merged data {.tabset .tabset-pills}
-## PCA
+## Merged data
+::: panel-tabset
+
+### PCA
 ```{r, fig.height = 4, fig.width = 6, eval = run.merged}
 
 data_all <- datalist$datatable
@@ -613,7 +595,7 @@ ggplotly(p)
 
 ```
 
-## Sample mean across batches
+### Sample mean across batches
 ```{r, fig.height = 4, fig.width = 8, eval = run.merged}
 
 Sample.mean <- 
@@ -643,10 +625,12 @@ p <-
 ggplotly(p)
 
 ```
+:::
 
+## Metabolites summary
+::: panel-tabset
 
-# Metabolites summary {.tabset .tabset-pills}
-## Metabolites class
+### Metabolites class
 ```{r, fig.height = 4, fig.width = 8, eval = run.feature.summary}
 features <- 
   datalist$feature.info
@@ -663,7 +647,7 @@ plot_ly(data.plot, labels = ~Class, values = ~Freq, type = 'pie',
 
 ```
 
-## Identification level
+### Identification level
 ```{r, fig.height = 4, fig.width = 8, eval = run.feature.summary}
 data.plot <- 
   data.frame(table(features$identity_source, useNA = "ifany")) %>% 
@@ -675,8 +659,9 @@ plot_ly(data.plot, labels = ~Source, values = ~Freq, type = 'pie',
                marker = list(line = list(color = '#FFFFFF', width = 1)))
 
 ```
+:::
 
-```{r session info, include = FALSE}
+```{r session info, include = FALSE, eval = FALSE}
 
 # Session info
 

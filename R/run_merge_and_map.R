@@ -27,8 +27,8 @@ run_merge_amd_map <-
 
     datalist <- as_metpipe_datalist(datalist, stage = "imported")
 
-    has_pos <- !is.null(datalist$pos)
-    has_neg <- !is.null(datalist$neg)
+    has_pos <- has_mode(datalist, "pos")
+    has_neg <- has_mode(datalist, "neg")
 
     if (is.null(final.norm) || !nzchar(final.norm)) {
       stop("final.norm must be provided (e.g. a name in peaks_norm)")
@@ -49,20 +49,22 @@ run_merge_amd_map <-
     sample.type.keep <- unique(c("Sample", sample.type.keep))
     
     if (has_pos && has_neg){
+      pos_data <- get_mode(datalist, "pos")
+      neg_data <- get_mode(datalist, "neg")
 
-      meta.pos <- datalist$pos$meta_norm
-      peaks.pos <- cbind(Sample = meta.pos[, "Sample"], get_peaks_norm(datalist$pos, "pos"))
+      meta.pos <- pos_data$meta_norm
+      peaks.pos <- cbind(Sample = meta.pos[, "Sample"], get_peaks_norm(pos_data, "pos"))
 
-      meta.neg <- datalist$neg$meta_norm
-      peaks.neg <- cbind(Sample = meta.neg[, "Sample"], get_peaks_norm(datalist$neg, "neg"))
+      meta.neg <- neg_data$meta_norm
+      peaks.neg <- cbind(Sample = meta.neg[, "Sample"], get_peaks_norm(neg_data, "neg"))
       
       features.pos <- 
-        datalist$pos$features_norm %>% 
+        pos_data$features_norm %>% 
         mutate(Polarity = "pos",
                identifier = paste0("pos_", Feature_ID))
       
       features.neg <- 
-        datalist$neg$features_norm %>% 
+        neg_data$features_norm %>% 
         mutate(Polarity = "neg",
                identifier = paste0("neg_", Feature_ID))
       
@@ -113,12 +115,13 @@ run_merge_amd_map <-
         select(-identifier)
       
     } else if (has_pos && !has_neg) {
+      pos_data <- get_mode(datalist, "pos")
 
-      meta.pos <- datalist$pos$meta_norm
-      peaks.pos <- cbind(Sample = meta.pos[, "Sample"], get_peaks_norm(datalist$pos, "pos"))
+      meta.pos <- pos_data$meta_norm
+      peaks.pos <- cbind(Sample = meta.pos[, "Sample"], get_peaks_norm(pos_data, "pos"))
       
       features.pos <- 
-        datalist$pos$features_norm %>% 
+        pos_data$features_norm %>% 
         mutate(Polarity = "pos")
       
       feature.info.temp <- features.pos
@@ -154,12 +157,13 @@ run_merge_amd_map <-
         select(-c("File.name")) 
       
     } else if (!has_pos && has_neg) {
+      neg_data <- get_mode(datalist, "neg")
 
-      meta.neg <- datalist$neg$meta_norm
-      peaks.neg <- cbind(Sample = meta.neg[, "Sample"], get_peaks_norm(datalist$neg, "neg"))
+      meta.neg <- neg_data$meta_norm
+      peaks.neg <- cbind(Sample = meta.neg[, "Sample"], get_peaks_norm(neg_data, "neg"))
       
       features.neg <- 
-        datalist$neg$features_norm %>% 
+        neg_data$features_norm %>% 
         mutate(Polarity = "neg")
       
       feature.info.temp <- features.neg

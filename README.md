@@ -84,6 +84,22 @@ Key scripts:
 - `inst/scripts/prepare_workflow.R`
 - `inst/scripts/run_workflow.R`
 
+## Workflow smoke check
+
+Use the smoke checker to validate config parsing and module resolution without executing full preprocessing.
+
+```r
+smoke <- system.file("scripts", "smoke_test_workflow.R", package = "metpipe")
+
+# Rmd modules
+system2("Rscript", c(smoke, "--config", "path/to/config.yml", "--format", "rmd"))
+
+# Qmd modules
+system2("Rscript", c(smoke, "--config", "path/to/config.yml", "--format", "qmd"))
+```
+
+Optional flags: `--module`, `--package-mode`, `--local-pkg-root`.
+
 ## Development notes
 
 - Build/install with `R CMD build .` and `R CMD INSTALL metpipe_*.tar.gz`

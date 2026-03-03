@@ -1,4 +1,4 @@
-##### Prepare and run workflow
+##### Prepare and run workflow (QMD)
 
 args <- commandArgs(trailingOnly = TRUE)
 
@@ -25,7 +25,7 @@ source(helper_candidates[[1]], local = TRUE)
 get_arg <- function(name) {
   i <- which(args == name)
   if (length(i) == 0) return(NULL)
-  return(args[i + 1])
+  args[i + 1]
 }
 
 is_blank <- wf_is_blank
@@ -78,7 +78,7 @@ pick_first <- function(...) {
 
 resolve_yaml <- function(path_workflow, path_yaml = NULL) {
   if (!is.null(path_yaml)) return(path_yaml)
-  wf_resolve_module_script(path_workflow, "prep_yaml.Rmd")
+  wf_resolve_module_script(path_workflow, "prep_yaml.qmd")
 }
 
 normalize_start_from <- function(x) {
@@ -121,17 +121,15 @@ path_result <- pick_first(get_arg("--result"), default_result)
 path_yaml <- get_arg("--yaml")
 
 default_mzmine <- file.path(path_workflow, "mzmine_linux", "bin", "mzmine")
-if (!file.exists(default_mzmine)) {
-  default_mzmine <- "/wd/mzmine_linux/bin/mzmine"
-}
+if (!file.exists(default_mzmine)) default_mzmine <- "/wd/mzmine_linux/bin/mzmine"
 
 path_mzmine <- pick_first(get_arg("--mzmine"), default_mzmine)
 path_temp <- pick_first(get_arg("--temp"), default_temp)
 qc <- pick_first(get_arg("--qc"), "BL,NIST,PO,sol,CP,IQ,BPL,MMix,PB,SP0625,SP1125,SP25,SP5,SP10,SP,SP40,POJ,POK")
 config_override <- get_arg("--config")
 
-prepare_workflow <- wf_resolve_module_script(path_workflow, "prepare_workflow.R")
-run_workflow <- wf_resolve_module_script(path_workflow, "run_workflow.R")
+prepare_workflow <- wf_resolve_module_script(path_workflow, "prepare_workflow_qmd.R")
+run_workflow <- wf_resolve_module_script(path_workflow, "run_workflow_qmd.R")
 
 if (!is_blank(config_override)) {
   config_file <- config_override
@@ -168,7 +166,7 @@ if (!is_blank(config_override)) {
     )
 
     if (!identical(status_prepare, 0L)) {
-      stop("prepare_workflow.R failed with exit code: ", status_prepare)
+      stop("prepare_workflow_qmd.R failed with exit code: ", status_prepare)
     }
   } else {
     if (!file.exists(config_candidate)) {
@@ -192,5 +190,5 @@ status_run <- system2(
 )
 
 if (!identical(status_run, 0L)) {
-  stop("run_workflow.R failed with exit code: ", status_run)
+  stop("run_workflow_qmd.R failed with exit code: ", status_run)
 }

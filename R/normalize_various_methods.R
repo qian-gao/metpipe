@@ -10,7 +10,6 @@
 #' @param reference Optional reference vector for PQN-style methods.
 #' @param use.reference Optional reference label to use within `reference`.
 #' @param group Optional covariate used in batch-correction models.
-#' @param verbose Logical; print progress messages.
 #' @param batch Optional batch vector.
 #' @param batch.wise Logical; perform selected methods per batch.
 #' @param sample.rate Quantile sampling rate for qspline.
@@ -37,7 +36,6 @@ normalize_various_methods <-
     reference = NULL,
     use.reference = NULL,
     group = NULL,
-    verbose = FALSE,
     batch = NULL,
     batch.wise = FALSE,
     sample.rate = 0.33,
@@ -48,17 +46,70 @@ normalize_various_methods <-
 
   ) {
 
-    #library(crmn)
-    #library(reshape2)
-    #library(tidyr)
-    #library(dplyr)
+    allowed_methods <- c("unit", "sum", "median", "pqn", "nomis", "loess", "qspline", "combat", "low_cv", "bestis", "limma")
+    if (is.null(method) || length(method) != 1 || !method %in% allowed_methods) {
+      stop("`method` must be one of: ", paste(allowed_methods, collapse = ", "))
+    }
 
-    if ( verbose ) {
+    if (!is.matrix(x) && !is.data.frame(x)) {
+      stop("`x` must be a matrix or data.frame")
+    }
+    if (nrow(x) == 0 || ncol(x) == 0) {
+      stop("`x` must have at least one row and one column")
+    }
 
-      print( "normalize_various_method was created by Qian Gao" )
-      print( "qian.gao@sund.ku.dk" )
-      print( "2021-05-14" )
+    x <- as.data.frame(x, check.names = FALSE)
+    x[] <- lapply(x, as.numeric)
 
+    if (!is.logical(batch.wise) || length(batch.wise) != 1 || is.na(batch.wise)) {
+      stop("`batch.wise` must be TRUE or FALSE")
+    }
+
+    if (!is.numeric(sample.rate) || length(sample.rate) != 1 || is.na(sample.rate) || sample.rate <= 0 || sample.rate > 1) {
+      stop("`sample.rate` must be a numeric scalar in (0, 1]")
+    }
+
+    if (method %in% c("combat", "limma") && is.null(batch)) {
+      stop("`batch` is required for method='", method, "'")
+    }
+
+    if (method %in% c("nomis", "low_cv", "bestis") && is.null(istds)) {
+      stop("`istds` is required for method='", method, "'")
+    }
+
+    if (method == "bestis" && isTRUE(batch.wise) && is.null(batch)) {
+      stop("`batch` is required for method='bestis' when `batch.wise=TRUE`")
+    }
+
+    if (method == "pqn" && !is.null(use.type) && is.null(type)) {
+      stop("`type` must be provided when `use.type` is set for method='pqn'")
+    }
+
+    if (!is.null(type) && length(type) != nrow(x)) {
+      stop("`type` must have the same length as nrow(x)")
+    }
+
+    if (!is.null(batch) && length(batch) != nrow(x)) {
+      stop("`batch` must have the same length as nrow(x)")
+    }
+
+    if (!is.null(istds)) {
+      istds <- as.data.frame(istds, check.names = FALSE)
+      if (nrow(istds) != nrow(x)) {
+        stop("`istds` must have the same number of rows as `x`")
+      }
+      istds[] <- lapply(istds, as.numeric)
+    }
+
+    sanitize_norm_matrix <- function(mat, rn, cn) {
+      mat <- as.data.frame(mat, check.names = FALSE)
+      mat[] <- lapply(mat, as.numeric)
+      mat_mat <- as.matrix(mat)
+      mat_mat[!is.finite(mat_mat)] <- NA_real_
+      mat <- data.frame(mat_mat, check.names = FALSE)
+      rownames(mat) <- rn
+      colnames(mat) <- cn
+      mat
     }
 
     x_rownames <- rownames(x)
@@ -66,25 +117,56 @@ normalize_various_methods <-
 
     if (method == 'unit') {
 
-      x_norm <- t(apply(x, 1, function(x) {x/sqrt(sum(x^2, na.rm = TRUE))}))
+      x_norm <- t(apply(x, 1, function(row_i) {
+        den <- sqrt(sum(row_i^2, na.rm = TRUE))
+        if (!is.finite(den) || den == 0) {
+          rep(NA_real_, length(row_i))
+        } else {
+          row_i / den
+        }
+      }))
 
     } else if (method == 'sum') {
 
       sum.median <- median( rowMeans(x, na.rm = TRUE), na.rm = TRUE)
-      x_norm <- t(apply(x, 1, function(x) {x/sum(x, na.rm = TRUE) * sum.median }))
+      x_norm <- t(apply(x, 1, function(row_i) {
+        den <- sum(row_i, na.rm = TRUE)
+        if (!is.finite(den) || den == 0) {
+          rep(NA_real_, length(row_i))
+        } else {
+          row_i/den * sum.median
+        }
+      }))
 
     } else if (method == 'median') {
 
       median.median <- median( apply(x, 1, function(x) median(x, na.rm = TRUE)), na.rm = TRUE)
-      x_norm <- t(apply(x, 1, function(x) {x/median(x, na.rm = TRUE) * median.median }))
+      x_norm <- t(apply(x, 1, function(row_i) {
+        den <- median(row_i, na.rm = TRUE)
+        if (!is.finite(den) || den == 0) {
+          rep(NA_real_, length(row_i))
+        } else {
+          row_i/den * median.median
+        }
+      }))
 
     } else if (method == 'pqn') {
 
-      x_sum_norm <- t(apply(x, 1, function(x) {x/sum(x, na.rm = TRUE)}))
+      x_sum_norm <- t(apply(x, 1, function(row_i) {
+        den <- sum(row_i, na.rm = TRUE)
+        if (!is.finite(den) || den == 0) {
+          rep(NA_real_, length(row_i))
+        } else {
+          row_i/den
+        }
+      }))
 
       if (!is.null(type) && !is.null(use.type)) {
-
-        spectrum.ref <- apply(x[ type == use.type, ], 2, function(x) {median(x, na.rm = TRUE)})
+        ref_idx <- type == use.type
+        if (!any(ref_idx, na.rm = TRUE)) {
+          stop("No samples match `use.type` for method='pqn'")
+        }
+        spectrum.ref <- apply(x[ref_idx, , drop = FALSE], 2, function(x) {median(x, na.rm = TRUE)})
 
       } else {
 
@@ -92,8 +174,10 @@ normalize_various_methods <-
         print("No control group specified, median of all samples are used as reference")
       }
 
+      spectrum.ref[!is.finite(spectrum.ref) | spectrum.ref == 0] <- NA_real_
       quotient <- x_sum_norm/spectrum.ref
       probabilistic_q <- apply(quotient, 1, function(x) {median(x, na.rm = TRUE)})
+      probabilistic_q[!is.finite(probabilistic_q) | probabilistic_q == 0] <- NA_real_
       x_norm <- x_sum_norm/probabilistic_q
 
     } else if (method == 'nomis') {
@@ -154,21 +238,32 @@ normalize_various_methods <-
         batch <- rep("No.batches", nrow(x))
       }
 
+      type_all <- type
+      if (is.null(type_all)) {
+        type_all <- rep(NA_character_, nrow(x))
+      }
+
       batch_nr <- unique(batch)
       x_norm <- data.frame()
       minRSD <- data.frame()
 
       for (i in seq_along(batch_nr)){
 
-        x.i <- x[batch == batch_nr[i], ]
-        istds.i <- istds[batch == batch_nr[i], ]
+        batch_idx <- batch == batch_nr[i]
+        x.i <- x[batch_idx, , drop = FALSE]
+        istds.i <- istds[batch_idx, , drop = FALSE]
+        type.i <- type_all[batch_idx]
 
-        mat.raw <- x.i[ type == use.type, ]
+        if (!is.null(use.type) && !any(type.i == use.type, na.rm = TRUE)) {
+          stop("No samples match `use.type` within batch ", batch_nr[i], " for method='low_cv'")
+        }
+
+        mat.raw <- x.i[type.i == use.type, , drop = FALSE]
         mat <- reshape2::melt(cbind(rownames(mat.raw), mat.raw))
         colnames(mat) <- c('Sample', 'Metabolite', 'Intensity.raw')
 
         mat.raw <- data.frame(mat.raw)
-        mat.istds <- data.frame(istds.i[ type == use.type, ])
+        mat.istds <- data.frame(istds.i[type.i == use.type, , drop = FALSE])
 
         # Calculate mean values for each IS
         mat.is.means <- apply(mat.istds, 2, function(x) {mean(x, na.rm = TRUE)})
@@ -249,6 +344,31 @@ normalize_various_methods <-
         arrange(match(Metabolite, colnames(x)))
 
 
+    } else if (method == 'bestis') {
+
+      batch_bestis <- batch
+      if (!isTRUE(batch.wise) || is.null(batch_bestis)) {
+        batch_bestis <- rep("No.batches", nrow(x))
+      }
+
+      bestis_out <- normalize_with_best_internal_standard(
+        x = x,
+        istds = istds,
+        batch = batch_bestis,
+        batch.wise = batch.wise,
+        type = type,
+        use.type = use.type
+      )
+
+      x_norm <- bestis_out$x
+
+      best_istd_tbl <- data.frame(
+        Metabolite = rownames(bestis_out$best.istd),
+        bestis_out$best.istd,
+        check.names = FALSE,
+        stringsAsFactors = FALSE
+      )
+
     }  else if (method == 'limma') {
 
       mat <- log2(t(x))
@@ -261,12 +381,21 @@ normalize_various_methods <-
       colnames(x_norm) <- x_colnames
     }
 
+    x_norm <- sanitize_norm_matrix(x_norm, x_rownames, x_colnames)
+
     if (method == 'low_cv'){
 
       output <-
         list( x = data.frame(x_norm, check.names = FALSE),
               method = method,
               normalizer = minRSD)
+
+    } else if (method == 'bestis') {
+
+      output <-
+        list( x = data.frame(x_norm, check.names = FALSE),
+              method = method,
+              normalizer = best_istd_tbl)
 
     } else {
 

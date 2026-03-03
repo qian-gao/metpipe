@@ -8,6 +8,7 @@
 #' @param impute.method.is Imputation method for internal standards.
 #' @param po.sample.to.use Sample type used for pool/control-based normalization.
 #' @param norm.method Character vector of normalization methods to apply.
+#' @param norm.batch.wise Logical; apply eligible normalization methods per batch.
 #' @param sample.type.keep Sample types retained in the output normalized table.
 #'
 #' @return Updated `metpipe_datalist` with normalized outputs in `pos` and/or `neg`.
@@ -27,6 +28,7 @@ run_normalization <-
     #c("bestis", "low_cv", "pqn", "loess", "sum", "median", "limma")
     po.sample.to.use = NULL,
     norm.method = NULL,
+    norm.batch.wise = FALSE,
     
     # Sample types to keep in datatable
     sample.type.keep = "Sample"
@@ -34,31 +36,35 @@ run_normalization <-
 
     datalist <- as_metpipe_datalist(datalist, stage = "imported")
 
-    has_pos <- !is.null(datalist$pos)
-    has_neg <- !is.null(datalist$neg)
+    has_pos <- has_mode(datalist, "pos")
+    has_neg <- has_mode(datalist, "neg")
     
     if (has_pos){
       cat("Positive mode: \n")
+      pos_data <- get_mode(datalist, "pos")
       datalist$pos <- 
         normalization(
-          datalist = datalist$pos,
+          datalist = pos_data,
           impute.method.sample = impute.method.sample,  
           impute.method.is = impute.method.is,
           po.sample.to.use = po.sample.to.use,
           norm.method = norm.method,
+          norm.batch.wise = norm.batch.wise,
           sample.type.keep = sample.type.keep
         )
     }
     
     if (has_neg){
       cat("Negative mode: \n")
+      neg_data <- get_mode(datalist, "neg")
       datalist$neg <- 
         normalization(
-          datalist = datalist$neg,
+          datalist = neg_data,
           impute.method.sample = impute.method.sample,  
           impute.method.is = impute.method.is,
           po.sample.to.use = po.sample.to.use,
           norm.method = norm.method,
+          norm.batch.wise = norm.batch.wise,
           sample.type.keep = sample.type.keep
         )
     }

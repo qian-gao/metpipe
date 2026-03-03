@@ -3,15 +3,16 @@ title: "Prepare parameters for workflow"
 author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
           
-output:
-  html_document:
+format:
+  html:
     theme: flatly
-    toc: yes
-    toc_float:
-      collapsed: false
-    toc_depth: '3'
-    number_sections: true
-    df_print: paged
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    toc-location: left
+    number-sections: true
+    df-print: paged
+self-contained: true
 
 params:
   path_raw: ""
@@ -21,45 +22,6 @@ params:
   path_temp: ""
   qc_types: ""
 ---
-<style type="text/css">
-body{
-  font-size: 12px;
-  }
-td {
-  font-size: 14px;
-}
-h1.title {
-  font-size: 22px;
-}
-h4.author {
-  font-size: 16px;
-}
-h4.date {
-  font-size: 16px;
-}
-
-h1 {
-  font-size: 18px;
-}
-h2 {
-  font-size: 16px;
-}
-h3 {
-  font-size: 14px;
-}
-h4 {
-  font-size: 12px;
-}
-h5 {
-  font-size: 12px;
-}
-code.r{
-  font-size: 12px;
-}
-pre { /* Code block - determines code spacing between lines */
-  font-size: 14px;
-}
-</style>
 
 ```{r setup environment, include = FALSE, warning = FALSE}
 
@@ -92,8 +54,9 @@ join_path <- wf_join_path
 
 ```
 
-# Global input
+
 ```{r}
+# Global input
 
 path_raw = params$path_raw
 path_result = params$path_result
@@ -138,8 +101,8 @@ qc_types = c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix", "PB",
 
 ```
 
-# Workflow selection
 ```{r}
+# Workflow selection
 
 path_method_cfg <- file.path(path_workflow, "parameters", "method_configuration.rds")
 if (!file.exists(path_method_cfg)) {
@@ -168,8 +131,10 @@ if (nrow(method) > 1) {
 
 ```
 
-# Raw data files
+
 ```{r}
+# Raw data files
+
 path_files_pos <- paste0(path_raw, "/pos/")
 path_files_neg <- paste0(path_raw, "/neg/")
 
@@ -217,8 +182,8 @@ if (!run.pos && !run.neg) {
 
 ```
 
-# mzmine input
 ```{r}
+# mzmine input
 
 mzmine_params <- join_path(path_workflow, method$mzmine_params)
 if (is.na(mzmine_params) || !file.exists(mzmine_params)) {
@@ -236,16 +201,19 @@ mzmine_memory <- "-memory none"
 mzmine_threads <- "-threads 10"
 ```
 
-# QC
+
 ```{r}
+# QC
+
 figure_height = 800
 figure_width = 1000
 
 ```
 
-# post processing
-## Clean peaktable
+
 ```{r}
+# Post processing
+## Clean peaktable
 
 mean.filter <- list(c( 2, "BL", "<", "PO"),
                    c( 1, "Sample", ">", 500))
@@ -258,8 +226,9 @@ clean.po.sample.to.use <- "PO"
 
 ```
 
-## Normalization
+
 ```{r}
+## Normalization
 
 impute.method.sample <- "HF"
 impute.method.is <- "HF"
@@ -269,16 +238,19 @@ sample.type.keep <- c("Sample", "PO", "NIST")
 
 ```
 
-## Merge and map info
+
 ```{r}
+## Merge and map info
 
 final.norm <- "bestis"
 final.eval.sample.to.use <- "PO"
 final.sample.type.keep <- c("PO", "NIST")
 ```
 
-## Remove theoretical lipids
+
 ```{r}
+## Remove theoretical lipids
+
 if (assay_i %in% c("LIPS", "LIPL")){
   extra_processing_lip <- "Y"
 } else {
@@ -287,8 +259,8 @@ if (assay_i %in% c("LIPS", "LIPL")){
 
 ```
 
-## Others
 ```{r}
+## Others
 
 mzmine_peaktable_pos <- paste0(path_result, "/pos/pos_full_feature_table.csv")
 mzmine_peaktable_neg <- paste0(path_result, "/neg/neg_full_feature_table.csv")
@@ -303,7 +275,7 @@ rds_datalist <- paste0(path_result, "/datalist.rds")
 path_datatable <- paste0(path_result, "/datatable.xlsx")
 ```
 
-# Generate yml
+## Default parameters for processing workflow
 ```{r}
 
 config <- list(
@@ -372,7 +344,11 @@ cat(yaml_str)
 writeLines(yaml_str, file.path(path_result, "config.yml"))
 ```
 
-```{r}
+```{r SessionInfo, include = FALSE, eval = FALSE}
+
+# Session info
+
+utils::sessionInfo()
 
 ```
 

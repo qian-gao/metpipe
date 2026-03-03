@@ -39,16 +39,17 @@ run_clean_peaktable <-
 
     datalist <- as_metpipe_datalist(datalist, stage = "imported")
 
-    has_pos <- !is.null(datalist$pos)
-    has_neg <- !is.null(datalist$neg)
+    has_pos <- has_mode(datalist, "pos")
+    has_neg <- has_mode(datalist, "neg")
     
     if (has_pos){
       cat("Positive mode: \n")
+      pos_data <- get_mode(datalist, "pos")
       
       if (is.null(outliers.sample.pos)) outliers.sample.pos <- outliers.sample
       datalist$pos <- 
         clean_peaktable(
-          datalist = datalist$pos,
+          datalist = pos_data,
           mean.filter = mean.filter,
           rsd.filter = rsd.filter,      
           rt.range = rt.range, 
@@ -61,11 +62,12 @@ run_clean_peaktable <-
 
       if (has_neg){
       cat("Negative mode: \n")
+      neg_data <- get_mode(datalist, "neg")
 
       if (is.null(outliers.sample.neg)) outliers.sample.neg <- outliers.sample
       datalist$neg <- 
         clean_peaktable(
-          datalist = datalist$neg,
+          datalist = neg_data,
           mean.filter = mean.filter,
           rsd.filter = rsd.filter,      
           rt.range = rt.range, 

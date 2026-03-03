@@ -3,58 +3,19 @@ title: "Remove theoretical annotation"
 author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
           
-output:
-  html_document:
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    toc-location: left
     theme: flatly
-    toc: yes
-    toc_float:
-      collapsed: false
-    toc_depth: '3'
-    number_sections: true
-    df_print: paged
+self-contained: true
 
 params:
   config: ""
 ---
-<style type="text/css">
-body{
-  font-size: 12px;
-  }
-td {
-  font-size: 14px;
-}
-h1.title {
-  font-size: 22px;
-}
-h4.author {
-  font-size: 16px;
-}
-h4.date {
-  font-size: 16px;
-}
 
-h1 {
-  font-size: 18px;
-}
-h2 {
-  font-size: 16px;
-}
-h3 {
-  font-size: 14px;
-}
-h4 {
-  font-size: 12px;
-}
-h5 {
-  font-size: 12px;
-}
-code.r{
-  font-size: 12px;
-}
-pre { /* Code block - determines code spacing between lines */
-  font-size: 14px;
-}
-</style>
 
 ```{r setup environment, include = FALSE, warning = FALSE}
 
@@ -163,7 +124,7 @@ rds_datalist <- "D:/Projects/MP197/peaktable/_BL_LIPS_FPASEF/datalist.rds"
 
 ```
 
-# Calculate sum composition
+## Calculate sum composition
 ```{r}
 
 datalist <- readRDS(rds_datalist)
@@ -199,7 +160,7 @@ if (!"Metabolite_name_chain" %in% names(feature.info)) {
 
 ```
 
-# Remove repeating lipids with the same sum composition
+## Remove repeating lipids with the same sum composition
 Lipids with the same sum composition and similar retention time are considered 
 potentially the same lipids. Only one lipid per such group is kept.
 ```{r}
@@ -223,7 +184,7 @@ cat("For repeating features, the one with higher mean intensity in ", final.eval
 cat(nrow(feature.info) - nrow(feature.info.clean), " features have been removed")
 ```
 
-# Map lipid information
+## Map lipid information
 ```{r}
 
 feature.info.clean.map <- 
@@ -235,7 +196,7 @@ feature.info.clean.map <-
 
 ```
 
-# Remove theoretical annotation
+## Remove theoretical annotation
 ```{r}
 
 feature.info.no.theo <- 
@@ -271,7 +232,7 @@ saveRDS(datalist, rds_datalist)
 ```
 
 
-# Export
+## Export
 ```{r}
 wb <- createWorkbook()
 addWorksheet(wb, "datatable")

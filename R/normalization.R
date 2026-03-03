@@ -9,6 +9,7 @@
 #' @param impute.method.is Imputation method for internal standards.
 #' @param po.sample.to.use Sample type used for pool/control-dependent methods.
 #' @param norm.method Character vector of normalization method names.
+#' @param norm.batch.wise Logical; apply eligible normalization methods per batch.
 #' @param sample.type.keep Sample types kept for normalization and output.
 #'
 #' @return Updated mode-level `datalist` with `peaks_norm`, `normalizer`, and metadata.
@@ -29,6 +30,7 @@ normalization <-
     #c("bestis", "low_cv", "pqn", "loess", "sum", "median", "limma")
     po.sample.to.use = NULL,
     norm.method = NULL,
+    norm.batch.wise = FALSE,
     
     # Sample types to keep in datatable
     sample.type.keep = "Sample"
@@ -148,37 +150,20 @@ normalization <-
     if ("bestis" %in% norm.method){
       
       result.normalization <-
-        normalize_with_best_internal_standard(
+        normalize_various_methods(
           x = data,
           istds = data.istd,
+          method = "bestis",
           batch = batch,
-          batch.wise = FALSE,
+          batch.wise = norm.batch.wise,
           type = sample.info$Sample.type,
-          use.type = po.sample.to.use
+          use.type = po.sample.to.use,
+          data.rsd.orig = data.rsd.orig,
+          feature.info = feature.info
         )
       
       peaks_norm$bestis <- result.normalization$x
-      
-      normalizer <-
-        data.frame(Metabolite = feature.info$Identity,
-                   Normalizer = result.normalization$best.istd)
-      
-      data.rsd <-
-        calculate_rsd( data = peaks_norm$bestis,
-                       type = sample.info$Sample.type,
-                       names.suffix = NULL)$type.rsd
-      
-      istd.rsd <-
-        calculate_rsd( data = data.istd,
-                       type = sample.info$Sample.type,
-                       names.suffix = NULL)$type.rsd
-      
-      normalizer.list$bestis <-
-        normalizer %>%
-        dplyr::left_join(data.rsd.orig, by = c("Metabolite" = "Identity")) %>%
-        dplyr::left_join(data.rsd, by = c("Metabolite" = "Identity")) %>%
-        dplyr::rename( Identity = Metabolite) %>%
-        dplyr::left_join(feature.info, by = "Identity")
+      normalizer.list$bestis <- result.normalization$normalizer
       
       rownames(peaks_norm$bestis) <- sample.info$Sample
       
@@ -204,7 +189,7 @@ normalization <-
           x = data,
           istds = data.istd,
           batch = batch,
-          batch.wise = FALSE,
+          batch.wise = norm.batch.wise,
           method = 'low_cv',
           type = sample.info$"Sample.type",
           use.type = po.sample.to.use,

@@ -1,6 +1,5 @@
-##### Run workflow
+##### Run workflow (QMD)
 
-# Input
 args <- commandArgs(trailingOnly = TRUE)
 
 get_arg <- function(name) {
@@ -32,20 +31,14 @@ if (length(helper_candidates) == 0) {
 }
 source(helper_candidates[[1]], local = TRUE)
 
-if (is.na(config_file) || !nzchar(config_file)) {
-  stop("Missing required config file argument")
-}
-
-if (!file.exists(config_file)) {
-  stop("Config file does not exist: ", config_file)
-}
+if (is.na(config_file) || !nzchar(config_file)) stop("Missing required config file argument")
+if (!file.exists(config_file)) stop("Config file does not exist: ", config_file)
 
 render_module <- function(file_name, output_prefix, config_file, path_workflow, path_result, path_temp) {
   module_input <- wf_resolve_module_script(path_workflow, file_name)
-
-  rmarkdown::render(
+  wf_render_qmd_document(
     input = module_input,
-    params = list(config = config_file),
+    render_params = list(config = config_file),
     intermediates_dir = path_temp,
     output_file = file.path(path_result, paste0(output_prefix, "_", Sys.Date(), ".html"))
   )
@@ -77,7 +70,6 @@ normalize_start_from <- function(x) {
   resolved
 }
 
-# Set path
 configurations <- wf_read_yaml_config(config_file, label = "config file")
 
 path_result <- wf_cfg_required(configurations, "path_result")
@@ -88,7 +80,6 @@ path_result <- normalizePath(path_result, winslash = "/", mustWork = FALSE)
 path_workflow <- normalizePath(path_workflow, winslash = "/", mustWork = FALSE)
 
 if (!dir.exists(path_result)) dir.create(path_result, recursive = TRUE, showWarnings = FALSE)
-
 if (wf_is_blank(path_temp)) {
   path_temp <- tempdir()
 } else {
@@ -99,12 +90,12 @@ if (!dir.exists(path_temp)) dir.create(path_temp, recursive = TRUE, showWarnings
 wf_ensure_local_root_from_workflow(path_workflow)
 
 module_plan <- list(
-  list(key = "preprocessing_mzmine", file = "preprocessing_mzmine.Rmd", output = "preprocessing_mzmine", enabled = TRUE),
-  list(key = "convert_output", file = "convert_output.Rmd", output = "convert_output", enabled = TRUE),
-  list(key = "qc_istd", file = "qc_istd.Rmd", output = "qc_report", enabled = TRUE),
-  list(key = "post_processing", file = "post_processing.Rmd", output = "post_processing", enabled = TRUE),
-  list(key = "evaluation", file = "evaluation.Rmd", output = "evaluation", enabled = TRUE),
-  list(key = "extra_processing_lip", file = "extra_processing_lip.Rmd", output = "extra_processing_lip", enabled = wf_as_flag(configurations$extra_processing_lip))
+  list(key = "preprocessing_mzmine", file = "preprocessing_mzmine.qmd", output = "preprocessing_mzmine", enabled = TRUE),
+  list(key = "convert_output", file = "convert_output.qmd", output = "convert_output", enabled = TRUE),
+  list(key = "qc_istd", file = "qc_istd.qmd", output = "qc_report", enabled = TRUE),
+  list(key = "post_processing", file = "post_processing.qmd", output = "post_processing", enabled = TRUE),
+  list(key = "evaluation", file = "evaluation.qmd", output = "evaluation", enabled = TRUE),
+  list(key = "extra_processing_lip", file = "extra_processing_lip.qmd", output = "extra_processing_lip", enabled = wf_as_flag(configurations$extra_processing_lip))
 )
 
 start_key <- normalize_start_from(start_from)

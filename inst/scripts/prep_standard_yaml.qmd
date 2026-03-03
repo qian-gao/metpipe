@@ -1,0 +1,286 @@
+---
+title: "Prepare parameters for workflow"
+author: "CBMR Metabolomics Platform"
+date: "`r base::Sys.Date()`"
+          
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    toc-location: left
+    theme: flatly
+self-contained: true
+
+params:
+  path_raw: ""
+  path_result: ""
+  path_workflow: ""
+  path_mzmine: ""
+  path_temp: ""
+---
+
+```{r setup environment, include = FALSE, warning = FALSE}
+
+library(yaml)
+library(dplyr)
+
+load_metpipe_runtime <- function() {
+  package_mode <- tolower(trimws(Sys.getenv("METPIPE_PACKAGE_MODE", unset = "local")))
+  if (!package_mode %in% c("local", "installed")) package_mode <- "local"
+
+  if (identical(package_mode, "installed")) {
+    if (!requireNamespace("metpipe", quietly = TRUE)) {
+      stop("METPIPE_PACKAGE_MODE='installed' but package 'metpipe' is not installed")
+    }
+    library(metpipe)
+    return("installed")
+  }
+
+  candidates <- unique(Filter(nzchar, c(
+    Sys.getenv("METPIPE_LOCAL_ROOT", ""),
+    "H:/Documents/CBMR_workflow/packages/metpipe",
+    normalizePath(getwd(), winslash = "/", mustWork = FALSE),
+    normalizePath(file.path(getwd(), ".."), winslash = "/", mustWork = FALSE),
+    normalizePath(file.path(getwd(), "..", ".."), winslash = "/", mustWork = FALSE)
+  )))
+
+  is_pkg_root <- function(path) {
+    dir.exists(path) &&
+      file.exists(file.path(path, "DESCRIPTION")) &&
+      dir.exists(file.path(path, "R"))
+  }
+
+  roots <- candidates[vapply(candidates, is_pkg_root, logical(1))]
+  if (length(roots) == 0) {
+    stop("Cannot locate local metpipe package root. Set METPIPE_LOCAL_ROOT to your metpipe folder.")
+  }
+
+  if (!requireNamespace("pkgload", quietly = TRUE)) {
+    stop("pkgload is required for local source loading. Install with install.packages('pkgload').")
+  }
+
+  Sys.setenv(METPIPE_LOCAL_ROOT = roots[[1]])
+  pkgload::load_all(path = roots[[1]], export_all = FALSE, quiet = TRUE)
+  "local"
+}
+
+metpipe_runtime <- load_metpipe_runtime()
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
+```
+
+# Global input
+```{r}
+
+path_raw = params$path_raw
+path_result = params$path_result
+path_workflow = params$path_workflow
+path_mzmine = params$path_mzmine
+path_temp = params$path_temp
+
+```
+
+# Workflow selection
+```{r}
+
+method_all <- readRDS(paste0(path_workflow, "/parameters/method_configuration.rds"))
+
+method_name <- basename(path_raw)
+matrix_i <- strsplit(method_name, "_")[[1]][1]
+assay_i <- strsplit(method_name, "_")[[1]][2]
+analysis_i <- strsplit(method_name, "_")[[1]][3]
+
+method <- subset(method_all, assay == assay_i & analysis == analysis_i)
+
+```
+
+# Raw data files
+```{r}
+path_files_pos <- paste0(path_raw, "/pos/")
+path_files_neg <- paste0(path_raw, "/neg/")
+
+run.pos <- FALSE
+run.neg <- FALSE
+raw_files_pos <- NULL
+raw_files_neg <- NULL
+meta_pos <- NULL
+meta_neg <- NULL
+
+qc_types = c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix")
+
+if (dir.exists(path_files_pos)){
+  run.pos <- TRUE
+  raw_files_pos <- list.files(path_files_pos, full.names = TRUE, pattern = ".d$|.mzML")
+  meta_pos <- 
+    map_standard_name_to_meta(raw_files_pos,
+                              qc_types = qc_types) 
+}
+
+if (dir.exists(path_files_neg)){
+  run.neg <- TRUE
+  raw_files_neg <- list.files(path_files_neg, full.names = TRUE, pattern = ".d$|.mzML")
+  meta_neg <- 
+    map_standard_name_to_meta(raw_files_neg,
+                              qc_types = qc_types) 
+}
+
+
+```
+
+# mzmine input
+```{r}
+
+#path_result <- gsub("raw", "peaktable", path_raw)
+mzmine_params <- paste0(path_workflow, method$mzmine_params)
+path_lib_istd_pos <- ifelse(!is.na(method$path_lib_istd_pos), paste0(path_workflow, method$path_lib_istd_pos), NA)
+path_lib_istd_neg <- ifelse(!is.na(method$path_lib_istd_neg), paste0(path_workflow, method$path_lib_istd_neg), NA)
+# path_lib_pos <- ifelse(!is.na(method$path_lib_pos), paste0(path_workflow, method$path_lib_pos), NA)
+# path_lib_neg <- ifelse(!is.na(method$path_lib_neg), paste0(path_workflow, method$path_lib_neg), NA)
+spectral_lib <- strsplit(method$path_spectral, "|", fixed = TRUE)[[1]]
+path_spectral_lib <- paste0(path_workflow, spectral_lib)
+mzmine_user <- paste0(path_workflow, "/parameters/qiangao.mzuser")
+mzmine_memory <- "-memory none"
+mzmine_threads <- "-threads auto"
+```
+
+# QC
+```{r}
+figure_height = 800
+figure_width = 1000
+
+```
+
+# post processing
+## Clean peaktable
+```{r}
+
+mean.filter <- list(c( 2, "BL", "<", "PO"),
+                   c( 1, "Sample", ">", 500))
+rsd.filter <- list(c(1, "PO", "<", 0.3))
+rt.range <- c(0, 30)
+filter_by_missing_feature_pct <- 50
+filter_by_missing_sample_type <- "Sample"
+outliers.sample <- c()
+clean.po.sample.to.use <- "PO"
+
+```
+
+## Normalization
+```{r}
+
+impute.method.sample <- "HF"
+impute.method.is <- "HF"
+norm.po.sample.to.use <- "PO"
+norm.method <- c("bestis", "low_cv", "sum", "median")
+sample.type.keep <- c("NIST", "PO")
+
+```
+
+## Merge and map info
+```{r}
+
+final.norm <- "bestis"
+final.eval.sample.to.use <- "PO"
+final.sample.type.keep <- c("Sample", "PO", "NIST")
+```
+
+## Others
+```{r}
+
+mzmine_peaktable_pos <- paste0(path_result, "/pos/pos_full_feature_table.csv")
+mzmine_peaktable_neg <- paste0(path_result, "/neg/neg_full_feature_table.csv")
+path_peaktable_pos <- paste0(path_result, "/peaktable_pos.xlsx")
+path_peaktable_neg <- paste0(path_result, "/peaktable_neg.xlsx")
+path_peaktable_istd_pos <- paste0(path_result, "/peaktable_istd_pos.xlsx")
+path_peaktable_istd_neg <- paste0(path_result, "/peaktable_istd_neg.xlsx")
+if (!dir.exists(paste0(path_result, "/data"))) dir.create(paste0(path_result, "/data"))
+rds_qc_is_pos <- paste0(path_result, "/data/QC_IS_pos.rds")
+rds_qc_is_neg <- paste0(path_result, "/data/QC_IS_neg.rds")
+rds_datalist <- paste0(path_result, "/datalist.rds")
+path_datatable <- paste0(path_result, "/datatable.xlsx")
+```
+
+# Generate yml
+```{r}
+
+config <- list(
+  path_raw = path_raw,
+  path_workflow = path_workflow,
+  path_mzmine = path_mzmine,
+  mzmine_threads = mzmine_threads,
+  path_temp = path_temp,
+  method_name = method_name,
+  run.pos = run.pos,
+  run.neg = run.neg,  
+  path_result = path_result, 
+  mzmine_params = mzmine_params, 
+  path_lib_istd_pos = path_lib_istd_pos, 
+  path_lib_istd_neg = path_lib_istd_neg,  
+  path_spectral_lib = path_spectral_lib,  
+  figure_height = figure_height,
+  figure_width = figure_width,  
+  mean.filter = mean.filter,
+  rsd.filter = rsd.filter,
+  rt.range = rt.range,
+  filter_by_missing_feature_pct = filter_by_missing_feature_pct,
+  filter_by_missing_sample_type = filter_by_missing_sample_type,
+  outliers.sample = outliers.sample,
+  clean.po.sample.to.use = clean.po.sample.to.use,
+  impute.method.sample = impute.method.sample,
+  impute.method.is = impute.method.is,
+  norm.po.sample.to.use = norm.po.sample.to.use,
+  norm.method = norm.method,
+  sample.type.keep = sample.type.keep,
+  final.norm = final.norm,
+  final.eval.sample.to.use = final.eval.sample.to.use,
+  final.sample.type.keep = final.sample.type.keep,  
+  
+  raw_files_pos = raw_files_pos,
+  meta_pos = meta_pos,
+  raw_files_neg = raw_files_neg,
+  meta_neg = meta_neg,
+  # path_lib_pos = path_lib_pos,
+  # path_lib_neg = path_lib_neg,
+  spectral_lib = spectral_lib,
+  mzmine_user = mzmine_user,
+  mzmine_memory = mzmine_memory,
+  mzmine_peaktable_pos = mzmine_peaktable_pos,
+  mzmine_peaktable_neg = mzmine_peaktable_neg,
+  path_peaktable_pos = path_peaktable_pos,
+  path_peaktable_neg = path_peaktable_neg,
+  path_peaktable_istd_pos = path_peaktable_istd_pos,
+  path_peaktable_istd_neg = path_peaktable_istd_neg,
+  rds_qc_is_pos = rds_qc_is_pos,
+  rds_qc_is_neg = rds_qc_is_neg,
+  rds_datalist = rds_datalist,
+  path_datatable = path_datatable
+)
+
+yaml_str <- as.yaml(config)
+cat(yaml_str)
+writeLines(yaml_str, paste0(path_result, "/config.yml"))
+```
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -5,17 +5,18 @@ date: "`r base::Sys.Date()`"
           
 format:
   html:
+    theme: flatly
     toc: true
     toc-depth: 3
     toc-expand: 2
     toc-location: left
-    theme: flatly
+    number-sections: true
+    df-print: paged
 self-contained: true
 
 params:
   config: ""
 ---
-
 
 ```{r setup environment, include = FALSE, warning = FALSE}
 
@@ -150,7 +151,7 @@ rds_datalist <- config$rds_datalist
 path_datatable <- config$path_datatable
 ```
 
-# Import peak table
+## Import peak table
 ```{r}
 
 datalist <- 
@@ -174,7 +175,7 @@ if (!is.null(peaktable_pos)) cat(peaktable_pos, "\n")
 if (!is.null(peaktable_neg)) cat(peaktable_neg, "\n")
 ```
 
-# Clean peaktable
+## Clean peaktable
 ```{r}
 
 datalist <- 
@@ -194,7 +195,7 @@ datalist <-
   )
 ```
 
-# Normalization
+## Normalization
 ```{r}
 
 datalist <- 
@@ -216,7 +217,7 @@ datalist <-
 
 ```
 
-# Merge and map info
+## Merge and map info
 ```{r}
 
 datalist <- 
@@ -234,7 +235,7 @@ cat("Final selected normalization method is: ", final.norm, "\n")
 saveRDS(datalist, rds_datalist)
 ```
 
-# Export
+## Export
 ```{r}
 wb <- createWorkbook()
 addWorksheet(wb, "datatable")
@@ -244,7 +245,7 @@ writeData(wb, "feature.info", datalist$feature.info)
 saveWorkbook(wb, path_datatable, overwrite = TRUE)
 ```
 
-```{r session info, include = FALSE}
+```{r session info, include = FALSE, eval = FALSE}
 
 # Session info
 

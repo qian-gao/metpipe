@@ -3,58 +3,18 @@ title: "QC internal standards"
 author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
           
-output:
-  html_document:
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    toc-location: left
     theme: flatly
-    toc: yes
-    toc_float:
-      collapsed: false
-    toc_depth: '3'
-    number_sections: true
-    df_print: paged
+self-contained: true
 
 params:
   config: ""
 ---
-<style type="text/css">
-body{
-  font-size: 12px;
-  }
-td {
-  font-size: 14px;
-}
-h1.title {
-  font-size: 22px;
-}
-h4.author {
-  font-size: 16px;
-}
-h4.date {
-  font-size: 16px;
-}
-
-h1 {
-  font-size: 18px;
-}
-h2 {
-  font-size: 16px;
-}
-h3 {
-  font-size: 14px;
-}
-h4 {
-  font-size: 12px;
-}
-h5 {
-  font-size: 12px;
-}
-code.r{
-  font-size: 12px;
-}
-pre { /* Code block - determines code spacing between lines */
-  font-size: 14px;
-}
-</style>
 
 ```{r setup environment, include = FALSE, warning = FALSE}
 
@@ -142,7 +102,7 @@ wf_ensure_parent_dirs(c(rds_qc_is_pos, rds_qc_is_neg))
 
 ```
 
-# Method configuration
+## Method configuration
 ```{r}
 
 cat("Method name: ", method_name, "\n")
@@ -152,7 +112,7 @@ cat(path_lib_istd_neg, "\n")
 
 ```
 
-# Data import
+## Data import
 ```{r}
 
 peaktable_pos = path_peaktable_istd_pos
@@ -165,7 +125,9 @@ if (run.pos) cat(peaktable_pos, "\n")
 if (run.neg) cat(peaktable_neg, "\n")
 ```
 
-# Positive mode {.tabset .tabset-pills}
+## Positive mode
+
+::: panel-tabset
 ```{r, eval = run.pos}
 
 path_peaktable <- peaktable_pos
@@ -278,7 +240,7 @@ qc_is_pos <- list(combined_file = combined_file,
 saveRDS(qc_is_pos, file = rds_qc_is_pos)
 ```
 
-## Overall
+### Overall
 ```{r ms overall pos, eval = run.pos}
 
 summary %>%
@@ -328,21 +290,21 @@ plt[[8]] %>%
 
 ```
 
-## Retention time
+### Retention time
 ```{r ms RT pos, eval = run.pos}
 
 subplot(plt[[1]], plt[[2]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 
 ```
 
-## m/z
+### m/z
 ```{r ms m/z pos, eval = run.pos}
 
 subplot(plt[[3]], plt[[4]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 
 ```
 
-## Intensity
+### Intensity
 ```{r ms1p Int pos, eval = run.pos}
 
 subplot(plt[[5]], plt[[6]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
@@ -383,7 +345,7 @@ plt.int
 
 ```
 
-## Shift
+### Shift
 ```{r, eval = run.pos, fig.width = 8, fig.height = 4}
 p1 <- 
   ggplot(summary) +
@@ -410,8 +372,11 @@ p2 <-
 subplot(p1, p2, nrows = 1, margin = 0.04, titleX = TRUE, titleY = TRUE, shareY = TRUE) 
 
 ```
+:::
 
-# Negative mode {.tabset .tabset-pills}
+## Negative mode
+
+::: panel-tabset
 ```{r, eval = run.neg}
 
 path_peaktable <- peaktable_neg
@@ -526,7 +491,7 @@ qc_is_neg <- list(combined_file = combined_file,
 saveRDS(qc_is_neg, file = rds_qc_is_neg)
 ```
 
-## Overall
+### Overall
 ```{r ms overall neg, eval = run.neg}
 
 summary %>%
@@ -576,21 +541,21 @@ plt[[8]] %>%
 
 ```
 
-## Retention time
+### Retention time
 ```{r ms RT neg, eval = run.neg}
 
 subplot(plt[[1]], plt[[2]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 
 ```
 
-## m/z
+### m/z
 ```{r ms m/z neg, eval = run.neg}
 
 subplot(plt[[3]], plt[[4]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
 
 ```
 
-## Intensity
+### Intensity
 ```{r ms1p Int neg, eval = run.neg}
 
 subplot(plt[[5]], plt[[6]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
@@ -631,7 +596,7 @@ plt.int
 
 ```
 
-## Shift
+### Shift
 ```{r, eval = run.neg, fig.width = 8, fig.height = 4}
 p1 <- 
   ggplot(summary) +
@@ -658,8 +623,9 @@ p2 <-
 subplot(p1, p2, nrows = 1, margin = 0.04, titleX = TRUE, titleY = TRUE, shareY = TRUE) 
 
 ```
+:::
 
-```{r session info, include = FALSE}
+```{r session info, include = FALSE, eval = FALSE}
 
 # Session info
 

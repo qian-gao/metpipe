@@ -3,58 +3,18 @@ title: "Convert output"
 author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
           
-output:
-  html_document:
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    toc-location: left
     theme: flatly
-    toc: yes
-    toc_float:
-      collapsed: false
-    toc_depth: '3'
-    number_sections: true
-    df_print: paged
+self-contained: true
 
 params:
   config: ""
 ---
-<style type="text/css">
-body{
-  font-size: 12px;
-  }
-td {
-  font-size: 14px;
-}
-h1.title {
-  font-size: 22px;
-}
-h4.author {
-  font-size: 16px;
-}
-h4.date {
-  font-size: 16px;
-}
-
-h1 {
-  font-size: 18px;
-}
-h2 {
-  font-size: 16px;
-}
-h3 {
-  font-size: 14px;
-}
-h4 {
-  font-size: 12px;
-}
-h5 {
-  font-size: 12px;
-}
-code.r{
-  font-size: 12px;
-}
-pre { /* Code block - determines code spacing between lines */
-  font-size: 14px;
-}
-</style>
 
 ```{r setup environment, include = FALSE, warning = FALSE}
 
@@ -63,6 +23,7 @@ library(dplyr)
 library(openxlsx)
 # params <- list()
 # params$config <- "E:/Projects/MP_workshop/peaktable/PL_LIPS_PASEF/config.yml"
+
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
@@ -190,7 +151,7 @@ path_peaktable_istd_pos <- config$path_peaktable_istd_pos
 path_peaktable_istd_neg <- config$path_peaktable_istd_neg
 ```
 
-# Convert output
+## Convert output
 ```{r}
 
 cols_to_save <- 
@@ -204,7 +165,7 @@ df_temp <- data.frame(matrix(ncol = length(cols_to_save), nrow = 0))
 colnames(df_temp) <- cols_to_save
 ```
 
-## Positive
+### Positive
 ```{r, eval = run.pos}
 
 result_pos <- convert_mode_output(
@@ -217,7 +178,7 @@ result_pos <- convert_mode_output(
 
 ```
 
-### Peaks
+#### Peaks
 ```{r, eval = run.pos}
 
 cat("Converted peaktable is stored in: \n")
@@ -226,7 +187,7 @@ cat("Number of converted features: ", result_pos$n_features, "\n")
 
 ```
 
-### ISTD
+#### ISTD
 ```{r, eval = run.pos}
 
 cat("Converted peaktable istd is stored in: \n")
@@ -234,7 +195,7 @@ cat(result_pos$peaktable_istd_path, "\n")
 cat("Number of ISTD rows: ", result_pos$n_istd, "\n")
 ```
 
-## Negative
+### Negative
 ```{r, eval = run.neg}
 
 result_neg <- convert_mode_output(
@@ -247,7 +208,7 @@ result_neg <- convert_mode_output(
 
 ```
 
-### Peaks
+#### Peaks
 ```{r, eval = run.neg}
 
 cat("Converted peaktable is stored in: \n")
@@ -256,7 +217,7 @@ cat("Number of converted features: ", result_neg$n_features, "\n")
 
 ```
 
-### ISTD
+#### ISTD
 ```{r, eval = run.neg}
 
 cat("Converted peaktable istd is stored in: \n")
@@ -266,7 +227,7 @@ cat("Number of ISTD rows: ", result_neg$n_istd, "\n")
 ```
 
 
-```{r session info, include = FALSE}
+```{r session info, include = FALSE, eval = FALSE}
 
 # Session info
 
