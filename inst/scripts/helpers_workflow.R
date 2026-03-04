@@ -197,14 +197,6 @@ wf_render_qmd_document <- function(input, render_params, intermediates_dir, outp
     "--output", basename(output_file)
   )
 
-  input_drive <- toupper(substr(normalizePath(input_dir, winslash = "/", mustWork = FALSE), 1, 2))
-  output_drive <- toupper(substr(normalizePath(out_dir, winslash = "/", mustWork = FALSE), 1, 2))
-  same_drive <- !(.Platform$OS.type == "windows" && grepl("^[A-Z]:$", input_drive) && grepl("^[A-Z]:$", output_drive) && !identical(input_drive, output_drive))
-
-  if (same_drive) {
-    args <- c(args, "--output-dir", out_dir)
-  }
-
   status <- system2(quarto_bin, args = args, stdout = "", stderr = "")
   if (!identical(status, 0L)) {
     stop("quarto render failed with exit code: ", status)
