@@ -8,6 +8,7 @@ run_clean_peaktable(
   datalist = NULL,
   mean.filter = NULL,
   rsd.filter = NULL,
+  dilution.filter = NULL,
   rt.range = NULL,
   filter_by_missing_feature_pct = NULL,
   filter_by_missing_sample_type = NULL,
@@ -23,6 +24,8 @@ run_clean_peaktable(
 \item{mean.filter}{Optional mean-intensity filtering rule(s).}
 
 \item{rsd.filter}{Optional RSD-based filtering rule(s).}
+
+\item{dilution.filter}{Optional dilution-series filter configuration passed to \code{clean_peaktable()}.}
 
 \item{rt.range}{Optional retention-time window for feature filtering.}
 

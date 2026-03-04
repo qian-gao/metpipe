@@ -10,7 +10,8 @@ filter_peaks(
   sample.type = NULL,
   rsd.filter = NULL,
   rt.range = NULL,
-  mean.filter = NULL
+  mean.filter = NULL,
+  dilution.filter = NULL
 )
 }
 \arguments{
@@ -35,6 +36,13 @@ e.g. c( "PO", ">", 1000)}
 \item{mean.thres}{Threshold for keeping features based on their mean values in
 certain types. e.g. list( c( "PO100", ">", 1, "PO25"),
                           c( "PO25", ">", 1, "PO12.5") )}
+
+\item{dilution.filter}{Optional dilution-series filter configuration list with
+elements: \code{dilution.types} (character vector), \code{levels} (numeric vector of the
+same length), optional \code{min.cor} (default 0.7), and optional \code{method}
+(\code{"pearson"}, \code{"spearman"}, or \code{"kendall"}; default \code{"spearman"}).
+Features are kept when their correlation with dilution levels is >= \code{min.cor}.
+For backward compatibility, \code{sample.types} is also accepted.}
 }
 \value{
 A data frame object that contains filtered peaktable and summary statistics

@@ -8,6 +8,7 @@ clean_peaktable(
   datalist = NULL,
   mean.filter = NULL,
   rsd.filter = NULL,
+  dilution.filter = NULL,
   rt.range = NULL,
   filter_by_missing_feature_pct = NULL,
   filter_by_missing_sample_type = "Sample",

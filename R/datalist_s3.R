@@ -12,6 +12,336 @@
 #'
 #' @return A `metpipe_datalist` object.
 #' @export
+metpipe_schema_version <- function() {
+  "1.0"
+}
+
+
+canonical_mode_fields <- function() {
+  c(
+    "peaks", "features", "meta",
+    "peaks_cleaned", "features_cleaned", "meta_cleaned",
+    "peaks_norm", "meta_norm", "normalizer",
+    "stages"
+  )
+}
+
+
+canonical_stage_names <- function() {
+  c("raw", "cleaned", "norm", "merged")
+}
+
+
+normalize_stage_payload <- function(stage_obj = NULL) {
+  out <- stage_obj
+  if (is.null(out)) out <- list()
+  if (!is.list(out)) {
+    stop("Stage payload must be a list with peaks/features/meta")
+  }
+  if (is.null(out$peaks)) out$peaks <- NULL
+  if (is.null(out$features)) out$features <- NULL
+  if (is.null(out$meta)) out$meta <- NULL
+  out
+}
+
+
+normalize_mode_schema <- function(mode_obj) {
+  if (is.null(mode_obj)) return(NULL)
+  if (!is.list(mode_obj)) {
+    stop("Each mode object must be a list or NULL")
+  }
+
+  required_fields <- canonical_mode_fields()
+  missing <- setdiff(required_fields, names(mode_obj))
+  if (length(missing) > 0) {
+    for (nm in missing) mode_obj[[nm]] <- NULL
+  }
+
+  if (is.null(mode_obj$stages) || !is.list(mode_obj$stages)) {
+    mode_obj$stages <- list()
+  }
+
+  if (is.null(mode_obj$stages$raw)) {
+    mode_obj$stages$raw <- list(
+      peaks = mode_obj$peaks,
+      features = mode_obj$features,
+      meta = mode_obj$meta
+    )
+  }
+
+  if (is.null(mode_obj$stages$cleaned)) {
+    mode_obj$stages$cleaned <- list(
+      peaks = mode_obj$peaks_cleaned,
+      features = mode_obj$features_cleaned,
+      meta = mode_obj$meta_cleaned
+    )
+  }
+
+  if (is.null(mode_obj$stages$norm)) {
+    mode_obj$stages$norm <- list(
+      peaks = mode_obj$peaks_norm,
+      features = if (!is.null(mode_obj$features_cleaned)) mode_obj$features_cleaned else mode_obj$features,
+      meta = mode_obj$meta_norm
+    )
+  }
+
+  mode_obj$stages$raw <- normalize_stage_payload(mode_obj$stages$raw)
+  mode_obj$stages$cleaned <- normalize_stage_payload(mode_obj$stages$cleaned)
+  mode_obj$stages$norm <- normalize_stage_payload(mode_obj$stages$norm)
+
+  mode_obj
+}
+
+
+normalize_metpipe_datalist_schema <- function(x, stage = NULL) {
+  if (!is.list(x)) {
+    stop("datalist must be a list")
+  }
+
+  if (is.null(names(x))) {
+    stop("datalist must be a named list containing pos and/or neg")
+  }
+
+  if (!"pos" %in% names(x)) x$pos <- NULL
+  if (!"neg" %in% names(x)) x$neg <- NULL
+
+  x$pos <- normalize_mode_schema(x$pos)
+  x$neg <- normalize_mode_schema(x$neg)
+
+  top_level_fields <- c("datatable", "sample.info", "feature.info")
+  missing_top <- setdiff(top_level_fields, names(x))
+  if (length(missing_top) > 0) {
+    for (nm in missing_top) x[[nm]] <- NULL
+  }
+
+  if (!"merged" %in% names(x) || is.null(x$merged)) {
+    x$merged <- list(
+      peaks = x$datatable,
+      features = x$feature.info,
+      meta = x$sample.info
+    )
+  }
+  x$merged <- normalize_stage_payload(x$merged)
+
+  if (!"history" %in% names(x) || is.null(x$history)) {
+    x$history <- list()
+  }
+
+  class(x) <- c("metpipe_datalist", "list")
+  if (!is.null(stage)) {
+    attr(x, "stage") <- stage
+  }
+  attr(x, "schema_version") <- metpipe_schema_version()
+
+  x
+}
+
+
+resolve_stage_name <- function(stage) {
+  key <- tolower(trimws(as.character(stage)[1]))
+  aliases <- c(
+    "imported" = "raw",
+    "raw" = "raw",
+    "cleaned" = "cleaned",
+    "normalized" = "norm",
+    "norm" = "norm",
+    "merged" = "merged"
+  )
+  out <- unname(aliases[[key]])
+  if (is.null(out) || !nzchar(out)) {
+    stop("Invalid stage: ", stage, ". Allowed: raw, cleaned, norm, merged")
+  }
+  out
+}
+
+
+#' Set a stage snapshot in `metpipe_datalist`
+#'
+#' Stores a stage payload (`peaks`, `features`, `meta`) for mode-level stages
+#' (`raw`, `cleaned`, `norm`) or merged stage (`merged`). Existing flat fields
+#' are kept in sync for backward compatibility.
+#'
+#' @param x A `metpipe_datalist` (or compatible list).
+#' @param stage Stage name: `raw`, `cleaned`, `norm`, or `merged`.
+#' @param peaks Peaks matrix/data.frame/list for the stage.
+#' @param features Feature metadata data.frame for the stage.
+#' @param meta Sample metadata data.frame for the stage.
+#' @param mode Mode name (`"pos"` or `"neg"`) for non-merged stages.
+#' @param validate Logical; validate inserted payload before returning.
+#'
+#' @return Updated `metpipe_datalist`.
+#' @export
+set_stage <- function(
+    x,
+    stage = c("raw", "cleaned", "norm", "merged"),
+    peaks = NULL,
+    features = NULL,
+    meta = NULL,
+    mode = c("pos", "neg"),
+    validate = TRUE
+) {
+  stage_name <- resolve_stage_name(stage)
+  x <- as_metpipe_datalist(x, validate = FALSE)
+
+  payload <- normalize_stage_payload(list(peaks = peaks, features = features, meta = meta))
+
+  if (identical(stage_name, "merged")) {
+    x$merged <- payload
+    x$datatable <- payload$peaks
+    x$feature.info <- payload$features
+    x$sample.info <- payload$meta
+  } else {
+    mode <- match.arg(mode)
+    mode_obj <- normalize_mode_schema(x[[mode]])
+    if (is.null(mode_obj$stages) || !is.list(mode_obj$stages)) {
+      mode_obj$stages <- list()
+    }
+    mode_obj$stages[[stage_name]] <- payload
+
+    if (identical(stage_name, "raw")) {
+      mode_obj$peaks <- payload$peaks
+      mode_obj$features <- payload$features
+      mode_obj$meta <- payload$meta
+    }
+    if (identical(stage_name, "cleaned")) {
+      mode_obj$peaks_cleaned <- payload$peaks
+      mode_obj$features_cleaned <- payload$features
+      mode_obj$meta_cleaned <- payload$meta
+    }
+    if (identical(stage_name, "norm")) {
+      mode_obj$peaks_norm <- payload$peaks
+      mode_obj$meta_norm <- payload$meta
+      if (!is.null(payload$features)) {
+        mode_obj$features_cleaned <- payload$features
+      }
+    }
+
+    x[[mode]] <- mode_obj
+  }
+
+  if (isTRUE(validate)) {
+    validate_stage(x, stage = stage_name, mode = if (identical(stage_name, "merged")) NULL else mode)
+  }
+
+  x$history <- c(x$history, list(list(
+    event = "set_stage",
+    stage = stage_name,
+    mode = if (identical(stage_name, "merged")) NA_character_ else mode,
+    timestamp = as.character(Sys.time())
+  )))
+
+  x
+}
+
+
+#' Get a stage snapshot from `metpipe_datalist`
+#'
+#' @param x A `metpipe_datalist` (or compatible list).
+#' @param stage Stage name: `raw`, `cleaned`, `norm`, or `merged`.
+#' @param mode Mode name (`"pos"` or `"neg"`) for non-merged stages.
+#' @param required Logical; if `TRUE`, error when stage payload is unavailable.
+#'
+#' @return A list with `peaks`, `features`, and `meta`.
+#' @export
+get_stage <- function(
+    x,
+    stage = c("raw", "cleaned", "norm", "merged"),
+    mode = c("pos", "neg"),
+    required = TRUE
+) {
+  stage_name <- resolve_stage_name(stage)
+  x <- as_metpipe_datalist(x, validate = FALSE)
+
+  if (identical(stage_name, "merged")) {
+    out <- x$merged
+  } else {
+    mode <- match.arg(mode)
+    mode_obj <- normalize_mode_schema(x[[mode]])
+    out <- mode_obj$stages[[stage_name]]
+  }
+
+  out <- normalize_stage_payload(out)
+
+  if (isTRUE(required) && is.null(out$peaks) && is.null(out$features) && is.null(out$meta)) {
+    if (identical(stage_name, "merged")) {
+      stop("Stage payload not available: merged")
+    }
+    stop("Stage payload not available: ", stage_name, " (mode=", mode, ")")
+  }
+
+  out
+}
+
+
+#' Check whether a stage payload exists
+#'
+#' @param x A `metpipe_datalist` (or compatible list).
+#' @param stage Stage name.
+#' @param mode Mode name for non-merged stages.
+#'
+#' @return `TRUE` when any payload element is present, otherwise `FALSE`.
+#' @export
+has_stage <- function(
+    x,
+    stage = c("raw", "cleaned", "norm", "merged"),
+    mode = c("pos", "neg")
+) {
+  stage_name <- resolve_stage_name(stage)
+  payload <- tryCatch(
+    get_stage(x, stage = stage_name, mode = mode, required = FALSE),
+    error = function(e) NULL
+  )
+  if (is.null(payload)) return(FALSE)
+  !is.null(payload$peaks) || !is.null(payload$features) || !is.null(payload$meta)
+}
+
+
+#' Validate a single stage payload
+#'
+#' @param x A `metpipe_datalist` (or compatible list).
+#' @param stage Stage name.
+#' @param mode Mode name for non-merged stages.
+#'
+#' @return `TRUE` invisibly when valid.
+#' @export
+validate_stage <- function(
+    x,
+    stage = c("raw", "cleaned", "norm", "merged"),
+    mode = c("pos", "neg")
+) {
+  stage_name <- resolve_stage_name(stage)
+  payload <- get_stage(x, stage = stage_name, mode = mode, required = TRUE)
+
+  peaks <- payload$peaks
+  features <- payload$features
+  meta <- payload$meta
+
+  if (!is.null(peaks) && !is.matrix(peaks) && !is.data.frame(peaks) && !is.list(peaks)) {
+    stop("stage '", stage_name, "' peaks must be matrix/data.frame/list")
+  }
+  if (!is.null(features) && !is.data.frame(features)) {
+    stop("stage '", stage_name, "' features must be a data.frame")
+  }
+  if (!is.null(meta) && !is.data.frame(meta)) {
+    stop("stage '", stage_name, "' meta must be a data.frame")
+  }
+
+  if (!is.null(peaks) && (is.matrix(peaks) || is.data.frame(peaks)) && !is.null(meta)) {
+    if (ncol(peaks) != nrow(meta)) {
+      stop("stage '", stage_name, "' dimension mismatch: ncol(peaks) must equal nrow(meta)")
+    }
+  }
+
+  if (!is.null(peaks) && (is.matrix(peaks) || is.data.frame(peaks)) && !is.null(features)) {
+    if (nrow(peaks) != nrow(features)) {
+      stop("stage '", stage_name, "' dimension mismatch: nrow(peaks) must equal nrow(features)")
+    }
+  }
+
+  invisible(TRUE)
+}
+
+
 new_metpipe_datalist <- function(
     pos = NULL,
     neg = NULL,
@@ -20,8 +350,7 @@ new_metpipe_datalist <- function(
     stage = "imported"
 ) {
   x <- list(pos = pos, neg = neg, ...)
-  class(x) <- c("metpipe_datalist", "list")
-  attr(x, "stage") <- stage
+  x <- normalize_metpipe_datalist_schema(x, stage = stage)
   if (isTRUE(validate)) {
     validate_metpipe_datalist(x, stage = stage)
   }
@@ -104,7 +433,7 @@ as_metpipe_datalist <- function(
     validate = TRUE
 ) {
   if (is_metpipe_datalist(x)) {
-    attr(x, "stage") <- stage
+    x <- normalize_metpipe_datalist_schema(x, stage = stage)
     if (isTRUE(validate)) {
       validate_metpipe_datalist(x, stage = stage)
     }
@@ -115,19 +444,7 @@ as_metpipe_datalist <- function(
     stop("datalist must be a list or metpipe_datalist")
   }
 
-  if (is.null(names(x))) {
-    stop("datalist must be a named list containing pos and/or neg")
-  }
-
-  if (!"pos" %in% names(x)) {
-    x$pos <- NULL
-  }
-  if (!"neg" %in% names(x)) {
-    x$neg <- NULL
-  }
-
-  class(x) <- c("metpipe_datalist", "list")
-  attr(x, "stage") <- stage
+  x <- normalize_metpipe_datalist_schema(x, stage = stage)
 
   if (isTRUE(validate)) {
     validate_metpipe_datalist(x, stage = stage)
@@ -153,6 +470,8 @@ validate_metpipe_datalist <- function(
 ) {
   stage <- match.arg(stage)
   mode_names <- c("pos", "neg")
+
+  x <- normalize_metpipe_datalist_schema(x, stage = stage)
 
   if (!is.list(x)) {
     stop("datalist must be a list or metpipe_datalist")

@@ -6,6 +6,7 @@
 #' @param datalist A `metpipe_datalist` (or compatible list) returned by [run_import_peaktable()].
 #' @param mean.filter Optional mean-intensity filtering rule(s).
 #' @param rsd.filter Optional RSD-based filtering rule(s).
+#' @param dilution.filter Optional dilution-series filter configuration passed to [clean_peaktable()].
 #' @param rt.range Optional retention-time window for feature filtering.
 #' @param filter_by_missing_feature_pct Optional missing-value threshold for features.
 #' @param filter_by_missing_sample_type Sample type used for missing-value filtering.
@@ -25,6 +26,7 @@ run_clean_peaktable <-
     # Feature filtering
     mean.filter = NULL,
     rsd.filter = NULL,      
+    dilution.filter = NULL,
     rt.range = NULL, 
     filter_by_missing_feature_pct = NULL,
     filter_by_missing_sample_type = NULL,
@@ -52,6 +54,7 @@ run_clean_peaktable <-
           datalist = pos_data,
           mean.filter = mean.filter,
           rsd.filter = rsd.filter,      
+          dilution.filter = dilution.filter,
           rt.range = rt.range, 
           filter_by_missing_feature_pct = filter_by_missing_feature_pct,
           filter_by_missing_sample_type = filter_by_missing_sample_type,
@@ -70,6 +73,7 @@ run_clean_peaktable <-
           datalist = neg_data,
           mean.filter = mean.filter,
           rsd.filter = rsd.filter,      
+          dilution.filter = dilution.filter,
           rt.range = rt.range, 
           filter_by_missing_feature_pct = filter_by_missing_feature_pct,
           filter_by_missing_sample_type = filter_by_missing_sample_type,

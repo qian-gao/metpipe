@@ -16,6 +16,11 @@
 #' @param mean.thres Threshold for keeping features based on their mean values in
 #'    certain types. e.g. list( c( "PO100", ">", 1, "PO25"),
 #'                              c( "PO25", ">", 1, "PO12.5") )
+#' @param dilution.filter Optional dilution-series filter configuration list with
+#'   elements: `dilution.types` (character vector), `levels` (numeric vector of the
+#'   same length), optional `min.cor` (default 0.7), and optional `method`
+#'   (`"pearson"`, `"spearman"`, or `"kendall"`; default `"spearman"`).
+#'   Features are kept when their correlation with dilution levels is >= `min.cor`.
 #'
 #' @return A list containing filtered peak table(s), feature summaries, and indices.
 #' @examples
@@ -30,7 +35,8 @@ filter_peaks <-
             rsd.filter = NULL,
             #mean.po.thres = NULL,
             rt.range = NULL,
-            mean.filter = NULL
+            mean.filter = NULL,
+            dilution.filter = NULL
   ){
 
     if (is.null(XCMSnExp) && is.null(peaktable)) {
@@ -177,6 +183,74 @@ filter_peaks <-
 
       }
 
+    }
+
+    if (!is.null(dilution.filter)) {
+
+      if (!is.list(dilution.filter)) {
+        stop("dilution.filter must be a list")
+      }
+
+      dilution.types <- dilution.filter$dilution.types
+      if (is.null(dilution.types)) {
+        dilution.types <- dilution.filter$sample.types
+      }
+      levels <- dilution.filter$levels
+      min.cor <- ifelse(is.null(dilution.filter$min.cor), 0.7, dilution.filter$min.cor)
+      method <- ifelse(is.null(dilution.filter$method), "spearman", dilution.filter$method)
+
+      if (is.null(dilution.types) || is.null(levels)) {
+        stop("dilution.filter must contain dilution.types and levels")
+      }
+
+      dilution.types <- as.character(dilution.types)
+      levels <- as.numeric(levels)
+      if (length(dilution.types) != length(levels)) {
+        stop("dilution.filter dilution.types and levels must have same length")
+      }
+
+      method <- tolower(as.character(method)[1])
+      if (!method %in% c("pearson", "spearman", "kendall")) {
+        stop("dilution.filter method must be one of: pearson, spearman, kendall")
+      }
+
+      min.cor <- as.numeric(min.cor)[1]
+      if (is.na(min.cor) || min.cor < -1 || min.cor > 1) {
+        stop("dilution.filter min.cor must be numeric in [-1, 1]")
+      }
+
+      dilution_map <- stats::setNames(levels, dilution.types)
+      keep.sample <- as.character(sample.type) %in% dilution.types
+      if (sum(keep.sample) < 3) {
+        stop("dilution.filter requires at least 3 samples from configured dilution.types")
+      }
+
+      dilution.values <- as.numeric(dilution_map[as.character(sample.type[keep.sample])])
+
+      current.peaks <- mzrt$peaktable[, !colnames(mzrt$peaktable) %in% c("mz", "rt", "Identity"), drop = FALSE]
+      current.data <- t(current.peaks) %>% as.data.frame()
+
+      cor.values <- apply(current.data, 2, function(y) {
+        y <- as.numeric(y[keep.sample])
+        ok <- !is.na(y) & !is.na(dilution.values)
+        if (sum(ok) < 3) return(NA_real_)
+        if (length(unique(dilution.values[ok])) < 2) return(NA_real_)
+        suppressWarnings(stats::cor(y[ok], dilution.values[ok], method = method))
+      })
+
+      index <- !is.na(cor.values) & cor.values >= min.cor
+      index[is.na(index)] <- FALSE
+
+      index.list$dilution.filter <- index
+
+      mzrt <-
+        mzrt_filter( mzrt = mzrt,
+                     index = index)
+
+      print( paste0( "Only keep features with dilution-series correlation >= ",
+                     min.cor, " (", method, ")",
+                     ": ", sum(!index), " features have been removed" ),
+             quote = FALSE)
     }
 
     # if (!is.null(mean.po.thres)){

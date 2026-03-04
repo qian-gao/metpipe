@@ -6,6 +6,7 @@
 #' @param datalist Mode-level list containing `peaks`, `features`, and `meta`.
 #' @param mean.filter Optional mean-intensity filter rule(s).
 #' @param rsd.filter Optional RSD filter rule(s).
+#' @param dilution.filter Optional dilution-series filter configuration passed to [filter_peaks()].
 #' @param rt.range Optional retention-time range.
 #' @param filter_by_missing_feature_pct Missing-value threshold in percent.
 #' @param filter_by_missing_sample_type Sample type used in missingness filtering.
@@ -27,6 +28,7 @@ clean_peaktable <-
     # Feature filtering
     mean.filter = NULL,
     rsd.filter = NULL,      
+    dilution.filter = NULL,
     rt.range = NULL, 
     filter_by_missing_feature_pct = NULL,
     filter_by_missing_sample_type = "Sample",
@@ -74,7 +76,8 @@ clean_peaktable <-
                     sample.type = meta$Sample.type,
                     rsd.filter = rsd.filter,
                     rt.range = rt.range,
-                    mean.filter = mean.filter)
+                    mean.filter = mean.filter,
+                    dilution.filter = dilution.filter)
     
     peaks.filtered <- 
       mzrt.filtered$peaktable

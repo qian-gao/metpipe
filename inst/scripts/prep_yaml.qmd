@@ -225,6 +225,12 @@ figure_width = 1000
 mean.filter <- list(c( 2, "BL", "<", "PO"),
                    c( 1, "Sample", ">", 500))
 rsd.filter <- list(c(1, "PO", "<", 0.3))
+dilution.filter <- list(
+  dilution.types = c("PO1205", "PO25", "PO50", "PO100", "PO200"),
+  levels = c(12.5, 25, 50, 100, 200),
+  min.cor = 0.7,
+  method = "spearman"
+)
 rt.range <- c(0, 30)
 filter_by_missing_feature_pct <- 50
 filter_by_missing_sample_type <- "Sample"
@@ -296,6 +302,7 @@ config <- list(
   
   mean.filter = mean.filter,
   rsd.filter = rsd.filter,
+  dilution.filter = dilution.filter,
   rt.range = rt.range,
   filter_by_missing_feature_pct = filter_by_missing_feature_pct,
   filter_by_missing_sample_type = filter_by_missing_sample_type,

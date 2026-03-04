@@ -63,6 +63,7 @@ meta_pos = as_meta_df(config$meta_pos)
 meta_neg = as_meta_df(config$meta_neg)
 mean.filter = config$mean.filter
 rsd.filter = config$rsd.filter
+dilution.filter = config$dilution.filter
 rt.range = config$rt.range
 filter_by_missing_feature_pct = config$filter_by_missing_feature_pct
 filter_by_missing_sample_type = config$filter_by_missing_sample_type
@@ -126,6 +127,7 @@ meta_pos = config$meta_pos
 meta_neg = config$meta_neg
 mean.filter = config$mean.filter
 rsd.filter = config$rsd.filter
+dilution.filter = config$dilution.filter
 rt.range = config$rt.range
 filter_by_missing_feature_pct = config$filter_by_missing_feature_pct
 filter_by_missing_sample_type = config$filter_by_missing_sample_type
@@ -185,6 +187,7 @@ datalist <-
     # Feature filtering
     mean.filter = mean.filter,
     rsd.filter = rsd.filter,
+    dilution.filter = dilution.filter,
     rt.range = rt.range, 
     filter_by_missing_feature_pct = filter_by_missing_feature_pct,
     filter_by_missing_sample_type = filter_by_missing_sample_type,
