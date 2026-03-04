@@ -32,10 +32,7 @@ config_file <- get_arg("--config")
 if (wf_is_blank(config_file)) stop("Missing required argument: --config <path/to/config.yml>")
 if (!file.exists(config_file)) stop("Config file does not exist: ", config_file)
 
-format <- tolower(trimws(ifelse(wf_is_blank(get_arg("--format")), "rmd", get_arg("--format"))))
-if (!format %in% c("rmd", "qmd")) {
-  stop("--format must be one of: rmd, qmd")
-}
+format <- "qmd"
 
 package_mode <- tolower(trimws(ifelse(
   wf_is_blank(get_arg("--package-mode")),

@@ -15,7 +15,7 @@ It provides utilities for:
 
 - Reusable data-processing functions are provided as package API in `R/`.
 - End-to-end pipeline entry scripts are distributed in `inst/scripts/`.
-- Workflow templates and reports are in `inst/rmd/` and `inst/scripts/*.Rmd`.
+- Workflow templates and reports are in `inst/scripts/*.qmd`.
 
 The package is designed so users can either call API functions directly, or run the scripted workflow process.
 
@@ -51,13 +51,13 @@ datalist <- run_normalization(datalist = datalist)
 
 The canonical process is:
 
-1. prepare workflow configuration (`prepare_workflow.R`)
-2. execute workflow modules (`run_workflow.R`)
+1. prepare workflow configuration (`prepare_workflow_qmd.R`)
+2. execute workflow modules (`run_workflow_qmd.R`)
 
 You can run the combined wrapper script:
 
 ```r
-runner <- system.file("scripts", "prepare_run_workflow.R", package = "metpipe")
+runner <- system.file("scripts", "prepare_run_workflow_qmd.R", package = "metpipe")
 
 system2(
 	"Rscript",
@@ -75,14 +75,13 @@ Optional arguments include `--workflow`, `--mzmine`, `--temp`, `--yaml`, and `--
 
 Package templates and scripts are available in:
 
-- `inst/rmd/untargeted_preprocessing/`
 - `inst/scripts/`
 
 Key scripts:
 
-- `inst/scripts/prepare_run_workflow.R`
-- `inst/scripts/prepare_workflow.R`
-- `inst/scripts/run_workflow.R`
+- `inst/scripts/prepare_run_workflow_qmd.R`
+- `inst/scripts/prepare_workflow_qmd.R`
+- `inst/scripts/run_workflow_qmd.R`
 
 ## Workflow smoke check
 
@@ -91,11 +90,8 @@ Use the smoke checker to validate config parsing and module resolution without e
 ```r
 smoke <- system.file("scripts", "smoke_test_workflow.R", package = "metpipe")
 
-# Rmd modules
-system2("Rscript", c(smoke, "--config", "path/to/config.yml", "--format", "rmd"))
-
 # Qmd modules
-system2("Rscript", c(smoke, "--config", "path/to/config.yml", "--format", "qmd"))
+system2("Rscript", c(smoke, "--config", "path/to/config.yml"))
 ```
 
 Optional flags: `--module`, `--package-mode`, `--local-pkg-root`.

@@ -10,6 +10,8 @@ format:
     toc-expand: 2
     toc-location: left
     theme: flatly
+    polyfill: false
+    page-layout: full
 self-contained: true
 
 params:

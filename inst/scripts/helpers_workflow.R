@@ -143,6 +143,9 @@ wf_resolve_module_script <- function(path_workflow, file_name) {
 }
 
 wf_render_qmd_document <- function(input, render_params, intermediates_dir, output_file) {
+  output_file <- normalizePath(as.character(output_file)[1], winslash = "/", mustWork = FALSE)
+  intermediates_dir <- normalizePath(as.character(intermediates_dir)[1], winslash = "/", mustWork = FALSE)
+
   out_dir <- dirname(output_file)
   if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -194,20 +197,36 @@ wf_render_qmd_document <- function(input, render_params, intermediates_dir, outp
     "--output", basename(output_file)
   )
 
+  input_drive <- toupper(substr(normalizePath(input_dir, winslash = "/", mustWork = FALSE), 1, 2))
+  output_drive <- toupper(substr(normalizePath(out_dir, winslash = "/", mustWork = FALSE), 1, 2))
+  same_drive <- !(.Platform$OS.type == "windows" && grepl("^[A-Z]:$", input_drive) && grepl("^[A-Z]:$", output_drive) && !identical(input_drive, output_drive))
+
+  if (same_drive) {
+    args <- c(args, "--output-dir", out_dir)
+  }
+
   status <- system2(quarto_bin, args = args, stdout = "", stderr = "")
   if (!identical(status, 0L)) {
     stop("quarto render failed with exit code: ", status)
   }
 
-  produced_file <- file.path(input_dir, basename(output_file))
+  produced_file <- file.path(out_dir, basename(output_file))
+  if (!file.exists(produced_file)) {
+    produced_file <- file.path(input_dir, basename(output_file))
+  }
   if (!file.exists(produced_file)) {
     default_name <- paste0(tools::file_path_sans_ext(input_base), ".html")
-    produced_file <- file.path(input_dir, default_name)
+    produced_file <- file.path(out_dir, default_name)
+    if (!file.exists(produced_file)) {
+      produced_file <- file.path(input_dir, default_name)
+    }
   }
 
   if (file.exists(produced_file) && normalizePath(produced_file, winslash = "/", mustWork = TRUE) != normalizePath(output_file, winslash = "/", mustWork = FALSE)) {
-    if (!file.rename(produced_file, output_file)) {
+    renamed <- suppressWarnings(file.rename(produced_file, output_file))
+    if (!renamed) {
       ok <- file.copy(produced_file, output_file, overwrite = TRUE)
+      if (ok) file.remove(produced_file)
       if (!ok) {
         stop("Rendered file was produced but could not be moved to expected output path: ", output_file)
       }
