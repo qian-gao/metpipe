@@ -51,13 +51,13 @@ datalist <- run_normalization(datalist = datalist)
 
 The canonical process is:
 
-1. prepare workflow configuration (`prepare_workflow_qmd.R`)
-2. execute workflow modules (`run_workflow_qmd.R`)
+1. prepare workflow configuration (`prepare_workflow.R`)
+2. execute workflow modules (`run_workflow.R`)
 
 You can run the combined wrapper script:
 
 ```r
-runner <- system.file("scripts", "prepare_run_workflow_qmd.R", package = "metpipe")
+runner <- system.file("scripts", "prepare_run_workflow.R", package = "metpipe")
 
 system2(
 	"Rscript",
@@ -79,9 +79,9 @@ Package templates and scripts are available in:
 
 Key scripts:
 
-- `inst/scripts/prepare_run_workflow_qmd.R`
-- `inst/scripts/prepare_workflow_qmd.R`
-- `inst/scripts/run_workflow_qmd.R`
+- `inst/scripts/prepare_run_workflow.R`
+- `inst/scripts/prepare_workflow.R`
+- `inst/scripts/run_workflow.R`
 
 ## Workflow smoke check
 

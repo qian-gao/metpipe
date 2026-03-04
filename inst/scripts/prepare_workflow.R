@@ -63,7 +63,13 @@ if (!nzchar(Sys.getenv("METPIPE_LOCAL_ROOT", unset = ""))) {
   wf_ensure_local_root_from_workflow(path_workflow)
 }
 
-if (!dir.exists(path_result)) dir.create(path_result)
+path_workflow <- normalizePath(path_workflow, winslash = "/", mustWork = FALSE)
+path_result <- normalizePath(path_result, winslash = "/", mustWork = FALSE)
+path_yaml <- normalizePath(path_yaml, winslash = "/", mustWork = FALSE)
+path_temp <- normalizePath(path_temp, winslash = "/", mustWork = FALSE)
+
+if (!dir.exists(path_result)) dir.create(path_result, recursive = TRUE, showWarnings = FALSE)
+if (!dir.exists(path_temp)) dir.create(path_temp, recursive = TRUE, showWarnings = FALSE)
 
 wf_render_qmd_document(
   input = path_yaml,

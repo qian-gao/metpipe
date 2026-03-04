@@ -202,26 +202,28 @@ wf_render_qmd_document <- function(input, render_params, intermediates_dir, outp
     stop("quarto render failed with exit code: ", status)
   }
 
-  produced_file <- file.path(out_dir, basename(output_file))
+  produced_file <- file.path(input_dir, basename(output_file))
   if (!file.exists(produced_file)) {
-    produced_file <- file.path(input_dir, basename(output_file))
+    produced_file <- file.path(out_dir, basename(output_file))
   }
   if (!file.exists(produced_file)) {
     default_name <- paste0(tools::file_path_sans_ext(input_base), ".html")
-    produced_file <- file.path(out_dir, default_name)
+    produced_file <- file.path(input_dir, default_name)
     if (!file.exists(produced_file)) {
-      produced_file <- file.path(input_dir, default_name)
+      produced_file <- file.path(out_dir, default_name)
     }
   }
 
   if (file.exists(produced_file) && normalizePath(produced_file, winslash = "/", mustWork = TRUE) != normalizePath(output_file, winslash = "/", mustWork = FALSE)) {
-    renamed <- suppressWarnings(file.rename(produced_file, output_file))
-    if (!renamed) {
-      ok <- file.copy(produced_file, output_file, overwrite = TRUE)
-      if (ok) file.remove(produced_file)
-      if (!ok) {
-        stop("Rendered file was produced but could not be moved to expected output path: ", output_file)
+    if (file.exists(output_file)) {
+      ok_remove <- file.remove(output_file)
+      if (!ok_remove) {
+        stop("Rendered file was produced but existing output could not be removed: ", output_file)
       }
+    }
+    ok <- file.rename(produced_file, output_file)
+    if (!ok) {
+      stop("Rendered file was produced but could not be moved to expected output path: ", output_file)
     }
   }
 

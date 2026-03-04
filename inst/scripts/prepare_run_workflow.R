@@ -28,10 +28,6 @@ get_arg <- function(name) {
   args[i + 1]
 }
 
-has_flag <- function(name) {
-  any(args == name)
-}
-
 is_blank <- wf_is_blank
 
 package_mode <- tolower(trimws(ifelse(
@@ -89,6 +85,8 @@ normalize_start_from <- function(x) {
   if (is_blank(x)) return(NULL)
   key <- tolower(trimws(as.character(x)[1]))
   aliases <- c(
+    "prep" = "prep_yaml",
+    "prep_yaml" = "prep_yaml",
     "preprocess" = "preprocessing_mzmine",
     "preprocessing" = "preprocessing_mzmine",
     "preprocessing_mzmine" = "preprocessing_mzmine",
@@ -106,7 +104,7 @@ normalize_start_from <- function(x) {
   resolved <- unname(aliases[key])
   if (is.na(resolved) || is_blank(resolved)) {
     stop("Invalid --start-from value: ", x,
-         ". Allowed: preprocessing_mzmine, convert_output, qc_istd, post_processing, evaluation, extra_processing_lip")
+         ". Allowed: prep_yaml, preprocessing_mzmine, convert_output, qc_istd, post_processing, evaluation, extra_processing_lip")
   }
   resolved
 }
@@ -120,8 +118,7 @@ if (!is_blank(start_from) && !is_blank(run_module)) {
   stop("Use either --start-from or --run-module, not both")
 }
 target_key <- if (!is.null(run_key)) run_key else start_key
-requires_prepare <- is.null(target_key) || identical(target_key, "preprocessing_mzmine")
-prepare_only <- has_flag("--prepare-only") || has_flag("--prep-yaml-only")
+requires_prepare <- is.null(target_key) || identical(target_key, "prep_yaml")
 
 default_workflow <- if (dir.exists("/wd")) "/wd" else getwd()
 default_result <- if (!is.null(path_raw)) gsub("raw|mzML", "peaktable", path_raw) else NULL
@@ -140,8 +137,8 @@ qc <- pick_first(get_arg("--qc"), "BL,NIST,PO,sol,CP,IQ,BPL,MMix,PB,SP0625,SP112
 author <- pick_first(get_arg("--author"), "CBMR Metabolomics Platform")
 config_override <- get_arg("--config")
 
-prepare_workflow <- wf_resolve_module_script(path_workflow, "prepare_workflow_qmd.R")
-run_workflow <- wf_resolve_module_script(path_workflow, "run_workflow_qmd.R")
+prepare_workflow <- wf_resolve_module_script(path_workflow, "prepare_workflow.R")
+run_workflow <- wf_resolve_module_script(path_workflow, "run_workflow.R")
 
 if (!is_blank(config_override)) {
   config_file <- config_override
@@ -179,29 +176,29 @@ if (!is_blank(config_override)) {
     )
 
     if (!identical(status_prepare, 0L)) {
-      stop("prepare_workflow_qmd.R failed with exit code: ", status_prepare)
+      stop("prepare_workflow.R failed with exit code: ", status_prepare)
     }
   } else {
     if (!file.exists(config_candidate)) {
-      stop("Skipping prepare because target module is not preprocessing, but config was not found: ",
+      stop("Skipping prepare because target module is not prep_yaml, but config was not found: ",
            config_candidate,
-           ". Provide --config <path/to/config.yml> or run from preprocessing.")
+           ". Provide --config <path/to/config.yml> or run with --start-from prep_yaml.")
     }
   }
 
   config_file <- config_candidate
 }
 
-if (prepare_only) {
-  message("Prepare-only mode enabled; skipping run_workflow_qmd.R")
+if (identical(target_key, "prep_yaml")) {
+  message("Target module is prep_yaml; skipping run_workflow.R")
   quit(save = "no", status = 0)
 }
 
 run_args <- c(shQuote(run_workflow), shQuote(config_file))
-if (!is_blank(start_from)) {
+if (!is_blank(start_from) && normalize_start_from(start_from) != "prep_yaml") {
   run_args <- c(run_args, "--start-from", shQuote(start_from))
 }
-if (!is_blank(run_module)) {
+if (!is_blank(run_module) && normalize_start_from(run_module) != "prep_yaml") {
   run_args <- c(run_args, "--run-module", shQuote(run_module))
 }
 
@@ -211,5 +208,5 @@ status_run <- system2(
 )
 
 if (!identical(status_run, 0L)) {
-  stop("run_workflow_qmd.R failed with exit code: ", status_run)
+  stop("run_workflow.R failed with exit code: ", status_run)
 }

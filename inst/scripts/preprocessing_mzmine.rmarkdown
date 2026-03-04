@@ -1,0 +1,278 @@
+---
+title: "Preprocessing with mzmine"
+author: "CBMR Metabolomics Platform"
+date: "`r base::Sys.Date()`"
+          
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    toc-location: left
+    theme: flatly
+    polyfill: false
+    page-layout: full
+self-contained: true
+
+params:
+  config: ""
+---
+
+```{r setup environment, include = FALSE, warning = FALSE}
+
+library(yaml)
+library(xml2)
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
+is_blank <- function(x) {
+  is.null(x) || length(x) == 0 || all(is.na(x)) || !nzchar(trimws(as.character(x[1])))
+}
+
+as_flag <- function(x) {
+  if (is.logical(x)) return(isTRUE(x))
+  if (is.numeric(x)) return(!is.na(x[1]) && x[1] != 0)
+  if (is.character(x)) return(tolower(trimws(x[1])) %in% c("true", "t", "1", "y", "yes"))
+  FALSE
+}
+
+normalize_vec <- function(x) {
+  if (is.null(x)) return(character(0))
+  unique(as.character(unlist(x)))
+}
+
+ensure_dir <- function(path) {
+  if (!dir.exists(path)) dir.create(path, recursive = TRUE, showWarnings = FALSE)
+}
+
+stop_missing <- function(name) stop("Missing required config field: ", name)
+
+ensure_xml_param <- function(parameters, name) {
+  node <- xml_find_first(parameters, paste0("//parameter[@name='", name, "']"))
+  if (inherits(node, "xml_missing")) {
+    stop("Cannot find parameter node in mzMine XML: ", name)
+  }
+  node
+}
+
+run_mzmine <- function(path_mzmine, mzmine_user, param_file, path_output, mzmine_memory, mzmine_threads, path_temp) {
+  mem_args <- strsplit(trimws(as.character(mzmine_memory)), "\\s+")[[1]]
+  th_args <- strsplit(trimws(as.character(mzmine_threads)), "\\s+")[[1]]
+  mem_args <- mem_args[nzchar(mem_args)]
+  th_args <- th_args[nzchar(th_args)]
+
+  args <- c(
+    "-user", mzmine_user,
+    "-batch", param_file,
+    "-output", path_output,
+    mem_args,
+    th_args,
+    "-temp", path_temp
+  )
+
+  status <- system2(path_mzmine, args = args)
+  if (!identical(status, 0L)) {
+    stop("mzMine execution failed with exit code: ", status)
+  }
+}
+
+```
+
+```{r pipeline input}
+
+if (is_blank(params$config)) {
+  stop("params$config is required")
+}
+if (!file.exists(params$config)) {
+  stop("Config file does not exist: ", params$config)
+}
+
+config <- read_yaml(params$config)
+
+if (is.null(config) || !is.list(config)) {
+  stop("Invalid YAML config: expected a named list")
+}
+
+path_raw = config$path_raw
+path_result = config$path_result
+path_mzmine = config$path_mzmine
+path_temp = config$path_temp
+
+method_name = config$method_name
+run.pos = as_flag(config$run.pos)
+raw_files_pos = normalize_vec(config$raw_files_pos)
+run.neg = as_flag(config$run.neg)
+raw_files_neg = normalize_vec(config$raw_files_neg)
+mzmine_params = config$mzmine_params 
+# path_lib_pos = config$path_lib_pos
+# path_lib_neg = config$path_lib_neg
+path_lib_istd_pos = config$path_lib_istd_pos
+path_lib_istd_neg = config$path_lib_istd_neg
+path_spectral_lib = config$path_spectral_lib
+path_spectral_lib <- normalize_vec(path_spectral_lib)
+path_spectral_lib <- path_spectral_lib[!is.na(path_spectral_lib)]
+path_spectral_lib <- path_spectral_lib[nzchar(path_spectral_lib)]
+path_spectral_lib <- path_spectral_lib[!grepl("/wdNA|^NA$", path_spectral_lib)]
+mzmine_user = config$mzmine_user
+mzmine_memory <- config$mzmine_memory
+mzmine_threads <- config$mzmine_threads
+# output
+mzmine_peaktable_pos <- config$mzmine_peaktable_pos
+mzmine_peaktable_neg <- config$mzmine_peaktable_neg
+
+if (is_blank(path_result)) stop_missing("path_result")
+if (is_blank(path_temp)) stop_missing("path_temp")
+if (is_blank(mzmine_params)) stop_missing("mzmine_params")
+if (is_blank(path_mzmine)) stop_missing("path_mzmine")
+if (is_blank(mzmine_user)) stop_missing("mzmine_user")
+
+path_result <- normalizePath(path_result, winslash = "/", mustWork = FALSE)
+path_temp <- normalizePath(path_temp, winslash = "/", mustWork = FALSE)
+mzmine_params <- normalizePath(mzmine_params, winslash = "/", mustWork = FALSE)
+
+if (!file.exists(mzmine_params)) {
+  stop("mzmine_params file not found: ", mzmine_params)
+}
+if (grepl("[/\\\\]", path_mzmine) && !file.exists(path_mzmine)) {
+  stop("path_mzmine executable not found: ", path_mzmine)
+}
+
+ensure_dir(path_result)
+ensure_dir(path_temp)
+```
+
+## Method configuration
+```{r}
+
+cat("Method name: ", method_name, "\n")
+cat("In house libraries used for preprocessing: \n")
+if (!is.na(path_lib_istd_pos)) cat(path_lib_istd_pos, "\n")
+if (!is.na(path_lib_istd_neg)) cat(path_lib_istd_neg, "\n")
+cat("Spectral libraries used for preprocessing: \n")
+cat(path_spectral_lib, "\n")
+cat("mzmine parameter file used for preprocessing: \n")
+cat(mzmine_params, "\n")
+```
+
+## Raw data files
+```{r}
+
+cat("Raw data for preprocessing are stored in: \n")
+cat(path_raw, "\n")
+
+```
+
+## Preprocessing
+```{r}
+
+if (!dir.exists(path_result)) dir.create(path_result)
+
+```
+
+### Positive
+```{r, eval = run.pos}
+
+path_output <- paste0(path_result, "/pos")
+ensure_dir(path_output)
+cat("Processed data in positive mode is stored in: \n")
+cat(path_output, "\n")
+
+raw_files <- raw_files_pos
+if (length(raw_files) == 0) stop("run.pos=TRUE but no positive raw files are defined")
+# path_lib <- list(path_lib_istd_pos, path_lib_pos)
+# path_lib <- path_lib[!is.na(path_lib)]
+path_lib <- path_lib_istd_pos
+parameters <- read_xml(mzmine_params)
+param_file <- paste0(path_output, "/mzmine_parameters_pos.mzbatch")
+
+if (!file.exists(param_file)){
+  file_names_node <- ensure_xml_param(parameters, "File names")
+  new_files <- raw_files
+  
+  for (f in new_files) {
+    xml_add_child(file_names_node, "file", f)
+  }
+  
+  file_names_node <- ensure_xml_param(parameters, "Database file")
+  
+  if (!is_blank(path_lib) && !is.na(path_lib) && file.exists(path_lib)) {
+    xml_add_child(file_names_node, "current_file", path_lib)
+  }
+  
+  file_names_node <- ensure_xml_param(parameters, "Spectral library files")
+  
+  for (f in path_spectral_lib) {
+    if (!is.na(f) && file.exists(f)) xml_add_child(file_names_node, "file", f)
+  }
+  
+  write_xml(parameters, param_file)
+}
+
+if (!file.exists(mzmine_peaktable_pos)){
+  run_mzmine(path_mzmine, mzmine_user, param_file, path_output, mzmine_memory, mzmine_threads, path_temp)
+} else {
+  cat('raw pos is already preprocessed, skipped this step.')
+}
+
+```
+
+### Negative
+```{r, eval = run.neg}
+
+path_output <- paste0(path_result, "/neg")
+ensure_dir(path_output)
+cat("Processed data in negative mode is stored in: \n")
+cat(path_output, "\n")
+
+raw_files <- raw_files_neg
+if (length(raw_files) == 0) stop("run.neg=TRUE but no negative raw files are defined")
+# path_lib <- list(path_lib_istd_neg, path_lib_neg)
+# path_lib <- path_lib[!is.na(path_lib)]
+path_lib <- path_lib_istd_neg
+parameters <- read_xml(mzmine_params)
+param_file <- paste0(path_output, "/mzmine_parameters_neg.mzbatch")
+
+if (!file.exists(param_file)){
+  file_names_node <- ensure_xml_param(parameters, "File names")
+  new_files <- raw_files
+  
+  for (f in new_files) {
+    xml_add_child(file_names_node, "file", f)
+  }
+  
+  file_names_node <- ensure_xml_param(parameters, "Database file")
+  
+  if (!is_blank(path_lib) && !is.na(path_lib) && file.exists(path_lib)) {
+    xml_add_child(file_names_node, "current_file", path_lib)
+  }
+  
+  file_names_node <- ensure_xml_param(parameters, "Spectral library files")
+  
+  for (f in path_spectral_lib) {
+    if (!is.na(f) && file.exists(f)) xml_add_child(file_names_node, "file", f)
+  }
+    
+  write_xml(parameters, param_file)
+}
+
+if (!file.exists(mzmine_peaktable_neg)){
+  run_mzmine(path_mzmine, mzmine_user, param_file, path_output, mzmine_memory, mzmine_threads, path_temp)
+} else {
+  cat('raw neg is already preprocessed, skipped this step.')
+}
+
+```
+
+```{r SessionInfo, include = FALSE, eval = FALSE}
+
+# Session info
+
+utils::sessionInfo()
+
+```
+

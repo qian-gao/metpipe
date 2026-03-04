@@ -34,6 +34,13 @@ source(helper_candidates[[1]], local = TRUE)
 
 if (is.na(config_file) || !nzchar(config_file)) stop("Missing required config file argument")
 if (!file.exists(config_file)) stop("Config file does not exist: ", config_file)
+config_file <- normalizePath(config_file, winslash = "/", mustWork = TRUE)
+config_dir <- dirname(config_file)
+
+is_absolute_path <- function(path) {
+  if (wf_is_blank(path)) return(FALSE)
+  grepl("^([A-Za-z]:|/|\\\\)", as.character(path)[1])
+}
 
 render_module <- function(file_name, output_prefix, config_file, path_workflow, path_result, path_temp) {
   module_input <- wf_resolve_module_script(path_workflow, file_name)
@@ -77,16 +84,24 @@ path_result <- wf_cfg_required(configurations, "path_result")
 path_workflow <- wf_cfg_required(configurations, "path_workflow")
 path_temp <- configurations$path_temp
 
+if (!is_absolute_path(path_result)) {
+  path_result <- file.path(config_dir, as.character(path_result)[1])
+}
 path_result <- normalizePath(path_result, winslash = "/", mustWork = FALSE)
 path_workflow <- normalizePath(path_workflow, winslash = "/", mustWork = FALSE)
 
 if (!dir.exists(path_result)) dir.create(path_result, recursive = TRUE, showWarnings = FALSE)
+path_result <- normalizePath(path_result, winslash = "/", mustWork = TRUE)
 if (wf_is_blank(path_temp)) {
   path_temp <- tempdir()
 } else {
+  if (!is_absolute_path(path_temp)) {
+    path_temp <- file.path(config_dir, as.character(path_temp)[1])
+  }
   path_temp <- normalizePath(as.character(path_temp)[1], winslash = "/", mustWork = FALSE)
 }
 if (!dir.exists(path_temp)) dir.create(path_temp, recursive = TRUE, showWarnings = FALSE)
+path_temp <- normalizePath(path_temp, winslash = "/", mustWork = TRUE)
 
 wf_ensure_local_root_from_workflow(path_workflow)
 
