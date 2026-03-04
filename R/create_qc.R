@@ -52,12 +52,12 @@ create_qc <-
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
                                      labs(#title = "Retention Time as a Function of Running Time",
-                                       x = "",
+                                       x = "Running order",
                                        y = "RT (min)",
                                        color = "Internal standard", shape ="") +
                                      scale_x_continuous(limits = c(0, sample_nr))#, breaks = integer_breaks(sample_nr))
 
-                                   , width = figure_width, height = figure_height
+                                   #, width = figure_width, height = figure_height
     ))
 
     plt[[2]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, rt.dev, color = ISTD, text = Sample)) +
@@ -65,26 +65,26 @@ create_qc <-
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
                                      labs(#title = "RT deviation as a Function of Running Time",
-                                       x = "Running Run.order",
+                                       x = "Running order",
                                        y = "Deviation: RT (min)",
                                        color = "", shape ="") +
                                      scale_x_continuous(limits = c(0, sample_nr)) #, breaks = integer_breaks(sample_nr))
 
-                                   , width = figure_width, height = figure_height
+                                   #, width = figure_width, height = figure_height
     ))
-    plt[[2]] <- style(plt[[2]], showlegend = FALSE)
+    #plt[[2]] <- style(plt[[2]], showlegend = FALSE)
 
     plt[[3]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, mz, color = ISTD, text = Sample)) +
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
                                      geom_point(aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
                                      theme_bw() +
                                      labs(#title = "m/z as a Function of Running Time",
-                                       x = "",
+                                       x = "Running order",
                                        y = "m/z",
                                        color = "Internal standard", shape ="") +
                                      scale_x_continuous(limits = c(0, sample_nr)) #, breaks = integer_breaks(sample_nr))
 
-                                   , width = figure_width, height = figure_height
+                                   #, width = figure_width, height = figure_height
     ))
 
     plt[[4]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, mz.dev, color = ISTD, text = Sample)) +
@@ -97,9 +97,9 @@ create_qc <-
                                        color = "", shape ="") +
                                      scale_x_continuous(limits = c(0, sample_nr)) #, breaks = integer_breaks(sample_nr))
 
-                                   , width = figure_width, height = figure_height
+                                   #, width = figure_width, height = figure_height
     ))
-    plt[[4]] <- style(plt[[4]], showlegend = FALSE)
+    #plt[[4]] <- style(plt[[4]], showlegend = FALSE)
 
     plt[[5]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, file.area, color = ISTD, text = Sample)) +
                                      #geom_text(aes(label = ISTD.ID), hjust=0.5, vjust=0.5) +
@@ -111,7 +111,7 @@ create_qc <-
                                        color = "Internal standard", shape ="") +
                                      scale_x_continuous(limits = c(0, sample_nr)) #, breaks = integer_breaks(sample_nr))
 
-                                   , width = figure_width, height = figure_height
+                                   #, width = figure_width, height = figure_height
     ))
 
     plt[[6]] <- as_widget(ggplotly(ggplot(sampled_data, aes(Run.order, Intensity.dev, color = ISTD, text = Sample)) +
@@ -124,9 +124,9 @@ create_qc <-
                                        color = "", shape ="") +
                                      scale_x_continuous(limits = c(0, sample_nr)) #, breaks = integer_breaks(sample_nr))
 
-                                   , width = figure_width, height = figure_height
+                                   #, width = figure_width, height = figure_height
     ))
-    plt[[6]] <- style(plt[[6]], showlegend = FALSE)
+    #plt[[6]] <- style(plt[[6]], showlegend = FALSE)
 
     summary <-
       sampled_data %>%
@@ -154,7 +154,11 @@ create_qc <-
     plt[[8]] <- as_widget(ggplotly(ggplot(summary, aes(x = Theoretical.rt, y = median.rt, color = ISTD )) +
                                      geom_abline(intercept = 0, slope = 1, color = "gray") +
                                      geom_smooth(method = "lm", se = FALSE, linetype = "dashed", color = "blue", alpha = 0.1) +
-                                     geom_point(size = 2, aes(shape = ISTD)) + scale_shape_manual(values = c(1:25))
+                                     geom_point(size = 2, aes(shape = ISTD)) + scale_shape_manual(values = c(1:25)) +
+                                     theme_bw() +
+                                     labs( 
+                                       x = "Theoretical RT (min)",
+                                       y = "Median RT (min)")
 
                                    #, width = 800
     ))

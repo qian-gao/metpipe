@@ -231,9 +231,10 @@ summary <-
   select(ISTD, Theoretical.rt, median.rt, Theoretical.mz, median.mz, median.intensity) %>%
   unique() %>% 
   mutate(rt.diff = median.rt - Theoretical.rt,
-         mz.diff = median.mz - Theoretical.mz) %>% 
+         mz.diff = median.mz - Theoretical.mz,
+         mz.diff.ppm = (median.mz - Theoretical.mz)/Theoretical.mz*1E6) %>% 
   relocate(rt.diff, .after = median.rt) %>% 
-  relocate(mz.diff, .after = median.mz)
+  relocate(c(mz.diff, mz.diff.ppm), .after = median.mz)
 
 qc_is_pos <- list(combined_file = combined_file,
                   plt = plt,
@@ -253,15 +254,16 @@ summary %>%
                 "RT difference" = "rt.diff",          
                 "Theoretical m/z" = "Theoretical.mz",
                 "Median m/z" = "median.mz",
-                "m/z difference" = "mz.diff",          
+                "m/z difference" = "mz.diff", 
+                "m/z difference (ppm)" = "mz.diff.ppm",         
                 "Median intensity" = "median.intensity") %>% 
   kbl() %>%
   kable_paper()
 
 ```
 
-$~$
-```{r, eval = run.pos, fig.width = 8, fig.height = 6}
+<br>
+```{r, eval = run.pos, fig.width = 5, fig.height = 5, out.width = "80%"}
 plt[[7]] %>%
   layout(annotations = list(
           list(x = 0,  
@@ -272,12 +274,14 @@ plt[[7]] %>%
                xanchor = "left",  
                yanchor = "bottom",  
                showarrow = FALSE)
-        ))
+        ),
+        xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+        yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")) 
 
 ```
 
-$~$
-```{r, eval = run.pos, fig.width = 8, fig.height = 4}
+<br>
+```{r, eval = run.pos, fig.width = 5, fig.height = 5, out.width = "80%"}
 plt[[8]] %>%
   layout(annotations = list(
           list(x = 0,  
@@ -288,31 +292,77 @@ plt[[8]] %>%
                xanchor = "left",  
                yanchor = "bottom",  
                showarrow = FALSE)
-        ))
+        ),
+        xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+        yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"))
 
 ```
 
 ### Retention time
-```{r ms RT pos, eval = run.pos}
+```{r ms RT pos, eval = run.pos, fig.height = 5}
 
-subplot(plt[[1]], plt[[2]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
+plt[[1]] %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
+```
+
+```{r ms RT pos2, eval = run.pos, fig.height = 5}
+
+plt[[2]] %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 
 ### m/z
-```{r ms m/z pos, eval = run.pos}
+```{r ms m/z pos, eval = run.pos, fig.height = 5}
 
-subplot(plt[[3]], plt[[4]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
+plt[[3]] %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
+```
+
+```{r ms m/z pos2, eval = run.pos, fig.height = 5}
+
+plt[[4]] %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 
 ### Intensity
-```{r ms1p Int pos, eval = run.pos}
+```{r ms1p Int pos, eval = run.pos, fig.height = 5}
 
-subplot(plt[[5]], plt[[6]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
+plt[[5]] %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 
+```{r ms1p Int pos2, eval = run.pos, fig.height = 5}
+
+plt[[6]] %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
+```
+
+<br>
+<br>
 ```{r, eval = run.pos}
 
 istd <- unique(combined_file$ISTD)
@@ -343,12 +393,16 @@ for (i in istd) {
 
 }
 
-plt.int
+plt.int %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 
 ### Shift
-```{r, eval = run.pos, fig.width = 8, fig.height = 4}
+```{r, eval = run.pos, fig.width = 8, fig.height = 5}
 p1 <- 
   ggplot(summary) +
     geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=rt.diff), color="grey") +
@@ -362,14 +416,14 @@ p1 <-
 
 p2 <- 
   ggplot(summary) +
-    geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=mz.diff), color="grey") +
+    geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=mz.diff.ppm), color="grey") +
     geom_point( aes(x=ISTD, y=0), color= "#F39B7FB2", size=3 ) +
-    geom_point( aes(x=ISTD, y=mz.diff), color= "#3C5488B2", size=3 ) +
+    geom_point( aes(x=ISTD, y=mz.diff.ppm), color= "#3C5488B2", size=3 ) +
     coord_flip()+
     scale_x_discrete(limits=rev) +
     theme_bw() +
     xlab("Internal standard") +
-    ylab("Difference in m/z")
+    ylab("Difference in m/z (ppm)")
 
 subplot(p1, p2, nrows = 1, margin = 0.04, titleX = TRUE, titleY = TRUE, shareY = TRUE) 
 
@@ -482,9 +536,10 @@ summary <-
   select(ISTD, Theoretical.rt, median.rt, Theoretical.mz, median.mz, median.intensity) %>%
   unique() %>% 
   mutate(rt.diff = median.rt - Theoretical.rt,
-         mz.diff = median.mz - Theoretical.mz) %>% 
+         mz.diff = median.mz - Theoretical.mz,
+         mz.diff.ppm = (median.mz - Theoretical.mz)/Theoretical.mz*1E6) %>% 
   relocate(rt.diff, .after = median.rt) %>% 
-  relocate(mz.diff, .after = median.mz)
+  relocate(c(mz.diff, mz.diff.ppm), .after = median.mz)
 
 qc_is_neg <- list(combined_file = combined_file,
                   plt = plt,
@@ -504,15 +559,16 @@ summary %>%
                 "RT difference" = "rt.diff",          
                 "Theoretical m/z" = "Theoretical.mz",
                 "Median m/z" = "median.mz",
-                "m/z difference" = "mz.diff",          
+                "m/z difference" = "mz.diff",    
+                "m/z difference (ppm)" = "mz.diff.ppm",      
                 "Median intensity" = "median.intensity") %>% 
   kbl() %>%
   kable_paper()
 
 ```
 
-$~$
-```{r, eval = run.neg, fig.width = 8, fig.height = 6}
+<br>
+```{r, eval = run.neg, fig.width = 5, fig.height = 5, out.width = "80%"}
 plt[[7]] %>%
   layout(annotations = list(
           list(x = 0,  
@@ -523,12 +579,14 @@ plt[[7]] %>%
                xanchor = "left",  
                yanchor = "bottom",  
                showarrow = FALSE)
-        ))
+        ),
+        xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+        yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"))
 
 ```
 
-$~$
-```{r, eval = run.neg, fig.width = 8, fig.height = 4}
+<br>
+```{r, eval = run.neg, fig.width = 5, fig.height = 5, out.width = "80%"}
 plt[[8]] %>%
   layout(annotations = list(
           list(x = 0,  
@@ -539,31 +597,77 @@ plt[[8]] %>%
                xanchor = "left",  
                yanchor = "bottom",  
                showarrow = FALSE)
-        ))
+        ),
+        xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+        yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"))
 
 ```
 
 ### Retention time
-```{r ms RT neg, eval = run.neg}
+```{r ms RT neg, eval = run.neg, fig.height = 5}
 
-subplot(plt[[1]], plt[[2]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
+plt[[1]] %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
+```
+
+```{r ms RT neg2, eval = run.neg, fig.height = 5}
+
+plt[[2]] %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 
 ### m/z
-```{r ms m/z neg, eval = run.neg}
+```{r ms m/z neg, eval = run.neg, fig.height = 5}
 
-subplot(plt[[3]], plt[[4]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
+plt[[3]] %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
+```
+
+```{r ms m/z neg2, eval = run.neg, fig.height = 5}
+
+plt[[4]] %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 
 ### Intensity
-```{r ms1p Int neg, eval = run.neg}
+```{r ms1p Int neg, eval = run.neg, fig.height = 5}
 
-subplot(plt[[5]], plt[[6]], nrows = 2, margin = 0.04, titleX = TRUE, titleY = TRUE) 
+plt[[5]] %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 
+```{r ms1p Int neg2, eval = run.neg, fig.height = 5}
+
+plt[[6]] %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
+```
+
+<br>
+<br>
 ```{r, eval = run.neg}
 
 istd <- unique(combined_file$ISTD)
@@ -594,12 +698,16 @@ for (i in istd) {
 
 }
 
-plt.int
+plt.int %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 
 ### Shift
-```{r, eval = run.neg, fig.width = 8, fig.height = 4}
+```{r, eval = run.neg, fig.width = 8, fig.height = 5}
 p1 <- 
   ggplot(summary) +
     geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=rt.diff), color="grey") +
@@ -613,16 +721,16 @@ p1 <-
 
 p2 <- 
   ggplot(summary) +
-    geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=mz.diff), color="grey") +
+    geom_segment( aes(x=ISTD, xend=ISTD, y=0, yend=mz.diff.ppm), color="grey") +
     geom_point( aes(x=ISTD, y=0), color= "#F39B7FB2", size=3 ) +
-    geom_point( aes(x=ISTD, y=mz.diff), color= "#3C5488B2", size=3 ) +
+    geom_point( aes(x=ISTD, y=mz.diff.ppm), color= "#3C5488B2", size=3 ) +
     coord_flip()+
     scale_x_discrete(limits=rev) +
     theme_bw() +
     xlab("Internal standard") +
-    ylab("Difference in m/z")
+    ylab("Difference in m/z (ppm)")
 
-subplot(p1, p2, nrows = 1, margin = 0.04, titleX = TRUE, titleY = TRUE, shareY = TRUE) 
+subplot(p1, p2, nrows = 1, margin = 0.04, titleX = TRUE, titleY = TRUE, shareY = TRUE)
 
 ```
 :::

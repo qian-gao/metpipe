@@ -13,7 +13,6 @@
 #' @param add_lipid_info Logical; parse lipid annotations via [add_lipid_info()].
 #' @param keep.lipid.orig Logical; keep original lipid names when parsing.
 #' @param standardized.name Logical; infer metadata from standardized file names.
-#' @param standerdized.name Deprecated alias for `standardized.name`.
 #'
 #' @return A list with `peaks`, `features`, and `meta` (plus raw copies).
 #' @examples
@@ -40,14 +39,8 @@ import_peaktable <-
       find_is = FALSE,
       add_lipid_info = FALSE,
       keep.lipid.orig = NULL,
-      standardized.name = FALSE,
-      standerdized.name = NULL
+      standardized.name = FALSE
   ){
-
-    if (!is.null(standerdized.name)) {
-      warning("'standerdized.name' is deprecated; use 'standardized.name'", call. = FALSE)
-      standardized.name <- standerdized.name
-    }
 
     if (is.null(peaktable) || !nzchar(peaktable) || !file.exists(peaktable)) {
       stop("peaktable must be an existing file path")

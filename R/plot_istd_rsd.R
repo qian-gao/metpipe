@@ -37,9 +37,10 @@ plot_istd_rsd <-
         ggplot(data.istd.plot,
                aes(x = Run.order, y = get(i), fill = Sample.type, text = Sample)) +
         geom_col() +
-        theme(axis.title.x = element_blank(),
-              axis.text.x = element_blank(),
-              axis.ticks.x = element_blank()) +
+        theme_bw() +
+        #theme(axis.title.x = element_blank(),
+        #      axis.text.x = element_blank(),
+        #      axis.ticks.x = element_blank()) +
         labs( x = "Run.order",
               y = "Intensity",
               title = i) +

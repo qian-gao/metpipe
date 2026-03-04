@@ -113,8 +113,14 @@ normalize_start_from <- function(x) {
 
 path_raw <- get_arg("--raw")
 start_from <- get_arg("--start-from")
+run_module <- get_arg("--run-module")
 start_key <- normalize_start_from(start_from)
-requires_prepare <- is.null(start_key) || identical(start_key, "preprocessing_mzmine")
+run_key <- normalize_start_from(run_module)
+if (!is_blank(start_from) && !is_blank(run_module)) {
+  stop("Use either --start-from or --run-module, not both")
+}
+target_key <- if (!is.null(run_key)) run_key else start_key
+requires_prepare <- is.null(target_key) || identical(target_key, "preprocessing_mzmine")
 prepare_only <- has_flag("--prepare-only") || has_flag("--prep-yaml-only")
 
 default_workflow <- if (dir.exists("/wd")) "/wd" else getwd()
@@ -177,7 +183,7 @@ if (!is_blank(config_override)) {
     }
   } else {
     if (!file.exists(config_candidate)) {
-      stop("Skipping prepare because --start-from is not preprocessing, but config was not found: ",
+      stop("Skipping prepare because target module is not preprocessing, but config was not found: ",
            config_candidate,
            ". Provide --config <path/to/config.yml> or run from preprocessing.")
     }
@@ -194,6 +200,9 @@ if (prepare_only) {
 run_args <- c(shQuote(run_workflow), shQuote(config_file))
 if (!is_blank(start_from)) {
   run_args <- c(run_args, "--start-from", shQuote(start_from))
+}
+if (!is_blank(run_module)) {
+  run_args <- c(run_args, "--run-module", shQuote(run_module))
 }
 
 status_run <- system2(

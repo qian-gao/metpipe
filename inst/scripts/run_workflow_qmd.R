@@ -10,6 +10,7 @@ get_arg <- function(name) {
 
 config_file <- args[1]
 start_from <- get_arg("--start-from")
+run_module <- get_arg("--run-module")
 
 script_args <- commandArgs(trailingOnly = FALSE)
 file_arg <- grep("^--file=", script_args, value = TRUE)
@@ -99,7 +100,25 @@ module_plan <- list(
 )
 
 start_key <- normalize_start_from(start_from)
+run_key <- normalize_start_from(run_module)
+if (!wf_is_blank(start_from) && !wf_is_blank(run_module)) {
+  stop("Use either --start-from or --run-module, not both")
+}
 plan_keys <- vapply(module_plan, function(x) x$key, character(1))
+if (!is.null(run_key)) {
+  run_idx <- match(run_key, plan_keys)
+  if (is.na(run_idx)) {
+    stop("Unable to resolve --run-module module index")
+  }
+  step <- module_plan[[run_idx]]
+  if (!isTRUE(step$enabled)) {
+    stop("Requested module is disabled by config: ", step$key)
+  }
+  message("Running module: ", step$key)
+  render_module(step$file, step$output, config_file, path_workflow, path_result, path_temp)
+  quit(save = "no", status = 0)
+}
+
 start_idx <- if (is.null(start_key)) 1 else match(start_key, plan_keys)
 if (is.na(start_idx)) {
   stop("Unable to resolve --start-from module index")

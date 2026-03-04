@@ -212,7 +212,7 @@ mzmine_threads <- "-threads 10"
 ```{r}
 # QC
 
-figure_height = 800
+figure_height = 500
 figure_width = 1000
 
 ```

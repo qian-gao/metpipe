@@ -127,18 +127,28 @@ figs <-
 ```
 
 #### Overall
-```{r, eval = run.clean.pos, fig.width = 11, fig.height = 5}
+```{r, eval = run.clean.pos, fig.height = 5}
 figs$p1
+
 ```
 
 #### Missing in samples
-```{r, eval = run.clean.pos, fig.width = 9, fig.height = 4}
-ggplotly(figs$p2)
+```{r, eval = run.clean.pos, fig.height = 5}
+ggplotly(figs$p2) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 ```
 
 #### Missing in features
-```{r, eval = run.clean.pos, fig.width = 9, fig.height = 4}
-ggplotly(figs$p3)
+```{r, eval = run.clean.pos, fig.height = 5}
+ggplotly(figs$p3) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 ```
 :::
 
@@ -163,16 +173,25 @@ plt.is.rsd <-
 ```
 
 #### RSD
-```{r rsd.bar.plot pos, fig.height = 6, fig.width = 8, eval = run.istd.pos}
+```{r rsd.bar.plot pos, fig.height = 6, fig.width = 8, eval = run.istd.pos, out.width = "80%"}
 
-ggplotly(plt.is.rsd$plt.rsd)
+ggplotly(plt.is.rsd$plt.rsd) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 
 ```
 
 #### IS intensities in samples
 ```{r rsd.sample pos, eval = run.istd.pos}
 
-plt.is.rsd$plt.int
+plt.is.rsd$plt.int %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 :::
@@ -206,24 +225,37 @@ plt.eval <-
 
 ##### Raw Data
 
-```{r PCA-Loaded pos, fig.height = 4, fig.width = 8, eval = run.norm.pos}
+```{r PCA-Loaded pos, fig.height = 5, fig.width = 8, eval = run.norm.pos}
 
-a <- ggplotly(pca.plot$raw, session="knitr", showlegend = T)
-b <- ggplotly(pca.plot.type$raw, session="knitr", showlegend = T)
+a <- ggplotly(pca.plot$raw, session="knitr", showlegend = T) 
+b <- ggplotly(pca.plot.type$raw, session="knitr", showlegend = T) 
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 ```
 
 ```{r pca-title-bestis-pos, results='asis', eval = run.norm.pos && show.bestis && !is.null(pca.plot$bestis)}
 cat("##### Best IS\n")
 ```
 
-```{r PCA-Bestid pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.bestis && !is.null(pca.plot$bestis)}
+```{r PCA-Bestid pos, fig.height = 5, fig.width = 8, eval = run.norm.pos && show.bestis && !is.null(pca.plot$bestis)}
 
 a <- ggplotly(pca.plot$bestis, session="knitr")
 b <- ggplotly(pca.plot.type$bestis, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 
@@ -231,12 +263,19 @@ subplot(a, b)
 cat("##### Lowest CV\n")
 ```
 
-```{r PCA-Lowest CV pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.low_cv && !is.null(pca.plot$low_cv)}
+```{r PCA-Lowest CV pos, fig.height = 5, fig.width = 8, eval = run.norm.pos && show.low_cv && !is.null(pca.plot$low_cv)}
 
 a <- ggplotly(pca.plot$low_cv, session="knitr")
 b <- ggplotly(pca.plot.type$low_cv, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 
 ```
 
@@ -244,60 +283,94 @@ subplot(a, b)
 cat("##### Sum\n")
 ```
 
-```{r PCA-Normalized_by_sum pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.sum && !is.null(pca.plot$sum)}
+```{r PCA-Normalized_by_sum pos, fig.height = 5, fig.width = 8, eval = run.norm.pos && show.sum && !is.null(pca.plot$sum)}
 
 a <- ggplotly(pca.plot$sum, session="knitr")
 b <- ggplotly(pca.plot.type$sum, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 ```
 
 ```{r pca-title-median-pos, results='asis', eval = run.norm.pos && show.median && !is.null(pca.plot$median)}
 cat("##### Median\n")
 ```
 
-```{r PCA-Normalized_by_median pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.median && !is.null(pca.plot$median)}
+```{r PCA-Normalized_by_median pos, fig.height = 5, fig.width = 8, eval = run.norm.pos && show.median && !is.null(pca.plot$median)}
 
 a <- ggplotly(pca.plot$median, session="knitr")
 b <- ggplotly(pca.plot.type$median, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 ```
 
 ```{r pca-title-pqn-pos, results='asis', eval = run.norm.pos && show.pqn && !is.null(pca.plot$pqn)}
 cat("##### PQN\n")
 ```
 
-```{r PCA-Normalized_by_PQN pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.pqn && !is.null(pca.plot$pqn)}
+```{r PCA-Normalized_by_PQN pos, fig.height = 5, fig.width = 8, eval = run.norm.pos && show.pqn && !is.null(pca.plot$pqn)}
 
 a <- ggplotly(pca.plot$pqn, session="knitr")
 b <- ggplotly(pca.plot.type$pqn, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 ```
 
 ```{r pca-title-loess-pos, results='asis', eval = run.norm.pos && show.loess && !is.null(pca.plot$loess)}
 cat("##### Loess\n")
 ```
 
-```{r PCA-Normalized_by_loess pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.loess && !is.null(pca.plot$loess)}
+```{r PCA-Normalized_by_loess pos, fig.height = 5, fig.width = 8, eval = run.norm.pos && show.loess && !is.null(pca.plot$loess)}
 
 a <- ggplotly(pca.plot$loess, session="knitr")
 b <- ggplotly(pca.plot.type$loess, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 ```
 
 ```{r pca-title-combat-pos, results='asis', eval = run.norm.pos && show.combat && !is.null(pca.plot$combat)}
 cat("##### Combat\n")
 ```
 
-```{r PCA-Normalized_by_combat pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.combat && !is.null(pca.plot$combat)}
+```{r PCA-Normalized_by_combat pos, fig.height = 5, fig.width = 8, eval = run.norm.pos && show.combat && !is.null(pca.plot$combat)}
 
 a <- ggplotly(pca.plot$combat, session="knitr")
 b <- ggplotly(pca.plot.type$combat, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 
@@ -305,12 +378,18 @@ subplot(a, b)
 cat("##### limma\n")
 ```
 
-```{r PCA-Normalized_by_limma pos, fig.height = 4, fig.width = 8, eval = run.norm.pos && show.limma && !is.null(pca.plot$limma)}
+```{r PCA-Normalized_by_limma pos, fig.height = 5, fig.width = 8, eval = run.norm.pos && show.limma && !is.null(pca.plot$limma)}
 
 a <- ggplotly(pca.plot$limma, session="knitr")
 b <- ggplotly(pca.plot.type$limma, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 :::
@@ -319,7 +398,7 @@ subplot(a, b)
 ::: panel-tabset
 
 ##### RSD
-```{r RSD pos, fig.height = 3, fig.width = 8, eval = run.norm.pos}
+```{r RSD pos, fig.height = 4, fig.width = 8, eval = run.norm.pos}
 
 plt.eval$plt.rsd
 plt.eval$plt.rsd.mean
@@ -327,7 +406,7 @@ plt.eval$plt.rsd.mean
 ```
 
 ##### MAD
-```{r MAD pos, fig.height = 3, fig.width = 8, eval = run.norm.pos}
+```{r MAD pos, fig.height = 4, fig.width = 8, eval = run.norm.pos}
 
 plt.eval$plt.mad
 plt.eval$plt.mad.mean
@@ -335,7 +414,7 @@ plt.eval$plt.mad.mean
 ```
 
 ##### Variance
-```{r VAR pos, fig.height = 3, fig.width = 8, eval = run.norm.pos}
+```{r VAR pos, fig.height = 4, fig.width = 8, eval = run.norm.pos}
 
 plt.eval$plt.var
 plt.eval$plt.var.sum
@@ -357,18 +436,26 @@ figs <-
 ```
 
 #### Overall
-```{r, eval = run.clean.neg, fig.width = 11, fig.height = 5}
+```{r, eval = run.clean.neg, fig.height = 5}
 figs$p1
 ```
 
 #### Missing in samples
-```{r, eval = run.clean.neg, fig.width = 9, fig.height = 4}
-ggplotly(figs$p2)
+```{r, eval = run.clean.neg, fig.height = 5}
+ggplotly(figs$p2) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 ```
 
 #### Missing in features
-```{r, eval = run.clean.neg, fig.width = 9, fig.height = 4}
-ggplotly(figs$p3)
+```{r, eval = run.clean.neg, fig.height = 5}
+ggplotly(figs$p3) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 ```
 :::
 
@@ -394,16 +481,24 @@ plt.is.rsd <-
 ```
 
 #### RSD
-```{r rsd.bar.plot neg, fig.height = 6, fig.width = 8, eval = run.istd.neg}
+```{r rsd.bar.plot neg, fig.height = 6, fig.width = 8, eval = run.istd.neg, out.width = "80%"}
 
-ggplotly(plt.is.rsd$plt.rsd)
+ggplotly(plt.is.rsd$plt.rsd) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 
 #### IS intensities in samples
 ```{r rsd.sample neg, eval = run.istd.neg}
 
-plt.is.rsd$plt.int
+plt.is.rsd$plt.int %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 :::
@@ -436,24 +531,37 @@ plt.eval <-
 
 ##### Raw Data
 
-```{r PCA-Loaded neg, fig.height = 4, fig.width = 8, eval = run.norm.neg}
+```{r PCA-Loaded neg, fig.height = 5, fig.width = 8, eval = run.norm.neg}
 
 a <- ggplotly(pca.plot$raw, session="knitr", showlegend = T)
 b <- ggplotly(pca.plot.type$raw, session="knitr", showlegend = T)
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 ```
 
 ```{r pca-title-bestis-neg, results='asis', eval = run.norm.neg && show.bestis && !is.null(pca.plot$bestis)}
 cat("##### Best IS\n")
 ```
 
-```{r PCA-Bestid neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.bestis && !is.null(pca.plot$bestis)}
+```{r PCA-Bestid neg, fig.height = 5, fig.width = 8, eval = run.norm.neg && show.bestis && !is.null(pca.plot$bestis)}
 
 a <- ggplotly(pca.plot$bestis, session="knitr")
 b <- ggplotly(pca.plot.type$bestis, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 
 ```
 
@@ -461,12 +569,19 @@ subplot(a, b)
 cat("##### Lowest CV\n")
 ```
 
-```{r PCA-Lowest CV neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.low_cv && !is.null(pca.plot$low_cv)}
+```{r PCA-Lowest CV neg, fig.height = 5, fig.width = 8, eval = run.norm.neg && show.low_cv && !is.null(pca.plot$low_cv)}
 
 a <- ggplotly(pca.plot$low_cv, session="knitr")
 b <- ggplotly(pca.plot.type$low_cv, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 
 ```
 
@@ -474,60 +589,95 @@ subplot(a, b)
 cat("##### Sum\n")
 ```
 
-```{r PCA-Normalized_by_sum neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.sum && !is.null(pca.plot$sum)}
+```{r PCA-Normalized_by_sum neg, fig.height = 5, fig.width = 8, eval = run.norm.neg && show.sum && !is.null(pca.plot$sum)}
 
 a <- ggplotly(pca.plot$sum, session="knitr")
 b <- ggplotly(pca.plot.type$sum, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 ```
 
 ```{r pca-title-median-neg, results='asis', eval = run.norm.neg && show.median && !is.null(pca.plot$median)}
 cat("##### Median\n")
 ```
 
-```{r PCA-Normalized_by_median neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.median && !is.null(pca.plot$median)}
+```{r PCA-Normalized_by_median neg, fig.height = 5, fig.width = 8, eval = run.norm.neg && show.median && !is.null(pca.plot$median)}
 
 a <- ggplotly(pca.plot$median, session="knitr")
 b <- ggplotly(pca.plot.type$median, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 ```
 
 ```{r pca-title-pqn-neg, results='asis', eval = run.norm.neg && show.pqn && !is.null(pca.plot$pqn)}
 cat("##### PQN\n")
 ```
 
-```{r PCA-Normalized_by_PQN neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.pqn && !is.null(pca.plot$pqn)}
+```{r PCA-Normalized_by_PQN neg, fig.height = 5, fig.width = 8, eval = run.norm.neg && show.pqn && !is.null(pca.plot$pqn)}
 
 a <- ggplotly(pca.plot$pqn, session="knitr")
 b <- ggplotly(pca.plot.type$pqn, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 ```
 
 ```{r pca-title-loess-neg, results='asis', eval = run.norm.neg && show.loess && !is.null(pca.plot$loess)}
 cat("##### Loess\n")
 ```
 
-```{r PCA-Normalized_by_loess neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.loess && !is.null(pca.plot$loess)}
+```{r PCA-Normalized_by_loess neg, fig.height = 5, fig.width = 8, eval = run.norm.neg && show.loess && !is.null(pca.plot$loess)}
 
 a <- ggplotly(pca.plot$loess, session="knitr")
 b <- ggplotly(pca.plot.type$loess, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 ```
 
 ```{r pca-title-combat-neg, results='asis', eval = run.norm.neg && show.combat && !is.null(pca.plot$combat)}
 cat("##### Combat\n")
 ```
 
-```{r PCA-Normalized_by_combat neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.combat && !is.null(pca.plot$combat)}
+```{r PCA-Normalized_by_combat neg, fig.height = 5, fig.width = 8, eval = run.norm.neg && show.combat && !is.null(pca.plot$combat)}
 
 a <- ggplotly(pca.plot$combat, session="knitr")
 b <- ggplotly(pca.plot.type$combat, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 
 ```
 
@@ -535,12 +685,19 @@ subplot(a, b)
 cat("##### limma\n")
 ```
 
-```{r PCA-Normalized_by_limma neg, fig.height = 4, fig.width = 8, eval = run.norm.neg && show.limma && !is.null(pca.plot$limma)}
+```{r PCA-Normalized_by_limma neg, fig.height = 5, fig.width = 8, eval = run.norm.neg && show.limma && !is.null(pca.plot$limma)}
 
 a <- ggplotly(pca.plot$limma, session="knitr")
 b <- ggplotly(pca.plot.type$limma, session="knitr")
 
-subplot(a, b)
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
 
 ```
 :::
@@ -549,7 +706,7 @@ subplot(a, b)
 ::: panel-tabset
 
 ##### RSD
-```{r RSD neg, fig.height = 3, fig.width = 8, eval = run.norm.neg}
+```{r RSD neg, fig.height = 4, fig.width = 8, eval = run.norm.neg}
 
 plt.eval$plt.rsd
 plt.eval$plt.rsd.mean
@@ -557,7 +714,7 @@ plt.eval$plt.rsd.mean
 ```
 
 ##### MAD
-```{r MAD neg, fig.height = 3, fig.width = 8, eval = run.norm.neg}
+```{r MAD neg, fig.height = 4, fig.width = 8, eval = run.norm.neg}
 
 plt.eval$plt.mad
 plt.eval$plt.mad.mean
@@ -565,7 +722,7 @@ plt.eval$plt.mad.mean
 ```
 
 ##### Variance
-```{r VAR neg, fig.height = 3, fig.width = 8, eval = run.norm.neg}
+```{r VAR neg, fig.height = 4, fig.width = 8, eval = run.norm.neg}
 
 plt.eval$plt.var
 plt.eval$plt.var.sum
@@ -578,7 +735,7 @@ $~$
 ::: panel-tabset
 
 ### PCA
-```{r, fig.height = 4, fig.width = 6, eval = run.merged}
+```{r, fig.height = 5, fig.width = 6, eval = run.merged, out.width = "80%"}
 
 data_all <- datalist$datatable
 sample.info <- datalist$sample.info
@@ -591,12 +748,16 @@ p <-
       plotly.text = sample.info$Sample,
       ratio = 1)
   
-ggplotly(p)
+ggplotly(p) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 
 ### Sample mean across batches
-```{r, fig.height = 4, fig.width = 8, eval = run.merged}
+```{r, fig.height = 5, fig.width = 8, eval = run.merged}
 
 Sample.mean <- 
   apply(data_all[, -c(1:ncol(sample.info))], 1, function(x) mean(x, na.rm = TRUE))
@@ -622,7 +783,11 @@ p <-
     theme_bw()  +
     ggsci::scale_color_npg()
 
-ggplotly(p)
+ggplotly(p) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 :::
@@ -631,7 +796,7 @@ ggplotly(p)
 ::: panel-tabset
 
 ### Metabolites class
-```{r, fig.height = 4, fig.width = 8, eval = run.feature.summary}
+```{r, fig.height = 4, fig.width = 8, eval = run.feature.summary, out.width = "80%"}
 features <- 
   datalist$feature.info
 
@@ -648,7 +813,7 @@ plot_ly(data.plot, labels = ~Class, values = ~Freq, type = 'pie',
 ```
 
 ### Identification level
-```{r, fig.height = 4, fig.width = 8, eval = run.feature.summary}
+```{r, fig.height = 4, fig.width = 8, eval = run.feature.summary, out.width = "80%"}
 data.plot <- 
   data.frame(table(features$identity_source, useNA = "ifany")) %>% 
   mutate(Source = case_when( !is.na(Var1) ~ Var1,
