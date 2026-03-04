@@ -221,9 +221,16 @@ wf_render_qmd_document <- function(input, render_params, intermediates_dir, outp
         stop("Rendered file was produced but existing output could not be removed: ", output_file)
       }
     }
-    ok <- file.rename(produced_file, output_file)
+    ok <- suppressWarnings(file.rename(produced_file, output_file))
     if (!ok) {
-      stop("Rendered file was produced but could not be moved to expected output path: ", output_file)
+      ok_copy <- file.copy(produced_file, output_file, overwrite = TRUE)
+      if (!ok_copy) {
+        stop("Rendered file was produced but could not be moved to expected output path: ", output_file)
+      }
+      ok_remove_source <- file.remove(produced_file)
+      if (!ok_remove_source) {
+        warning("Rendered file was copied to output path but source could not be removed: ", produced_file)
+      }
     }
   }
 
