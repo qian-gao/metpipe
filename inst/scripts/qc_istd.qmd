@@ -12,6 +12,8 @@ format:
     theme: flatly
     polyfill: false
     page-layout: full
+    number-sections: true
+    number-depth: 2
 self-contained: true
 
 params:
