@@ -136,6 +136,10 @@ path_temp <- pick_first(get_arg("--temp"), default_temp)
 qc <- pick_first(get_arg("--qc"), "BL,NIST,PO,sol,CP,IQ,BPL,MMix,PB,SP0625,SP1125,SP25,SP5,SP10,SP,SP40,POJ,POK")
 author <- pick_first(get_arg("--author"), "CBMR Metabolomics Platform")
 config_override <- get_arg("--config")
+software <- pick_first(tolower(get_arg("--software")), "mzmine")
+if (!software %in% c("mzmine", "msdialui")) {
+  stop("--software must be one of: mzmine, msdialui")
+}
 
 prepare_workflow <- wf_resolve_module_script(path_workflow, "prepare_workflow.R")
 run_workflow <- wf_resolve_module_script(path_workflow, "run_workflow.R")
@@ -158,21 +162,24 @@ if (!is_blank(config_override)) {
     }
     path_yaml <- resolve_yaml(path_workflow = path_workflow, path_yaml = path_yaml)
 
+    prepare_args <- c(
+      shQuote(prepare_workflow),
+      "--raw", shQuote(path_raw),
+      "--temp", shQuote(path_temp),
+      "--workflow", shQuote(path_workflow),
+      "--mzmine", shQuote(path_mzmine),
+      "--result", shQuote(path_result),
+      "--yaml", shQuote(path_yaml),
+      "--qc", shQuote(qc),
+      "--author", shQuote(author),
+      "--package-mode", shQuote(package_mode),
+      "--local-pkg-root", shQuote(local_pkg_root),
+      "--software", shQuote(software)
+    )
+
     status_prepare <- system2(
       "Rscript",
-      args = c(
-        shQuote(prepare_workflow),
-        "--raw", shQuote(path_raw),
-        "--temp", shQuote(path_temp),
-        "--workflow", shQuote(path_workflow),
-        "--mzmine", shQuote(path_mzmine),
-        "--result", shQuote(path_result),
-        "--yaml", shQuote(path_yaml),
-        "--qc", shQuote(qc),
-        "--author", shQuote(author),
-        "--package-mode", shQuote(package_mode),
-        "--local-pkg-root", shQuote(local_pkg_root)
-      )
+      args = prepare_args
     )
 
     if (!identical(status_prepare, 0L)) {

@@ -39,6 +39,11 @@ defaults <- list(
 defaults$path_yaml <- paste0(defaults$path_workflow, "/scripts/prep_yaml.qmd")
 defaults$qc <- "BL,NIST,PO,sol,CP,IQ,BPL,MMix,PB,SP0625,SP1125,SP25,SP5,SP10,SP,SP40,POJ,POK"
 
+software <- tolower(trimws(dplyr::coalesce(get_arg("--software"), "mzmine")))
+if (!software %in% c("mzmine", "msdialui")) {
+  stop("--software must be one of: mzmine, msdialui")
+}
+
 path_workflow <- dplyr::coalesce(get_arg("--workflow"), defaults$path_workflow)
 path_mzmine <- dplyr::coalesce(get_arg("--mzmine"), defaults$path_mzmine)
 path_result <- dplyr::coalesce(get_arg("--result"), defaults$path_result)
@@ -80,7 +85,8 @@ wf_render_qmd_document(
     path_mzmine = path_mzmine,
     path_temp = path_temp,
     author = author,
-    qc_types = qc_types
+    qc_types = qc_types,
+    software = software
   ),
   intermediates_dir = path_temp,
   output_file = paste0(path_result, "/generate_yml_", Sys.Date(), ".html")

@@ -83,6 +83,10 @@ configurations <- wf_read_yaml_config(config_file, label = "config file")
 path_result <- wf_cfg_required(configurations, "path_result")
 path_workflow <- wf_cfg_required(configurations, "path_workflow")
 path_temp <- configurations$path_temp
+software <- tolower(ifelse(wf_is_blank(configurations$software), "mzmine", configurations$software))
+if (!software %in% c("mzmine", "msdialui")) {
+  stop("Unsupported software value in config: ", configurations$software)
+}
 
 if (!is_absolute_path(path_result)) {
   path_result <- file.path(config_dir, as.character(path_result)[1])
@@ -105,9 +109,10 @@ path_temp <- normalizePath(path_temp, winslash = "/", mustWork = TRUE)
 
 wf_ensure_local_root_from_workflow(path_workflow)
 
+convert_module_file <- if (identical(software, "msdialui")) "convert_output_msdialui.qmd" else "convert_output.qmd"
 module_plan <- list(
-  list(key = "preprocessing_mzmine", file = "preprocessing_mzmine.qmd", output = "preprocessing_mzmine", enabled = TRUE),
-  list(key = "convert_output", file = "convert_output.qmd", output = "convert_output", enabled = TRUE),
+  list(key = "preprocessing_mzmine", file = "preprocessing_mzmine.qmd", output = "preprocessing_mzmine", enabled = identical(software, "mzmine")),
+  list(key = "convert_output", file = convert_module_file, output = "convert_output", enabled = TRUE),
   list(key = "qc_istd", file = "qc_istd.qmd", output = "qc_report", enabled = TRUE),
   list(key = "post_processing", file = "post_processing.qmd", output = "post_processing", enabled = TRUE),
   list(key = "evaluation", file = "evaluation.qmd", output = "evaluation", enabled = TRUE),

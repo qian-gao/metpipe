@@ -1,0 +1,391 @@
+---
+title: "Convert MSDIAL-UI output"
+author: "CBMR Metabolomics Platform"
+date: "`r base::Sys.Date()`"
+
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    toc-location: left
+    theme: flatly
+    polyfill: false
+    page-layout: full
+    number-sections: true
+    number-depth: 2
+self-contained: true
+
+params:
+  config: ""
+---
+
+```{r setup, include = FALSE}
+library(dplyr)
+library(readr)
+library(openxlsx)
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
+helper_candidates <- c(
+  file.path(getwd(), "helpers_workflow.R"),
+  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
+  system.file("scripts", "helpers_workflow.R", package = "metpipe")
+)
+helper_candidates <- helper_candidates[file.exists(helper_candidates)]
+if (length(helper_candidates) == 0) {
+  stop("Cannot locate shared helper script helpers_workflow.R")
+}
+source(helper_candidates[[1]], local = TRUE)
+
+is_blank <- wf_is_blank
+as_flag <- wf_as_flag
+require_cfg <- wf_cfg_required
+
+msdial_skip_rows <- 5
+msdial_core_cols <- c(
+  "Alignment ID", "Average Rt(min)", "Average Mz", "Average mobility", "Average CCS",
+  "Metabolite name", "Adduct type", "Post curation result", "Fill %", "MS/MS assigned",
+  "Reference RT", "Reference CCS", "Reference m/z", "Formula", "Ontology", "INCHIKEY",
+  "SMILES", "Annotation tag (VS1.0)", "RT matched", "CCS matched", "m/z matched",
+  "MS/MS matched", "Comment", "Manually modified for quantification",
+  "Manually modified for annotation", "Isotope tracking parent ID",
+  "Isotope tracking weight number", "RT similarity", "CCS similarity", "m/z similarity",
+  "Simple dot product", "Weighted dot product", "Reverse dot product",
+  "Matched peaks count", "Matched peaks percentage", "Total score", "S/N average",
+  "Spectrum reference file name", "MS1 isotopic spectrum", "MS/MS spectrum"
+)
+
+msdial_direct_map <- c(
+  "Alignment ID" = "id",
+  "Average Mz" = "mz",
+  "Average Rt(min)" = "rt",
+  "Average CCS" = "ccs",
+  "Metabolite name" = "identity",
+  "Adduct type" = "ion",
+  "Formula" = "formula",
+  "Annotation tag (VS1.0)" = "identity_source",
+  "Weighted dot product" = "spectral_similarity"
+)
+
+msdial_extra_columns <- c(
+  "identity_others",
+  "Isotope tracking parent ID",
+  "Isotope tracking weight number",
+  "MS/MS matched",
+  "Average mobility",
+  "Post curation result",
+  "Fill %",
+  "MS/MS assigned",
+  "Reference CCS",
+  "RT matched",
+  "CCS matched",
+  "m/z matched",
+  "Matched peaks count",
+  "Matched peaks percentage",
+  "S/N average",
+  "Spectrum reference file name"
+)
+
+msdial_id_column <- "Alignment ID"
+
+msdial_detect_header_skip <- function(path_table, marker = msdial_id_column, default_skip = msdial_skip_rows) {
+  header_lines <- readr::read_lines(path_table, n_max = default_skip + 10, progress = FALSE)
+  hit <- which(grepl(marker, header_lines, fixed = TRUE))[1]
+  if (is.na(hit)) return(default_skip)
+  max(0, hit - 1)
+}
+
+
+
+msdial_clean_headers <- function(cols) {
+  out <- trimws(cols)
+  out <- gsub("^\ufeff", "", out)
+  out
+}
+
+msdial_basename_no_ext <- function(x) {
+  if (is.null(x)) return(character())
+  out <- as.character(x)
+  out <- trimws(out)
+  out <- gsub("\\\\", "/", out)
+  out <- sub("^.*/", "", out)
+  out <- sub("\\.(d|raw|mzml)$", "", out, ignore.case = TRUE)
+  trimws(out)
+}
+
+msdial_canonical_sample <- function(x) {
+  tolower(msdial_basename_no_ext(x))
+}
+
+msdial_config_sample_names <- function(config, mode_label) {
+  meta_key <- if (identical(mode_label, "pos")) c("meta_pos", "Meta_pos") else c("meta_neg", "Meta_neg")
+  meta_obj <- NULL
+  for (key in meta_key) {
+    candidate <- config[[key]]
+    if (!is.null(candidate)) {
+      meta_obj <- candidate
+      break
+    }
+  }
+  meta_df <- wf_as_meta_df(meta_obj)
+  if (is.null(meta_df)) {
+    stop("Config is missing metadata for ", mode_label, " samples (meta_", mode_label, ")")
+  }
+  file_col <- grep("file.name", names(meta_df), ignore.case = TRUE, value = TRUE)
+  if (length(file_col) == 0) {
+    stop("Metadata for ", mode_label, " does not contain a File.name column")
+  }
+  samples <- meta_df[[file_col[[1]]]]
+  samples <- msdial_basename_no_ext(samples)
+  samples <- samples[nzchar(samples)]
+  samples <- unique(samples)
+  if (length(samples) == 0) {
+    stop("No sample names were found in metadata for ", mode_label)
+  }
+  make.unique(samples, sep = "_")
+}
+
+msdial_match_sample_columns <- function(df, sample_names) {
+  canonical_expected <- msdial_canonical_sample(sample_names)
+  canonical_columns <- msdial_canonical_sample(names(df))
+  idx <- match(canonical_expected, canonical_columns)
+  if (anyNA(idx)) {
+    missing <- sample_names[is.na(idx)]
+    stop(
+      "MSDIAL export is missing sample columns: ",
+      paste(missing, collapse = ", ")
+    )
+  }
+  list(
+    columns = names(df)[idx],
+    sample_ids = sample_names
+  )
+}
+
+msdial_read_table <- function(path_table, label = "area") {
+  if (!file.exists(path_table)) {
+    stop("MSDIAL ", label, " file not found: ", path_table)
+  }
+  skip_rows <- msdial_detect_header_skip(path_table)
+  raw_df <- readr::read_delim(
+    file = path_table,
+    skip = skip_rows,
+    delim = "\t",
+    na = c("NA", "NaN", "null", "NULL"),
+    show_col_types = FALSE,
+    progress = FALSE,
+    name_repair = "minimal"
+  )
+  names(raw_df) <- msdial_clean_headers(names(raw_df))
+  candidate_id <- which(tolower(names(raw_df)) %in% c("alignment id", "id"))
+  if (length(candidate_id) == 0) {
+    stop("MSDIAL ", label, " file is missing Alignment ID column")
+  }
+  id_col <- names(raw_df)[candidate_id[[1]]]
+  raw_df[[msdial_id_column]] <- raw_df[[id_col]]
+  raw_df <- raw_df[!is.na(raw_df[[msdial_id_column]]), , drop = FALSE]
+  raw_df
+}
+
+msdial_numeric_block <- function(df, columns, new_names) {
+  block <- df[, columns, drop = FALSE]
+  block[] <- lapply(block, function(col) {
+    num_col <- suppressWarnings(as.numeric(col))
+    num_col[num_col == -1] <- NA
+    num_col
+  })
+  colnames(block) <- new_names
+  block
+}
+
+msdial_mode_dir <- function(path_result, mode_label) {
+  mode_dir <- file.path(path_result, mode_label)
+  if (!dir.exists(mode_dir)) {
+    stop("MSDIAL-UI expected folder '", mode_label, "' under path_result but it was not found: ", mode_dir)
+  }
+  mode_dir
+}
+
+msdial_latest_file <- function(dir, prefix) {
+  pattern <- paste0("^", prefix, ".*\\.txt$")
+  files <- list.files(dir, pattern = pattern, full.names = TRUE, ignore.case = TRUE)
+  if (length(files) == 0) return(NA_character_)
+  info <- file.info(files)
+  files[order(info$mtime, decreasing = TRUE)][[1]]
+}
+
+msdial_locate_mode_exports <- function(path_result, mode_label) {
+  dir <- msdial_mode_dir(path_result, mode_label)
+  area_file <- msdial_latest_file(dir, "Area")
+  rt_file <- msdial_latest_file(dir, "Rt")
+  mz_file <- msdial_latest_file(dir, "Mz")
+
+  if (is.na(area_file)) stop("No Area*.txt exports were found in ", dir)
+  if (is.na(rt_file)) stop("No Rt*.txt exports were found in ", dir)
+  if (is.na(mz_file)) stop("No Mz*.txt exports were found in ", dir)
+
+  list(area = area_file, rt = rt_file, mz = mz_file)
+}
+
+msdial_build_features <- function(area_df) {
+  features <- tibble::tibble(.rows = nrow(area_df))
+
+  for (src in names(msdial_direct_map)) {
+    tgt <- msdial_direct_map[[src]]
+    features[[tgt]] <- area_df[[src]]
+  }
+
+  # Replace (d[1-9]) with -D[1-9] in features$identity
+  if ("identity" %in% names(features)) {
+    features$identity <- gsub("\\(d([1-9])\\)", "-D\\1", features$identity, perl = TRUE)
+    # If identity contains '|', split and store first as identity, rest as identity_others
+    split_id <- strsplit(as.character(features$identity), "\\|")
+    features$identity_others <- vapply(split_id, function(x) {
+      if (length(x) > 1) paste(x[-1], collapse = "|") else NA_character_
+    }, character(1))
+    features$identity <- vapply(split_id, function(x) x[1], character(1))
+  }
+  # Replace [2H] with H' in features$formula
+  if ("formula" %in% names(features)) {
+    features$formula <- gsub("\\[2H\\]", "H'", features$formula, perl = TRUE)
+  }
+
+  avg_mz <- suppressWarnings(as.numeric(area_df[["Average Mz"]]))
+  ref_mz <- suppressWarnings(as.numeric(area_df[["Reference m/z"]]))
+  features$mz_diff_ppm <- ifelse(is.na(avg_mz) | is.na(ref_mz) | ref_mz == 0, NA_real_, (avg_mz - ref_mz) / ref_mz * 1e6)
+
+  avg_rt <- suppressWarnings(as.numeric(area_df[["Average Rt(min)"]]))
+  ref_rt <- suppressWarnings(as.numeric(area_df[["Reference RT"]]))
+  features$rt_diff <- ifelse(is.na(avg_rt) | is.na(ref_rt), NA_real_, avg_rt - ref_rt)
+
+  for (col in msdial_extra_columns) {
+    tgt <- make.names(col)
+    features[[tgt]] <- area_df[[col]]
+  }
+
+  desired_order <- c(
+    "id", "mz", "rt", "ccs", "identity", "ion", "formula",
+    "mz_diff_ppm", "rt_diff", "identity_source", "spectral_similarity",
+    make.names(msdial_extra_columns)
+  )
+
+  missing_cols <- setdiff(desired_order, names(features))
+  if (length(missing_cols) > 0) {
+    for (col in missing_cols) features[[col]] <- NA
+  }
+  features[, desired_order, drop = FALSE]
+}
+
+msdial_align_measurement_block <- function(path_table, area_ids, sample_map, suffix) {
+  tbl <- msdial_read_table(path_table, label = suffix)
+  if (!all(sample_map$columns %in% names(tbl))) {
+    missing <- setdiff(sample_map$columns, names(tbl))
+    stop(suffix, " file is missing sample columns: ", paste(missing, collapse = ", "))
+  }
+  idx <- match(area_ids, tbl[[msdial_id_column]])
+  block <- tbl[idx, sample_map$columns, drop = FALSE]
+  prefixed_names <- paste0("datafile.", sample_map$sample_ids, ".", suffix)
+  msdial_numeric_block(block, sample_map$columns, prefixed_names)
+}
+
+msdial_convert_mode <- function(mode_label, file_set, sample_names, out_path, out_istd) {
+  area_df <- msdial_read_table(file_set$area, label = paste(mode_label, "area"))
+  sample_map <- msdial_match_sample_columns(area_df, sample_names)
+
+  area_block <- msdial_numeric_block(area_df, sample_map$columns, sample_map$sample_ids)
+  features <- msdial_build_features(area_df)
+  peaktable <- cbind(features, area_block)
+  wf_ensure_parent_dirs(c(out_path, out_istd))
+  openxlsx::write.xlsx(peaktable, file = out_path)
+
+  prefixed_area <- area_block
+  colnames(prefixed_area) <- paste0("datafile.", sample_map$sample_ids, ".area")
+  area_ids <- area_df[[msdial_id_column]]
+
+  rt_block <- msdial_align_measurement_block(file_set$rt, area_ids, sample_map, "rt")
+  mz_block <- msdial_align_measurement_block(file_set$mz, area_ids, sample_map, "mz")
+  combined <- cbind(prefixed_area, rt_block, mz_block)
+
+  isted_idx <- (!is.na(features$formula) & grepl("'", features$formula, fixed = TRUE)) | grepl("(\\(d[1-9]\\))", features$identity)
+  features_istd <- features[isted_idx, , drop = FALSE]
+  combined_istd <- combined[isted_idx, , drop = FALSE]
+  peaktable_istd <- cbind(features_istd, combined_istd)
+  openxlsx::write.xlsx(peaktable_istd, file = out_istd)
+
+  list(
+    peaktable_path = out_path,
+    peaktable_istd_path = out_istd,
+    n_features = nrow(features),
+    n_istd = nrow(features_istd)
+  )
+}
+```
+
+```{r pipeline input, include = FALSE}
+config <- wf_read_yaml_config(params$config, label = "params$config")
+
+run.pos <- as_flag(config$run.pos)
+run.neg <- as_flag(config$run.neg)
+path_result <- normalizePath(require_cfg(config, "path_result"), winslash = "/", mustWork = FALSE)
+msdial_exports_pos <- if (run.pos) msdial_locate_mode_exports(path_result, "pos") else NULL
+msdial_exports_neg <- if (run.neg) msdial_locate_mode_exports(path_result, "neg") else NULL
+
+msdial_samples_pos <- if (run.pos) msdial_config_sample_names(config, "pos") else character()
+msdial_samples_neg <- if (run.neg) msdial_config_sample_names(config, "neg") else character()
+
+path_peaktable_pos <- require_cfg(config, "path_peaktable_pos")
+path_peaktable_neg <- require_cfg(config, "path_peaktable_neg")
+path_peaktable_istd_pos <- require_cfg(config, "path_peaktable_istd_pos")
+path_peaktable_istd_neg <- require_cfg(config, "path_peaktable_istd_neg")
+
+wf_ensure_parent_dirs(c(path_peaktable_pos, path_peaktable_neg, path_peaktable_istd_pos, path_peaktable_istd_neg))
+```
+
+## Convert MSDIAL-UI output
+
+```{r}
+if (run.pos) {
+  files_pos <- msdial_exports_pos
+  result_pos <- msdial_convert_mode(
+    mode_label = "pos",
+    file_set = files_pos,
+    sample_names = msdial_samples_pos,
+    out_path = path_peaktable_pos,
+    out_istd = path_peaktable_istd_pos
+  )
+}
+
+if (run.neg) {
+  files_neg <- msdial_exports_neg
+  result_neg <- msdial_convert_mode(
+    mode_label = "neg",
+    file_set = files_neg,
+    sample_names = msdial_samples_neg,
+    out_path = path_peaktable_neg,
+    out_istd = path_peaktable_istd_neg
+  )
+}
+```
+
+### Positive mode summary
+```{r, eval = run.pos}
+cat("Converted peaktable is stored in:\n")
+cat(result_pos$peaktable_path, "\n")
+cat("Number of converted features: ", result_pos$n_features, "\n")
+cat("Number of ISTD rows: ", result_pos$n_istd, "\n")
+```
+
+### Negative mode summary
+```{r, eval = run.neg}
+cat("Converted peaktable is stored in:\n")
+cat(result_neg$peaktable_path, "\n")
+cat("Number of converted features: ", result_neg$n_features, "\n")
+cat("Number of ISTD rows: ", result_neg$n_istd, "\n")
+```
+```

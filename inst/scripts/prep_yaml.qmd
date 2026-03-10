@@ -24,6 +24,7 @@ params:
   path_temp: ""
   author: ""
   qc_types: ""
+  software: "mzmine"
 ---
 
 ```{r setup environment, include = FALSE, warning = FALSE}
@@ -49,11 +50,11 @@ knitr::opts_chunk$set(
   warning = FALSE,
   echo = FALSE,
   include = TRUE
-)
+  )
 
-is_blank <- wf_is_blank
-require_path <- wf_require_path
-join_path <- wf_join_path
+  is_blank <- wf_is_blank
+  require_path <- wf_require_path
+  join_path <- wf_join_path
 
 ```
 
@@ -68,6 +69,10 @@ path_mzmine = params$path_mzmine
 path_temp = params$path_temp
 author = params$author
 qc_types = params$qc_types
+software = tolower(ifelse(is_blank(params$software), "mzmine", params$software))
+if (!software %in% c("mzmine", "msdialui")) {
+  stop("Unsupported software value: ", params$software)
+}
 
 path_raw <- require_path(path_raw, "path_raw")
 path_workflow <- require_path(path_workflow, "path_workflow")
@@ -331,6 +336,7 @@ config <- list(
   path_workflow = path_workflow,
   path_mzmine = path_mzmine,
   path_temp = path_temp,
+  software = software,
   author = author,
   method_name = method_name,
   run.pos = run.pos,
