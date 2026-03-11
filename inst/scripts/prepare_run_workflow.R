@@ -136,7 +136,12 @@ path_temp <- pick_first(get_arg("--temp"), default_temp)
 qc <- pick_first(get_arg("--qc"), "BL,NIST,PO,sol,CP,IQ,BPL,MMix,PB,SP0625,SP1125,SP25,SP5,SP10,SP,SP40,POJ,POK")
 author <- pick_first(get_arg("--author"), "CBMR Metabolomics Platform")
 config_override <- get_arg("--config")
-software <- pick_first(tolower(get_arg("--software")), "mzmine")
+software <- get_arg("--software")
+if (is.null(software) || is_blank(software)) {
+  software <- "mzmine"
+} else {
+  software <- tolower(software)
+}
 if (!software %in% c("mzmine", "msdialui")) {
   stop("--software must be one of: mzmine, msdialui")
 }

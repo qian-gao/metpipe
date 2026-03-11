@@ -151,6 +151,10 @@ wf_render_qmd_document <- function(input, render_params, intermediates_dir, outp
 
   if (!dir.exists(intermediates_dir)) dir.create(intermediates_dir, recursive = TRUE, showWarnings = FALSE)
 
+  # Ensure Quarto's expected subfolders exist (fix for Windows temp bug)
+  prep_yaml_libs_dir <- file.path(intermediates_dir, "prep_yaml_files", "libs", "quarto-html")
+  if (!dir.exists(prep_yaml_libs_dir)) dir.create(prep_yaml_libs_dir, recursive = TRUE, showWarnings = FALSE)
+
   quarto_bin <- Sys.which("quarto")
   if (!nzchar(quarto_bin)) {
     stop("Quarto CLI was not found on PATH. Install Quarto or add 'quarto' to PATH.")
@@ -172,14 +176,14 @@ wf_render_qmd_document <- function(input, render_params, intermediates_dir, outp
     stop("Unable to locate a valid Rscript executable for Quarto")
   }
 
-  exec_dir <- normalizePath(getwd(), winslash = "/", mustWork = FALSE)
+  exec_dir <- intermediates_dir
   input_abs <- normalizePath(input, winslash = "/", mustWork = TRUE)
   input_dir <- dirname(input_abs)
   input_base <- basename(input_abs)
 
   old_wd <- getwd()
   on.exit(setwd(old_wd), add = TRUE)
-  setwd(input_dir)
+  setwd(exec_dir)
 
   params_file <- tempfile(pattern = "qmd-params-", tmpdir = intermediates_dir, fileext = ".yml")
   yaml::write_yaml(render_params, params_file)
@@ -190,7 +194,7 @@ wf_render_qmd_document <- function(input, render_params, intermediates_dir, outp
 
   args <- c(
     "render",
-    input_base,
+    input_abs,
     "--no-clean",
     "--execute-params", normalizePath(params_file, winslash = "/", mustWork = TRUE),
     "--execute-dir", exec_dir,
@@ -202,16 +206,10 @@ wf_render_qmd_document <- function(input, render_params, intermediates_dir, outp
     stop("quarto render failed with exit code: ", status)
   }
 
-  produced_file <- file.path(input_dir, basename(output_file))
-  if (!file.exists(produced_file)) {
-    produced_file <- file.path(out_dir, basename(output_file))
-  }
+  produced_file <- file.path(exec_dir, basename(output_file))
   if (!file.exists(produced_file)) {
     default_name <- paste0(tools::file_path_sans_ext(input_base), ".html")
-    produced_file <- file.path(input_dir, default_name)
-    if (!file.exists(produced_file)) {
-      produced_file <- file.path(out_dir, default_name)
-    }
+    produced_file <- file.path(exec_dir, default_name)
   }
 
   if (file.exists(produced_file) && normalizePath(produced_file, winslash = "/", mustWork = TRUE) != normalizePath(output_file, winslash = "/", mustWork = FALSE)) {
