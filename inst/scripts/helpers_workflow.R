@@ -151,10 +151,6 @@ wf_render_qmd_document <- function(input, render_params, intermediates_dir, outp
 
   if (!dir.exists(intermediates_dir)) dir.create(intermediates_dir, recursive = TRUE, showWarnings = FALSE)
 
-  # Ensure Quarto's expected subfolders exist (fix for Windows temp bug)
-  prep_yaml_libs_dir <- file.path(intermediates_dir, "prep_yaml_files", "libs", "quarto-html")
-  if (!dir.exists(prep_yaml_libs_dir)) dir.create(prep_yaml_libs_dir, recursive = TRUE, showWarnings = FALSE)
-
   quarto_bin <- Sys.which("quarto")
   if (!nzchar(quarto_bin)) {
     stop("Quarto CLI was not found on PATH. Install Quarto or add 'quarto' to PATH.")
@@ -178,11 +174,15 @@ wf_render_qmd_document <- function(input, render_params, intermediates_dir, outp
 
   exec_dir <- intermediates_dir
   input_abs <- normalizePath(input, winslash = "/", mustWork = TRUE)
-  input_dir <- dirname(input_abs)
   input_base <- basename(input_abs)
+  temp_qmd <- file.path(intermediates_dir, input_base)
+  file.copy(input_abs, temp_qmd, overwrite = TRUE)
 
   old_wd <- getwd()
-  on.exit(setwd(old_wd), add = TRUE)
+  on.exit({
+    setwd(old_wd)
+    if (file.exists(temp_qmd)) file.remove(temp_qmd)
+  }, add = TRUE)
   setwd(exec_dir)
 
   params_file <- tempfile(pattern = "qmd-params-", tmpdir = intermediates_dir, fileext = ".yml")
@@ -194,7 +194,7 @@ wf_render_qmd_document <- function(input, render_params, intermediates_dir, outp
 
   args <- c(
     "render",
-    input_abs,
+    temp_qmd,
     "--no-clean",
     "--execute-params", normalizePath(params_file, winslash = "/", mustWork = TRUE),
     "--execute-dir", exec_dir,
