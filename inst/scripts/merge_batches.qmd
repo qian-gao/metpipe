@@ -1,0 +1,195 @@
+---
+title: "Convert output"
+author: "CBMR Metabolomics Platform"
+date: "`r base::Sys.Date()`"
+          
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    toc-location: left
+    theme: flatly
+    polyfill: false
+    page-layout: full
+    number-sections: true
+    number-depth: 2
+self-contained: true
+
+params:
+  config: ""
+---
+
+```{r setup environment, include = FALSE, warning = FALSE}
+
+library(yaml)
+library(dplyr)
+library(openxlsx)
+# params <- list()
+# params$config <- "E:/Projects/MP_workshop/peaktable/PL_LIPS_PASEF/config.yml"
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
+# helper_candidates <- c(
+#   file.path(getwd(), "helpers_workflow.R"),
+#   file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
+#   system.file("scripts", "helpers_workflow.R", package = "metpipe")
+# )
+# helper_candidates <- helper_candidates[file.exists(helper_candidates)]
+# if (length(helper_candidates) == 0) {
+#   stop("Cannot locate shared helper script helpers_workflow.R")
+# }
+# source(helper_candidates[[1]], local = TRUE)
+
+```
+
+```{r}
+# Helper function to calculate ppm difference
+ppm_diff <- function(mz1, mz2) {
+  abs(mz1 - mz2) / mz1 * 1e6
+}
+
+align_features <- function(df1, df2, best_match = FALSE) {
+  aligned <- list()
+  for (i in seq_len(nrow(df1))) {
+    row1 <- df1[i, ]
+    candidates <- df2[
+      ppm_diff(row1$mz, df2$mz) < 5 &
+      abs(row1$rt - df2$rt) < 0.2, 
+    ]
+    if (!is.na(row1$identity)) {
+      candidates <- candidates[
+        !is.na(candidates$identity) &
+        candidates$identity == row1$identity &
+        candidates$ion == row1$ion &
+        candidates$formula == row1$formula, 
+      ]
+    }
+    if (nrow(candidates) > 0) {
+      if (best_match) {
+        # Find the best candidate by Spearman correlation of common sample intensities
+        sample_cols_1 <- grep('area$', colnames(row1), value = TRUE)
+        best_j <- NA
+        best_score <- -Inf
+        for (j in seq_len(nrow(candidates))) {
+          sample_cols_2 <- grep('area$', colnames(candidates), value = TRUE)
+          common_samples <- intersect(sample_cols_1, sample_cols_2)
+          if (length(common_samples) > 1) {
+            x <- as.numeric(row1[common_samples])
+            y <- as.numeric(candidates[j, common_samples])
+            score <- suppressWarnings(cor(x, y, method = "spearman", use = "pairwise.complete.obs"))
+            if (!is.na(score) && score > best_score) {
+              best_score <- score
+              best_j <- j
+            }
+          }
+        }
+        if (!is.na(best_j)) {
+          mz_batch_diff <- row1$mz - candidates[best_j, "mz"]
+          rt_batch_diff <- row1$rt - candidates[best_j, "rt"]
+          merged_row <- cbind(row1, candidates[best_j, ], mz_batch_diff = mz_batch_diff, rt_batch_diff = rt_batch_diff)
+          aligned[[length(aligned) + 1]] <- merged_row
+        }
+      } else {
+        # Keep all candidates
+        for (j in seq_len(nrow(candidates))) {
+          mz_batch_diff <- row1$mz - candidates[j, "mz"]
+          rt_batch_diff <- row1$rt - candidates[j, "rt"]
+          merged_row <- cbind(row1, candidates[j, ], mz_batch_diff = mz_batch_diff, rt_batch_diff = rt_batch_diff)
+          aligned[[length(aligned) + 1]] <- merged_row
+        }
+      }
+    }
+  }
+  do.call(rbind, aligned)
+}
+
+calc_stats <- function(peaktable, meta) {
+  peaktable_with_meta <- peaktable %>%
+    left_join(meta, by = c("File.name" = "File.name"))
+  peaktable_with_meta %>%
+    group_by(sample_type) %>%
+    summarise(
+      mean_intensity = mean(intensity, na.rm = TRUE),
+      sd_intensity = sd(intensity, na.rm = TRUE),
+      rsd_intensity = sd(intensity, na.rm = TRUE) / mean(intensity, na.rm = TRUE) * 100
+    )
+}
+```
+
+```{r}
+
+# Batch 1 paths
+batch1 <- "E:/Projects/MP208/peaktable/PL_LIPS_PASEF_batch1"
+# Batch 2 paths
+batch2 <- "E:/Projects/MP208/peaktable/PL_LIPS_PASEF_batch2"
+output_dir <- "E:/Projects/MP208/peaktable/PL_LIPS_PASEF"
+# Read files from batch 1
+peaktable_istd_pos_1 <- read.xlsx(file.path(batch1, "peaktable_istd_pos.xlsx"))
+peaktable_istd_neg_1 <- read.xlsx(file.path(batch1, "peaktable_istd_neg.xlsx"))
+peaktable_pos_1      <- read.xlsx(file.path(batch1, "peaktable_pos.xlsx"))
+peaktable_neg_1      <- read.xlsx(file.path(batch1, "peaktable_neg.xlsx"))
+
+# Read files from batch 2
+peaktable_istd_pos_2 <- read.xlsx(file.path(batch2, "peaktable_istd_pos.xlsx"))
+peaktable_istd_neg_2 <- read.xlsx(file.path(batch2, "peaktable_istd_neg.xlsx"))
+peaktable_pos_2      <- read.xlsx(file.path(batch2, "peaktable_pos.xlsx"))
+peaktable_neg_2      <- read.xlsx(file.path(batch2, "peaktable_neg.xlsx"))
+# Read config.yml for sample type info
+# config_path <- "E:/Projects/MP208/peaktable/PL_LIPS_PASEF/config.yml"
+# config <- wf_read_yaml_config(config_path)
+# Extract sample metadata (example: meta_pos, meta_neg)
+# meta_pos <- wf_as_meta_df(config$meta_pos)
+# meta_neg <- wf_as_meta_df(config$meta_neg)
+
+# Calculate stats for each peaktable
+# stats_peaktable_istd_pos_1 <- calc_stats(peaktable_istd_pos_1, meta_pos)
+# stats_peaktable_istd_pos_2 <- calc_stats(peaktable_istd_pos_2, meta_pos)
+# stats_peaktable_istd_neg_1 <- calc_stats(peaktable_istd_neg_1, meta_neg)
+# stats_peaktable_istd_neg_2 <- calc_stats(peaktable_istd_neg_2, meta_neg)
+# stats_peaktable_pos_1      <- calc_stats(peaktable_pos_1, meta_pos)
+# stats_peaktable_pos_2      <- calc_stats(peaktable_pos_2, meta_pos)
+# stats_peaktable_neg_1      <- calc_stats(peaktable_neg_1, meta_neg)
+# stats_peaktable_neg_2      <- calc_stats(peaktable_neg_2, meta_neg)
+
+```
+
+```{r align features}
+
+
+# Merge all peaktable pairs (set best_match = FALSE to keep all candidates, or TRUE for best match only)
+merged_peaktable_istd_pos <- align_features(peaktable_istd_pos_1, peaktable_istd_pos_2, best_match = TRUE)
+merged_peaktable_istd_neg <- align_features(peaktable_istd_neg_1, peaktable_istd_neg_2, best_match = TRUE)
+merged_peaktable_pos      <- align_features(peaktable_pos_1,      peaktable_pos_2,      best_match = TRUE)
+merged_peaktable_neg      <- align_features(peaktable_neg_1,      peaktable_neg_2,      best_match = TRUE)
+
+# Write merged tables to xlsx files in the output folder with original names
+
+# Remove columns ending with .1 before export
+remove_dot1_cols <- function(df) {
+  df[, !grepl("\\.1$", colnames(df))]
+}
+
+openxlsx::write.xlsx(remove_dot1_cols(merged_peaktable_istd_pos), file.path(output_dir, "peaktable_istd_pos.xlsx"), overwrite = TRUE)
+openxlsx::write.xlsx(remove_dot1_cols(merged_peaktable_istd_neg), file.path(output_dir, "peaktable_istd_neg.xlsx"), overwrite = TRUE)
+openxlsx::write.xlsx(remove_dot1_cols(merged_peaktable_pos),      file.path(output_dir, "peaktable_pos.xlsx"),      overwrite = TRUE)
+openxlsx::write.xlsx(remove_dot1_cols(merged_peaktable_neg),      file.path(output_dir, "peaktable_neg.xlsx"),      overwrite = TRUE)
+```
+
+```{r session info, include = FALSE, eval = FALSE}
+
+# Session info
+
+utils::sessionInfo()
+
+```
+
+
+
+
+

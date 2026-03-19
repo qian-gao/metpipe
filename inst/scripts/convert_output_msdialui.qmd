@@ -295,10 +295,11 @@ msdial_align_measurement_block <- function(path_table, area_ids, sample_map, suf
 }
 
 msdial_convert_mode <- function(mode_label, file_set, sample_names, out_path, out_istd) {
-  area_df <- msdial_read_table(file_set$area, label = paste(mode_label, "area"))
+  area_df <- msdial_read_table(file_set$area, label = paste(mode_label, "d.area"))
   sample_map <- msdial_match_sample_columns(area_df, sample_names)
 
   area_block <- msdial_numeric_block(area_df, sample_map$columns, sample_map$sample_ids)
+  colnames(area_block) <- paste0(sample_map$sample_ids, ".d")
   features <- msdial_build_features(area_df)
   peaktable <- cbind(features, area_block)
   wf_ensure_parent_dirs(c(out_path, out_istd))
@@ -308,8 +309,8 @@ msdial_convert_mode <- function(mode_label, file_set, sample_names, out_path, ou
   colnames(prefixed_area) <- paste0("datafile.", sample_map$sample_ids, ".area")
   area_ids <- area_df[[msdial_id_column]]
 
-  rt_block <- msdial_align_measurement_block(file_set$rt, area_ids, sample_map, "rt")
-  mz_block <- msdial_align_measurement_block(file_set$mz, area_ids, sample_map, "mz")
+  rt_block <- msdial_align_measurement_block(file_set$rt, area_ids, sample_map, "d.rt")
+  mz_block <- msdial_align_measurement_block(file_set$mz, area_ids, sample_map, "d.mz")
   combined <- cbind(prefixed_area, rt_block, mz_block)
 
   isted_idx <- (!is.na(features$formula) & grepl("'", features$formula, fixed = TRUE)) | grepl("(\\(d[1-9]\\))", features$identity)

@@ -7,3 +7,7 @@
 R/.Rhistory
 utils/.Rhistory
 /workflow/*
+*.dockerfile
+CLAUDE.md
+metpipe_intro.qmd
+*.tar.gz

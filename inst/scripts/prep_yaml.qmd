@@ -166,7 +166,7 @@ if (analysis_i %in% c("FPASEF")){
 }
 
 if (dir.exists(path_files_pos)){
-  raw_files_pos <- sort(list.files(path_files_pos, full.names = TRUE, pattern = "\\.(d|mzML)$", ignore.case = TRUE))
+  raw_files_pos <- sort(list.files(path_files_pos, full.names = TRUE, pattern = "\\.(d|mzML|raw)$", ignore.case = TRUE))
   run.pos <- length(raw_files_pos) > 0
 }
 
@@ -178,7 +178,7 @@ if (run.pos) {
 }
 
 if (dir.exists(path_files_neg)){
-  raw_files_neg <- sort(list.files(path_files_neg, full.names = TRUE, pattern = "\\.(d|mzML)$", ignore.case = TRUE))
+  raw_files_neg <- sort(list.files(path_files_neg, full.names = TRUE, pattern = "\\.(d|mzML|raw)$", ignore.case = TRUE))
   run.neg <- length(raw_files_neg) > 0
 }
 
