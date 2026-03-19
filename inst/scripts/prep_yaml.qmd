@@ -248,7 +248,7 @@ if (has_dilution_series) {
     method = "spearman"
   )
 } else {
-  dilution.filter <- NA
+  dilution.filter <- NULL
 }
 rt.range <- c(0, 30)
 filter_by_missing_feature_pct <- 50
