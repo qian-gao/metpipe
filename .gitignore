@@ -11,3 +11,6 @@ utils/.Rhistory
 CLAUDE.md
 metpipe_intro.qmd
 *.tar.gz
+
+/.quarto/
+**/*.quarto_ipynb

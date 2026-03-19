@@ -93,7 +93,8 @@ if (length(qc_types) == 1 && grepl(",", qc_types, fixed = TRUE)) {
 }
 if (length(qc_types) == 1 && !nzchar(qc_types)) {
   qc_types <- c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix", "PB",
-                "SP0625", "SP1125", "SP25", "SP5", "SP10", "SP", "SP40", "POJ", "POK")
+                "SP0625", "SP1125", "SP25", "SP5", "SP10", "SP", "SP40", "POJ", "POK",
+                "PO1205", "PO25", "PO50", "PO100", "PO200")
 }
 
 if (is_blank(author)) {
@@ -232,12 +233,23 @@ figure_width = 1000
 mean.filter <- list(c( 2, "BL", "<", "PO"),
                    c( 1, "Sample", ">", 500))
 rsd.filter <- list(c(1, "PO", "<", 0.3))
-dilution.filter <- list(
-  dilution.types = c("PO1205", "PO25", "PO50", "PO100", "PO200"),
-  levels = c(12.5, 25, 50, 100, 200),
-  min.cor = 0.7,
-  method = "spearman"
-)
+
+has_dilution_series <- {
+  pos_types <- if (!is.null(meta_pos)) meta_pos$Sample.type else character(0)
+  neg_types <- if (!is.null(meta_neg)) meta_neg$Sample.type else character(0)
+  any(grepl("PO25", c(pos_types, neg_types)))
+}
+
+if (has_dilution_series) {
+  dilution.filter <- list(
+    dilution.types = c("PO1205", "PO25", "PO50", "PO100", "PO200"),
+    levels = c(12.5, 25, 50, 100, 200),
+    min.cor = 0.7,
+    method = "spearman"
+  )
+} else {
+  dilution.filter <- NA
+}
 rt.range <- c(0, 30)
 filter_by_missing_feature_pct <- 50
 filter_by_missing_sample_type <- "Sample"
