@@ -76,6 +76,10 @@ run_mzmine <- function(path_mzmine, mzmine_user, param_file, path_output, mzmine
     th_args,
     "-temp", path_temp
   )
+  
+  if (grepl("/wd", path_mzmine)) {
+    fs::dir_copy("/wd/mzmine_linux/external_tools", paste0(path_temp, "/external_tools"), overwrite = TRUE)
+  }
 
   status <- system2(path_mzmine, args = args)
   if (!identical(status, 0L)) {
