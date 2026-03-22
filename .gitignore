@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 .html
+.vscode
 /*/*/*.html
 R/.Rhistory
 utils/.Rhistory

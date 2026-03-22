@@ -1,6 +1,6 @@
 # metpipe
 
-`metpipe` is an R package for reproducible processing of untargeted metabolomics/lipidomics data. It handles the full process from raw data files to analysis-ready feature matrices, with native support for two widely used software platforms: **mzMine** and **MS-DIAL**.
+`metpipe` is an R package for reproducible processing of untargeted metabolomics/lipidomics data. It handles the full process from raw data files to analysis-ready feature matrices, with native support for two widely used software platforms: **mzMine** and **MS-DIAL**. Detailed documentation is available at [qian-gao.github.io/metpipe_docs](https://qian-gao.github.io/metpipe_docs/).
 
 The package is designed for researchers who need a consistent pipeline across studies, either working interactively in R or running automated batch workflows.
 
