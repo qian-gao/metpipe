@@ -1,15 +1,19 @@
 # metpipe
 
-`metpipe` is an R package for untargeted metabolomics preprocessing workflows.
+`metpipe` is an R package for reproducible processing of untargeted metabolomics/lipidomics data. It handles the full process from raw data files to analysis-ready feature matrices, with native support for two widely used software platforms: **mzMine** and **MS-DIAL**.
 
-It provides utilities for:
+The package is designed for researchers who need a consistent pipeline across studies, either working interactively in R or running automated batch workflows.
 
-- importing and harmonizing peak tables and metadata
-- cleaning and filtering features
-- imputing missing values
-- normalization with multiple methods
-- QC/evaluation summaries and visualization
-- merging mapped positive/negative mode outputs
+## What it does
+
+- **Import** raw data files and harmonize metadata from standardized filenames or user-specified metadata files
+- **Preprocess** raw data files with software-specific parameters, including peak picking, alignment, and gap filling
+- **QC** internal standards and pooled samples to assess data quality and guide filtering decisions
+- **Clean and filter** features by RSD, missing value rate, and dilution series
+- **Impute** missing values (half-minimum, limit of detection, median, mean, kNN)
+- **Normalize** with multiple strategies including internal standard–based and probabilistic quotient normalization
+- **Merge** positive and negative mode outputs and map features to metabolite identities
+- **Evaluate** data quality with QC summaries, PCA plots, and IS diagnostics — all exported as HTML reports
 
 ## Package organization
 
@@ -19,84 +23,59 @@ It provides utilities for:
 
 The package is designed so users can either call API functions directly, or run the scripted workflow process.
 
+## Source
+
+The package source is available on GitHub at [qian-gao/metpipe](https://github.com/qian-gao/metpipe).
+
 ## Installation
 
-Install from source in a local clone:
+### From GitHub
 
 ```r
 install.packages("remotes")
-remotes::install_local(".")
+remotes::install_github("qian-gao/metpipe")
 ```
+### From Docker
 
-## Quick start
+Docker images are available for users who want to run the full workflow without installing R and dependencies. Available on Docker Hub at [qiangao/metpipe](https://hub.docker.com/r/qiangao/metpipe).
 
-```r
-library(metpipe)
+## Usage
 
-# 1) Import peak table
-datalist <- run_import_peaktable(
-	peak_table = "path/to/peaktable.xlsx",
-	feature_col = 1,
-	sample_col_start = 2
-)
+There are two ways to use `metpipe`: Script mode and Docker mode.
 
-# 2) Clean/filter
-datalist <- run_clean_peaktable(datalist = datalist)
+### Script mode
 
-# 3) Normalize
-datalist <- run_normalization(datalist = datalist)
-```
-
-## Workflow runner (R package usage)
-
-The canonical process is:
-
-1. prepare workflow configuration (`prepare_workflow.R`)
-2. execute workflow modules (`run_workflow.R`)
-
-You can run the combined wrapper script:
+For batch processing, `metpipe` ships a scripted runner in `inst/scripts/`. A single call handles configuration generation and full pipeline execution:
 
 ```r
 runner <- system.file("scripts", "prepare_run_workflow.R", package = "metpipe")
 
-system2(
-	"Rscript",
-	c(
-		runner,
-		"--raw", "path/to/raw_or_mzML_folder",
-		"--result", "path/to/output_folder"
-	)
-)
+system2("Rscript", c(
+	runner,
+	"--raw",      "path/to/mzML_folder",
+	"--result",   "path/to/output_folder",
+	"--software", "mzmine"        # or "msdialui"
+))
 ```
 
 Optional arguments include `--workflow`, `--mzmine`, `--temp`, `--yaml`, and `--qc`.
 
-## Workflow templates
+### Docker mode
 
-Package templates and scripts are available in:
+Execute a workflow script directly:
 
-- `inst/scripts/`
-
-Key scripts:
-
-- `inst/scripts/prepare_run_workflow.R`
-- `inst/scripts/prepare_workflow.R`
-- `inst/scripts/run_workflow.R`
-
-## Workflow smoke check
-
-Use the smoke checker to validate config parsing and module resolution without executing full preprocessing.
-
-```r
-smoke <- system.file("scripts", "smoke_test_workflow.R", package = "metpipe")
-
-# Qmd modules
-system2("Rscript", c(smoke, "--config", "path/to/config.yml"))
+```bash
+docker run --rm \
+  qiangao/metpipe:0.8 \
+  Rscript /wd/prepare_workflow.R --raw /path/to/raw_folder --result /path/to/output_folder
 ```
 
-Optional flags: `--module`, `--package-mode`, `--local-pkg-root`.
+## Output reports
 
-## Development notes
+The workflow script mode produces a set of Quarto HTML reports:
 
-- Build/install with `R CMD build .` and `R CMD INSTALL metpipe_*.tar.gz`
-- Re-generate docs with `roxygen2` after changing function headers
+| Report | Contents |
+|---|---|
+| `qc_istd.html` | QC of internal standard and QC samples |
+| `post_processing.html` | Clean and filtering steps tracking of samples and features |
+| `evaluation.html` | Missing distribution, normalization comparison, PCA, identification summary |
