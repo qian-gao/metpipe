@@ -16,8 +16,8 @@ format:
     number-depth: 2
 self-contained: true
 
-params:
-  config: ""
+# params:
+#   config: ""
 ---
 
 ```{r setup environment, include = FALSE, warning = FALSE}
@@ -170,7 +170,7 @@ df_area <-
 
 df_qc <- 
   cbind(df_mz, df_rt[, "file.rt"], df_area[, "file.area"]) %>% 
-  mutate(File.name = gsub("datafile.|.mz$", "", File.name)) %>% 
+  mutate(File.name = make.names(gsub("datafile.|.mz$", "", File.name))) %>% 
   left_join(meta_pos %>% mutate(File.name = make.names(File.name)),
             by = "File.name")
 
@@ -473,7 +473,7 @@ df_area <-
 
 df_qc <- 
   cbind(df_mz, df_rt[, "file.rt"], df_area[, "file.area"]) %>% 
-  mutate(File.name = gsub("datafile.|.mz$", "", File.name)) %>% 
+  mutate(File.name = make.names(gsub("datafile.|.mz$", "", File.name))) %>% 
   left_join(meta_neg %>% mutate(File.name = make.names(File.name)),
             by = "File.name")
   
