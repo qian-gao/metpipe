@@ -16,8 +16,8 @@ format:
     number-depth: 2
 self-contained: true
 
-# params:
-#   config: ""
+params:
+  config: ""
 ---
 
 ```{r setup environment, include = FALSE, warning = FALSE}
