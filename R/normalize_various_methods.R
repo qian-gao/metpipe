@@ -128,7 +128,7 @@ normalize_various_methods <-
 
     } else if (method == 'sum') {
 
-      sum.median <- median( rowMeans(x, na.rm = TRUE), na.rm = TRUE)
+      sum.median <- median( apply(x, 1, function(x) sum(x, na.rm = TRUE)), na.rm = TRUE)
       x_norm <- t(apply(x, 1, function(row_i) {
         den <- sum(row_i, na.rm = TRUE)
         if (!is.finite(den) || den == 0) {
