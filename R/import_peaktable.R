@@ -200,7 +200,7 @@ import_peaktable <-
     }
     
     # Adjust sequence
-    peak_colnames <- colnames(peaks)
+    peak_colnames <- make.names(colnames(peaks))
     samples <- make.names(file$File.name)
     seq <- match(samples, peak_colnames)
     peaks <- peaks[, seq]

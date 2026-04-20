@@ -48,7 +48,6 @@ run_import_peaktable <-
     find_is = FALSE,
     add_lipid_info = FALSE,
     keep.lipid.orig = NULL,
-    standardized.name = FALSE,
     standerdized.name = NULL
   ){
 
