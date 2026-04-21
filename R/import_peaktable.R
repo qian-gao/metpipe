@@ -85,7 +85,8 @@ import_peaktable <-
       mutate(n = n(),
              Identity = ifelse( n > 1, 
                                 paste0(Identity_raw, "-iso", row_number()),
-                                Identity_raw)) %>% 
+                                Identity_raw),
+             Identity = gsub("low score: ", "", Identity)) %>% 
       ungroup() %>% 
       select(-n) %>% 
       relocate(Identity, .before = Identity_raw)
