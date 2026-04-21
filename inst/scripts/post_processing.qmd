@@ -118,7 +118,7 @@ if (!run.pos && !run.neg) {
 }
 ```
 
-```{r, include = FALSE, eval = TRUE}
+```{r, include = FALSE, eval = FALSE}
 
 config <- read_yaml("E:/Projects/MP0065/peaktable/PL_LIPS_PASEF/config.yml")
 
