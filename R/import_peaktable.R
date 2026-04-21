@@ -75,7 +75,7 @@ import_peaktable <-
     
     features <- 
       features %>% 
-      mutate( Feature_type = ifelse(is.na(Identity_raw)| Identity_raw == "" |Identity_raw == "NA" |grepl("Unknown|no MS2", Identity_raw), 
+      mutate( Feature_type = ifelse(is.na(Identity_raw)| Identity_raw == "" |Identity_raw == "NA" |grepl("Unknown|no MS2|RIKEN", Identity_raw), 
                                     "Unknown", "Known"),
               Identity_raw = ifelse(Feature_type == "Unknown", 
                                      paste0("Unknown_MZ_", round(mz, 3), "_RT_", round(rt, 3)),
