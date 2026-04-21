@@ -91,13 +91,26 @@ run_merge_amd_map <-
                                        paste0(Identity_raw, "-iso", row_number()),
                                        Identity_raw)) %>%
         ungroup() %>%
-        select(-n) %>%
-        group_by(Polarity, iin_id) %>% 
-        arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
-        filter(is.na(iin_id) | row_number() == 1) %>% 
-        ungroup() %>% 
-        arrange(identity_source, Identity_raw)
+        select(-n)
       
+      if ("iin_id" %in% names(feature.info)){
+        feature.info <- 
+          feature.info %>% 
+          group_by(Polarity, iin_id) %>% 
+          arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
+          filter(is.na(iin_id) | row_number() == 1) %>% 
+          ungroup() %>% 
+          arrange(identity_source, Identity_raw)
+      } else {
+        feature.info <- 
+          feature.info %>% 
+          group_by(Polarity) %>% 
+          arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
+          filter(row_number() == 1) %>% 
+          ungroup() %>% 
+          arrange(identity_source, Identity_raw)        
+      }
+        
       datatable.keep <-
         peaks.pos[, c("Sample", feature.info$identifier[feature.info$Polarity == "pos"])] %>%
         inner_join(peaks.neg[, c("Sample", feature.info$identifier[feature.info$Polarity == "neg"])], 
@@ -136,19 +149,32 @@ run_merge_amd_map <-
         filter(row_number() == 1 | diff_to_first_rt == TRUE) %>% 
         ungroup() %>% 
         select(-c(first_rt, diff_to_first_rt)) %>% 
-        # group_by(Identity_raw) %>%
-        # mutate(n = n(),
-        #        Identity_clean = ifelse(n > 1, 
-        #                                paste0(Identity_raw, "-iso", row_number()),
-        #                                Identity_raw)) %>% 
-        # ungroup() %>% 
-        # select(-n) %>% 
-        # relocate(Identity_clean, .before = Identity) %>% 
-        group_by(Polarity, iin_id) %>% 
-        arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
-        filter(is.na(iin_id) | row_number() == 1) %>% 
-        ungroup() %>% 
-        arrange(identity_source, Identity_raw)
+        group_by(Identity_raw) %>%
+        mutate(n = n(),
+               Identity = ifelse(n > 1,
+                                 paste0(Identity_raw, "-iso", row_number()),
+                                 Identity_raw)) %>%
+        ungroup() %>%
+        select(-n)
+      
+      if ("iin_id" %in% names(feature.info)){
+        feature.info <- 
+          feature.info %>% 
+          group_by(Polarity, iin_id) %>% 
+          arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
+          filter(is.na(iin_id) | row_number() == 1) %>% 
+          ungroup() %>% 
+          arrange(identity_source, Identity_raw)
+        
+      } else {
+        feature.info <- 
+          feature.info %>% 
+          group_by(Polarity) %>% 
+          arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
+          filter(row_number() == 1) %>% 
+          ungroup() %>% 
+          arrange(identity_source, Identity_raw)        
+      }
       
       datatable.keep <- peaks.pos[, c("Sample", feature.info$Identity)]
       
@@ -178,19 +204,32 @@ run_merge_amd_map <-
         filter(row_number() == 1 | diff_to_first_rt == TRUE) %>% 
         ungroup() %>% 
         select(-c(first_rt, diff_to_first_rt)) %>% 
-        # group_by(Identity_raw) %>%
-        # mutate(n = n(),
-        #        Identity_clean = ifelse(n > 1, 
-        #                                paste0(Identity_raw, "-iso", row_number()),
-        #                                Identity_raw)) %>% 
-        # ungroup() %>% 
-        # select(-n) %>% 
-        # relocate(Identity_clean, .before = Identity) %>% 
-        group_by(Polarity, iin_id) %>% 
-        arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
-        filter(is.na(iin_id) | row_number() == 1) %>% 
-        ungroup() %>% 
-        arrange(identity_source, Identity_raw)
+        group_by(Identity_raw) %>%
+        mutate(n = n(),
+               Identity = ifelse(n > 1,
+                                 paste0(Identity_raw, "-iso", row_number()),
+                                 Identity_raw)) %>%
+        ungroup() %>%
+        select(-n)
+      
+      if ("iin_id" %in% names(feature.info)){
+        feature.info <- 
+          feature.info %>% 
+          group_by(Polarity, iin_id) %>% 
+          arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
+          filter(is.na(iin_id) | row_number() == 1) %>% 
+          ungroup() %>% 
+          arrange(identity_source, Identity_raw)
+        
+      } else {
+        feature.info <- 
+          feature.info %>% 
+          group_by(Polarity) %>% 
+          arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
+          filter(row_number() == 1) %>% 
+          ungroup() %>% 
+          arrange(identity_source, Identity_raw)        
+      }
       
       datatable.keep <- peaks.neg[, c("Sample", feature.info$Identity)]
       
