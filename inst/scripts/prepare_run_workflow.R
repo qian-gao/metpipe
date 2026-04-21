@@ -85,21 +85,21 @@ normalize_start_from <- function(x) {
   if (is_blank(x)) return(NULL)
   key <- tolower(trimws(as.character(x)[1]))
   aliases <- c(
-    "prep" = "prep_yaml",
-    "prep_yaml" = "prep_yaml",
-    "preprocess" = "preprocessing_mzmine",
-    "preprocessing" = "preprocessing_mzmine",
-    "preprocessing_mzmine" = "preprocessing_mzmine",
-    "convert" = "convert_output",
-    "convert_output" = "convert_output",
-    "qc" = "qc_istd",
-    "qc_istd" = "qc_istd",
-    "post" = "post_processing",
-    "post_processing" = "post_processing",
-    "eval" = "evaluation",
-    "evaluation" = "evaluation",
-    "extra" = "extra_processing_lip",
-    "extra_processing_lip" = "extra_processing_lip"
+    "prep"                  = "prep_yaml",
+    "prep_yaml"             = "prep_yaml",
+    "preprocess"            = "preprocessing_mzmine",
+    "preprocessing"         = "preprocessing_mzmine",
+    "preprocessing_mzmine"  = "preprocessing_mzmine",
+    "convert"               = "convert_output",
+    "convert_output"        = "convert_output",
+    "qc"                    = "qc_istd",
+    "qc_istd"               = "qc_istd",
+    "post"                  = "post_processing",
+    "post_processing"       = "post_processing",
+    "eval"                  = "evaluation",
+    "evaluation"            = "evaluation",
+    "extra"                 = "extra_processing_lip",
+    "extra_processing_lip"  = "extra_processing_lip"
   )
   resolved <- unname(aliases[key])
   if (is.na(resolved) || is_blank(resolved)) {
@@ -109,34 +109,34 @@ normalize_start_from <- function(x) {
   resolved
 }
 
-path_raw <- get_arg("--raw")
-start_from <- get_arg("--start-from")
-run_module <- get_arg("--run-module")
-start_key <- normalize_start_from(start_from)
-run_key <- normalize_start_from(run_module)
+path_raw    <- get_arg("--raw")
+start_from  <- get_arg("--start-from")
+run_module  <- get_arg("--run-module")
+start_key   <- normalize_start_from(start_from)
+run_key     <- normalize_start_from(run_module)
 if (!is_blank(start_from) && !is_blank(run_module)) {
   stop("Use either --start-from or --run-module, not both")
 }
-target_key <- if (!is.null(run_key)) run_key else start_key
+target_key      <- if (!is.null(run_key)) run_key else start_key
 requires_prepare <- is.null(target_key) || identical(target_key, "prep_yaml")
 
 default_workflow <- if (dir.exists("/wd")) "/wd" else getwd()
-default_result <- if (!is.null(path_raw)) gsub("raw|mzML", "peaktable", path_raw) else NULL
-default_temp <- if (dir.exists("/home/Temp")) "/home/Temp" else tempdir()
+default_result   <- if (!is.null(path_raw)) gsub("raw|mzML", "peaktable", path_raw) else NULL
+default_temp     <- if (dir.exists("/home/Temp")) "/home/Temp" else tempdir()
 
 path_workflow <- pick_first(get_arg("--workflow"), default_workflow)
-path_result <- pick_first(get_arg("--result"), default_result)
-path_yaml <- get_arg("--yaml")
+path_result   <- pick_first(get_arg("--result"),   default_result)
+path_yaml     <- get_arg("--yaml")
 
 default_mzmine <- file.path(path_workflow, "mzmine_linux", "bin", "mzmine")
 if (!file.exists(default_mzmine)) default_mzmine <- "/wd/mzmine_linux/bin/mzmine"
 
-path_mzmine <- pick_first(get_arg("--mzmine"), default_mzmine)
-path_temp <- pick_first(get_arg("--temp"), default_temp)
-qc <- pick_first(get_arg("--qc"), "BL,NIST,PO,sol,CP,IQ,BPL,MMix,PB,SP0625,SP1125,SP25,SP5,SP10,SP,SP40,POJ,POK")
-author <- pick_first(get_arg("--author"), "CBMR Metabolomics Platform")
+path_mzmine     <- pick_first(get_arg("--mzmine"), default_mzmine)
+path_temp       <- pick_first(get_arg("--temp"), default_temp)
+qc              <- pick_first(get_arg("--qc"), "BL,NIST,PO,sol,CP,IQ,BPL,MMix,PB,SP0625,SP1125,SP25,SP5,SP10,SP,SP40,POJ,POK")
+author          <- pick_first(get_arg("--author"), "CBMR Metabolomics Platform")
 config_override <- get_arg("--config")
-software <- get_arg("--software")
+software        <- get_arg("--software")
 if (is.null(software) || is_blank(software)) {
   software <- "mzmine"
 } else {
@@ -146,7 +146,6 @@ if (!software %in% c("mzmine", "msdialui")) {
   stop("--software must be one of: mzmine, msdialui")
 }
 
-prepare_workflow <- wf_resolve_module_script(path_workflow, "prepare_workflow.R")
 run_workflow <- wf_resolve_module_script(path_workflow, "run_workflow.R")
 
 if (!is_blank(config_override)) {
@@ -159,38 +158,38 @@ if (!is_blank(config_override)) {
     stop("`--result` is required when --config is not provided")
   }
 
-  config_candidate <- file.path(path_result, "config.yml")
-
   if (requires_prepare) {
     if (is_blank(path_raw)) {
       stop("Missing required argument: --raw <path> when running from preprocessing")
     }
-    path_yaml <- resolve_yaml(path_workflow = path_workflow, path_yaml = path_yaml)
+    path_yaml     <- resolve_yaml(path_workflow = path_workflow, path_yaml = path_yaml)
+    path_result   <- normalizePath(path_result,   winslash = "/", mustWork = FALSE)
+    path_yaml     <- normalizePath(path_yaml,     winslash = "/", mustWork = FALSE)
+    path_temp     <- normalizePath(path_temp,     winslash = "/", mustWork = FALSE)
+    path_workflow <- normalizePath(path_workflow, winslash = "/", mustWork = FALSE)
 
-    prepare_args <- c(
-      shQuote(prepare_workflow),
-      "--raw", shQuote(path_raw),
-      "--temp", shQuote(path_temp),
-      "--workflow", shQuote(path_workflow),
-      "--mzmine", shQuote(path_mzmine),
-      "--result", shQuote(path_result),
-      "--yaml", shQuote(path_yaml),
-      "--qc", shQuote(qc),
-      "--author", shQuote(author),
-      "--package-mode", shQuote(package_mode),
-      "--local-pkg-root", shQuote(local_pkg_root),
-      "--software", shQuote(software)
+    if (!dir.exists(path_result)) dir.create(path_result, recursive = TRUE, showWarnings = FALSE)
+    if (!dir.exists(path_temp))   dir.create(path_temp,   recursive = TRUE, showWarnings = FALSE)
+
+    qc_types <- trimws(unlist(strsplit(qc, ",")))
+
+    wf_render_qmd_document(
+      input = path_yaml,
+      render_params = list(
+        path_raw      = path_raw,
+        path_result   = path_result,
+        path_workflow = path_workflow,
+        path_mzmine   = path_mzmine,
+        path_temp     = path_temp,
+        author        = author,
+        qc_types      = qc_types,
+        software      = software
+      ),
+      intermediates_dir = path_temp,
+      output_file = file.path(path_result, paste0("generate_yml_", Sys.Date(), ".html"))
     )
-
-    status_prepare <- system2(
-      "Rscript",
-      args = prepare_args
-    )
-
-    if (!identical(status_prepare, 0L)) {
-      stop("prepare_workflow.R failed with exit code: ", status_prepare)
-    }
   } else {
+    config_candidate <- file.path(path_result, "config.yml")
     if (!file.exists(config_candidate)) {
       stop("Skipping prepare because target module is not prep_yaml, but config was not found: ",
            config_candidate,
@@ -198,7 +197,7 @@ if (!is_blank(config_override)) {
     }
   }
 
-  config_file <- config_candidate
+  config_file <- file.path(path_result, "config.yml")
 }
 
 if (identical(target_key, "prep_yaml")) {
@@ -214,10 +213,7 @@ if (!is_blank(run_module) && normalize_start_from(run_module) != "prep_yaml") {
   run_args <- c(run_args, "--run-module", shQuote(run_module))
 }
 
-status_run <- system2(
-  "Rscript",
-  args = run_args
-)
+status_run <- system2("Rscript", args = run_args)
 
 if (!identical(status_run, 0L)) {
   stop("run_workflow.R failed with exit code: ", status_run)
