@@ -104,11 +104,7 @@ run_merge_amd_map <-
       } else {
         feature.info <- 
           feature.info %>% 
-          group_by(Polarity) %>% 
-          arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
-          filter(row_number() == 1) %>% 
-          ungroup() %>% 
-          arrange(identity_source, Identity_raw)        
+          arrange(identity_source, Identity_raw)      
       }
         
       datatable.keep <-
@@ -169,10 +165,6 @@ run_merge_amd_map <-
       } else {
         feature.info <- 
           feature.info %>% 
-          group_by(Polarity) %>% 
-          arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
-          filter(row_number() == 1) %>% 
-          ungroup() %>% 
           arrange(identity_source, Identity_raw)        
       }
       
@@ -224,10 +216,6 @@ run_merge_amd_map <-
       } else {
         feature.info <- 
           feature.info %>% 
-          group_by(Polarity) %>% 
-          arrange(identity_source, desc(get(paste0("mean.", eval.sample.to.use)))) %>% 
-          filter(row_number() == 1) %>% 
-          ungroup() %>% 
           arrange(identity_source, Identity_raw)        
       }
       
