@@ -28,7 +28,7 @@ add_lipid_info <-
 
     output <- 
       df %>% 
-        mutate(Identity_sum = ifelse(Feature_type == "Known", Identity_raw, NA)
+        mutate(Identity_sum = ifelse(Feature_type == "Known", gsub("low score: ", "", Identity_raw), NA)
                #istd = grepl("^[0-9][0-9]\\.", substr(Identity_raw, 1, 3))
                ) %>%
           rowwise() %>%
