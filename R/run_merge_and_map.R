@@ -233,7 +233,7 @@ run_merge_amd_map <-
       data.frame(Identity = names(datatable.keep)[-1]) %>% 
       left_join(feature.info, by = "Identity") %>% 
       dplyr::rename(Formula = formula) %>% 
-      mutate(name_search = Identity_raw)
+      mutate(name_search = gsub("low score: ", "", Identity_raw))
     
     feature.info.seq <- 
       map_metabolite_info(input_file = feature.info.seq,
