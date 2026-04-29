@@ -84,7 +84,7 @@ run_merge_amd_map <-
                diff_to_first_rt = abs(rt - first_rt) > 0.2) %>% 
         filter(row_number() == 1 | diff_to_first_rt == TRUE) %>% 
         ungroup() %>% 
-        select(-c(first_rt, diff_to_first_rt)) %>% 
+        dplyr::select(-c(first_rt, diff_to_first_rt)) %>% 
         group_by(Identity_raw) %>%
         mutate(n = n(),
                Identity = ifelse(n > 1,
@@ -92,7 +92,7 @@ run_merge_amd_map <-
                                        Identity_raw),
                Identity = gsub("low score: ", "", Identity)) %>%
         ungroup() %>%
-        select(-n)
+        dplyr::select(-n)
       
       if ("iin_id" %in% names(feature.info)){
         feature.info <- 
@@ -118,11 +118,11 @@ run_merge_amd_map <-
       
       sample.info <-
         meta.pos[match(datatable.keep$Sample, meta.pos$Sample), ] %>%
-        select(-c("File.name")) 
+        dplyr::select(-c("File.name")) 
       
       feature.info <- 
         feature.info %>% 
-        select(-identifier)
+        dplyr::select(-identifier)
       
     } else if (has_pos && !has_neg) {
       pos_data <- get_mode(datalist, "pos")
@@ -145,7 +145,7 @@ run_merge_amd_map <-
                diff_to_first_rt = abs(rt - first_rt) > 0.2) %>% 
         filter(row_number() == 1 | diff_to_first_rt == TRUE) %>% 
         ungroup() %>% 
-        select(-c(first_rt, diff_to_first_rt)) %>% 
+        dplyr::select(-c(first_rt, diff_to_first_rt)) %>% 
         group_by(Identity_raw) %>%
         mutate(n = n(),
                Identity = ifelse(n > 1,
@@ -153,7 +153,7 @@ run_merge_amd_map <-
                                  Identity_raw),
                Identity = gsub("low score: ", "", Identity)) %>%
         ungroup() %>%
-        select(-n)
+        dplyr::select(-n)
       
       if ("iin_id" %in% names(feature.info)){
         feature.info <- 
@@ -174,7 +174,7 @@ run_merge_amd_map <-
       
       sample.info <-
         meta.pos[match(datatable.keep$Sample, meta.pos$Sample), ] %>%
-        select(-c("File.name")) 
+        dplyr::select(-c("File.name")) 
       
     } else if (!has_pos && has_neg) {
       neg_data <- get_mode(datalist, "neg")
@@ -197,7 +197,7 @@ run_merge_amd_map <-
                diff_to_first_rt = abs(rt - first_rt) > 0.2) %>% 
         filter(row_number() == 1 | diff_to_first_rt == TRUE) %>% 
         ungroup() %>% 
-        select(-c(first_rt, diff_to_first_rt)) %>% 
+        dplyr::select(-c(first_rt, diff_to_first_rt)) %>% 
         group_by(Identity_raw) %>%
         mutate(n = n(),
                Identity = ifelse(n > 1,
@@ -205,7 +205,7 @@ run_merge_amd_map <-
                                  Identity_raw),
                Identity = gsub("low score: ", "", Identity)) %>%
         ungroup() %>%
-        select(-n)
+        dplyr::select(-n)
       
       if ("iin_id" %in% names(feature.info)){
         feature.info <- 
@@ -226,7 +226,7 @@ run_merge_amd_map <-
       
       sample.info <-
         meta.neg[match(datatable.keep$Sample, meta.neg$Sample), ] %>%
-        select(-c("File.name"))   
+        dplyr::select(-c("File.name"))   
     }
     
     feature.info.seq <- 
@@ -240,7 +240,7 @@ run_merge_amd_map <-
                           name_col = match("name_search", names(feature.info.seq)),
                           sep = ';',
                           db_file = db_file) %>% 
-      select(-Metabolite_name_original) %>% 
+      dplyr::select(-Metabolite_name_original) %>% 
       relocate(c(Identity, Identity_raw), .after = Metabolite_name) %>% 
       group_by(Identity_raw) %>% 
       mutate(n = n(),
@@ -248,7 +248,7 @@ run_merge_amd_map <-
                                      paste0(Metabolite_name, "-iso", row_number()),
                                      Metabolite_name)) %>%
       ungroup() %>%
-      select(-n)
+      dplyr::select(-n)
     
     map.names <- feature.info.seq$Metabolite_name
     names(map.names) <- feature.info.seq$Identity

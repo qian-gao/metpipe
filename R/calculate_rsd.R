@@ -56,17 +56,17 @@ calculate_rsd <-
 
     mean <-
       rsd %>%
-      select(Identity, starts_with("mean.")) %>%
+      dplyr::select(Identity, starts_with("mean.")) %>%
       rename_all(~stringr::str_replace(.,"^mean.",""))
 
     sd <-
       rsd %>%
-      select(Identity, starts_with("sd.")) %>%
+      dplyr::select(Identity, starts_with("sd.")) %>%
       rename_all(~stringr::str_replace(.,"^sd.",""))
 
     rsd <-
       rsd %>%
-      select(Identity, starts_with("rsd.")) %>%
+      dplyr::select(Identity, starts_with("rsd.")) %>%
       rename_all(~stringr::str_replace(.,"^rsd.",""))
 
 
@@ -95,12 +95,12 @@ calculate_rsd <-
 
       mad <-
         other %>%
-        select(Identity, starts_with("mad.")) %>%
+        dplyr::select(Identity, starts_with("mad.")) %>%
         rename_all(~stringr::str_replace(.,"^mad.",""))
 
       var <-
         other %>%
-        select(Identity, starts_with("var.")) %>%
+        dplyr::select(Identity, starts_with("var.")) %>%
         rename_all(~stringr::str_replace(.,"^var.",""))
 
       output$type.mad <- mad

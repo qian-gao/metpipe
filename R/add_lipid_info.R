@@ -79,7 +79,7 @@ add_lipid_info <-
                  Identity_sum = if_else(Feature_type != "Known", Identity_raw, Identity_sum)
                  
           ) %>%
-          select(-c(N.carbons.1, N.carbons.2, N.carbons.3, N.double.bonds.1, N.double.bonds.2, N.double.bonds.3, 
+          dplyr::select(-c(N.carbons.1, N.carbons.2, N.carbons.3, N.double.bonds.1, N.double.bonds.2, N.double.bonds.3, 
                     N.O.1, N.O.2, N.O.3, Note.2, Note.3, N.O)) %>%
           ungroup() %>%
           group_by(Identity_sum) %>%

@@ -105,7 +105,7 @@ map_standard_name_to_meta <-
                                paste0(Sample, "-", row_number()),
                                Sample)) %>%
         ungroup() %>% 
-        select(-n)
+        dplyr::select(-n)
     
     return(file)
     

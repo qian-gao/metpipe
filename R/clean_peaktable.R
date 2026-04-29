@@ -144,7 +144,7 @@ clean_peaktable <-
         arrange(Identity_new, desc(get(make.names(paste0("mean.", po.sample.to.use))))) %>%
         filter(row_number() == 1) %>%
         ungroup() %>%
-        select(-Identity_new)
+        dplyr::select(-Identity_new)
       
       keep.index <- match(features.is.keep$Identity, features.is.filtered$Identity)
       

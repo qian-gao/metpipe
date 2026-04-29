@@ -442,7 +442,7 @@ normalize_various_methods <-
 
     }
 
-    if ( !is.null(istds)){
+    if ( !is.null(istds) && ncol(istds) > 0){
 
       output$istd.rsd <-
         calculate_rsd( data = istds,

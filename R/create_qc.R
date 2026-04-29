@@ -148,7 +148,7 @@ create_qc <-
 
     summary <-
       sampled_data %>%
-      select(ISTD, Theoretical.rt, median.rt, Theoretical.mz, median.mz, median.intensity, RSD.intensity) %>%
+      dplyr::select(ISTD, Theoretical.rt, median.rt, Theoretical.mz, median.mz, median.intensity, RSD.intensity) %>%
       unique()
 
     plt[[8]] <- as_widget(ggplotly(ggplot(summary, aes(x = Theoretical.rt, y = median.rt, color = ISTD )) +

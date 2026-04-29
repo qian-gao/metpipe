@@ -88,7 +88,7 @@ import_peaktable <-
                                 Identity_raw),
              Identity = gsub("low score: ", "", Identity)) %>% 
       ungroup() %>% 
-      select(-n) %>% 
+      dplyr::select(-n) %>% 
       relocate(Identity, .before = Identity_raw)
     
     if (find_is){
@@ -125,7 +125,7 @@ import_peaktable <-
                                  paste0(Sample, "-", row_number()),
                                  Sample)) %>%
           ungroup() %>% 
-          select(-n)
+          dplyr::select(-n)
         
       
     } else if (standardized.name) {
@@ -167,7 +167,7 @@ import_peaktable <-
                                paste0(Sample, "-", row_number()),
                                Sample)) %>%
         ungroup() %>% 
-        select(-n)        
+        dplyr::select(-n)        
       
     } else {
       
@@ -195,7 +195,7 @@ import_peaktable <-
                Run.order = dense_rank(Run.order)) %>% 
         arrange(Run.order) %>% 
         mutate(Sample.batch = paste0("Batch ", row_number() %/% 100 + 1),
-               Sample = paste0("Sample_", row_number())) %>% 
+               Sample = File.name) %>% 
         arrange(Sample.seq)
       
     }
