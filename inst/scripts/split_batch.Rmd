@@ -1,0 +1,130 @@
+---
+title: "FLINC: generate sample list"
+output: html_notebook
+---
+
+output:
+  html_document:
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: false
+    toc_depth: '4'
+    dev: svg
+    df_print: paged
+---
+
+<style type="text/css">
+body{
+  font-size: 13px;
+  }
+td {
+  font-size: 14px;
+}
+h1.title {
+  font-size: 22px;
+}
+h4.author {
+  font-size: 16px;
+}
+h4.date {
+  font-size: 16px;
+}
+
+h1 {
+  font-size: 18px;
+}
+h2 {
+  font-size: 16px;
+}
+h3 {
+  font-size: 14px;
+}
+h4 {
+  font-size: 12px;
+}
+h5 {
+  font-size: 12px;
+}
+code.r{
+  font-size: 12px;
+}
+pre {
+  font-size: 14px;
+}
+</style>
+
+```{r setup environment, include = FALSE, warning = FALSE}
+
+library(yaml)
+library(dplyr)
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
+```
+
+## split into four batches
+```{r}
+raw <- read_yaml("config_template.yml")
+
+c1 <- raw
+c1$meta_pos <- lapply(c1$meta_pos, function(x) {x[1:409]})
+index <- match(c1$meta_pos$Sample, c1$meta_neg$Sample)
+c1$meta_neg <- lapply(c1$meta_neg, function(x) {x[index]})
+path_pos <- dirname(c1$raw_files_pos[1])
+path_neg <- dirname(c1$raw_files_neg[1])
+c1$raw_files_pos <- paste0(path_pos, "/", c1$meta_pos$File.name)
+c1$raw_files_neg <- paste0(path_neg, "/", c1$meta_neg$File.name)
+yaml_str <- as.yaml(c1)
+yaml_str <- gsub("/maps/projects/metabolomics/data/MP208_FLINC/peaktable/PL_LIPS_PASEF",
+                     "/maps/projects/metabolomics/data/MP208_FLINC/peaktable/PL_LIPS_PASEF_b1",
+                     yaml_str)
+writeLines(yaml_str, file.path("config_batch1.yml"))
+
+c1 <- raw
+c1$meta_pos <- lapply(raw$meta_pos, function(x) {x[c(4:36, 410:762, 766:783)]})
+index <- match(c1$meta_pos$Sample, c1$meta_neg$Sample)
+c1$meta_neg <- lapply(c1$meta_neg, function(x) {x[index]})
+path_pos <- dirname(c1$raw_files_pos[1])
+path_neg <- dirname(c1$raw_files_neg[1])
+c1$raw_files_pos <- paste0(path_pos, "/", c1$meta_pos$File.name)
+c1$raw_files_neg <- paste0(path_neg, "/", c1$meta_neg$File.name)
+yaml_str <- as.yaml(c1)
+yaml_str <- gsub("/maps/projects/metabolomics/data/MP208_FLINC/peaktable/PL_LIPS_PASEF",
+                     "/maps/projects/metabolomics/data/MP208_FLINC/peaktable/PL_LIPS_PASEF_b2",
+                     yaml_str)
+writeLines(yaml_str, file.path("config_batch2.yml"))
+
+c1 <- raw
+c1$meta_pos <- lapply(raw$meta_pos, function(x) {x[c(4:36, 784:1157)]})
+index <- match(c1$meta_pos$Sample, c1$meta_neg$Sample)
+c1$meta_neg <- lapply(c1$meta_neg, function(x) {x[index]})
+path_pos <- dirname(c1$raw_files_pos[1])
+path_neg <- dirname(c1$raw_files_neg[1])
+c1$raw_files_pos <- paste0(path_pos, "/", c1$meta_pos$File.name)
+c1$raw_files_neg <- paste0(path_neg, "/", c1$meta_neg$File.name)
+yaml_str <- as.yaml(c1)
+yaml_str <- gsub("/maps/projects/metabolomics/data/MP208_FLINC/peaktable/PL_LIPS_PASEF",
+                     "/maps/projects/metabolomics/data/MP208_FLINC/peaktable/PL_LIPS_PASEF_b3",
+                     yaml_str)
+writeLines(yaml_str, file.path("config_batch3.yml"))
+
+c1 <- raw
+c1$meta_pos <- lapply(raw$meta_pos, function(x) {x[c(4:36, 1158:1527)]})
+index <- match(c1$meta_pos$Sample, c1$meta_neg$Sample)
+c1$meta_neg <- lapply(c1$meta_neg, function(x) {x[index]})
+path_pos <- dirname(c1$raw_files_pos[1])
+path_neg <- dirname(c1$raw_files_neg[1])
+c1$raw_files_pos <- paste0(path_pos, "/", c1$meta_pos$File.name)
+c1$raw_files_neg <- paste0(path_neg, "/", c1$meta_neg$File.name)
+yaml_str <- as.yaml(c1)
+yaml_str <- gsub("/maps/projects/metabolomics/data/MP208_FLINC/peaktable/PL_LIPS_PASEF",
+                     "/maps/projects/metabolomics/data/MP208_FLINC/peaktable/PL_LIPS_PASEF_b4",
+                     yaml_str)
+writeLines(yaml_str, file.path("config_batch4.yml"))
+```

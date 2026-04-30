@@ -1,8 +1,8 @@
 ---
-title: "Convert output"
+title: "Merge batches"
 author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
-          
+
 format:
   html:
     toc: true
@@ -14,182 +14,427 @@ format:
     page-layout: full
     number-sections: true
     number-depth: 2
-self-contained: true
+    self-contained: true
 
 params:
   config: ""
+  n_batches: 2
 ---
 
-```{r setup environment, include = FALSE, warning = FALSE}
+```{r setup, include=FALSE, warning=FALSE}
 
 library(yaml)
 library(dplyr)
 library(openxlsx)
-# params <- list()
-# params$config <- "E:/Projects/MP_workshop/peaktable/PL_LIPS_PASEF/config.yml"
 
-knitr::opts_chunk$set(
-  message = FALSE,
-  warning = FALSE,
-  echo = FALSE,
-  include = TRUE
+helper_candidates <- c(
+  file.path(getwd(), "helpers_workflow.R"),
+  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
+  system.file("scripts", "helpers_workflow.R", package = "metpipe")
 )
+helper_candidates <- helper_candidates[file.exists(helper_candidates)]
+if (length(helper_candidates) == 0) stop("Cannot locate helpers_workflow.R")
+source(helper_candidates[[1]], local = TRUE)
 
-# helper_candidates <- c(
-#   file.path(getwd(), "helpers_workflow.R"),
-#   file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
-#   system.file("scripts", "helpers_workflow.R", package = "metpipe")
-# )
-# helper_candidates <- helper_candidates[file.exists(helper_candidates)]
-# if (length(helper_candidates) == 0) {
-#   stop("Cannot locate shared helper script helpers_workflow.R")
-# }
-# source(helper_candidates[[1]], local = TRUE)
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE, include = TRUE)
 
 ```
 
-```{r}
-# Helper function to calculate ppm difference
+```{r functions, include=FALSE}
+
 ppm_diff <- function(mz1, mz2) {
   abs(mz1 - mz2) / mz1 * 1e6
 }
 
-align_features <- function(df1, df2, best_match = FALSE) {
-  aligned <- list()
-  for (i in seq_len(nrow(df1))) {
-    row1 <- df1[i, ]
-    candidates <- df2[
-      ppm_diff(row1$mz, df2$mz) < 5 &
-      abs(row1$rt - df2$rt) < 0.2, 
-    ]
-    if (!is.na(row1$identity)) {
-      candidates <- candidates[
-        !is.na(candidates$identity) &
-        candidates$identity == row1$identity &
-        candidates$ion == row1$ion &
-        candidates$formula == row1$formula, 
-      ]
-    }
-    if (nrow(candidates) > 0) {
-      if (best_match) {
-        # Find the best candidate by Spearman correlation of common sample intensities
-        sample_cols_1 <- grep('area$', colnames(row1), value = TRUE)
-        best_j <- NA
-        best_score <- -Inf
-        for (j in seq_len(nrow(candidates))) {
-          sample_cols_2 <- grep('area$', colnames(candidates), value = TRUE)
-          common_samples <- intersect(sample_cols_1, sample_cols_2)
-          if (length(common_samples) > 1) {
-            x <- as.numeric(row1[common_samples])
-            y <- as.numeric(candidates[j, common_samples])
-            score <- suppressWarnings(cor(x, y, method = "spearman", use = "pairwise.complete.obs"))
-            if (!is.na(score) && score > best_score) {
-              best_score <- score
-              best_j <- j
-            }
-          }
-        }
-        if (!is.na(best_j)) {
-          mz_batch_diff <- row1$mz - candidates[best_j, "mz"]
-          rt_batch_diff <- row1$rt - candidates[best_j, "rt"]
-          merged_row <- cbind(row1, candidates[best_j, ], mz_batch_diff = mz_batch_diff, rt_batch_diff = rt_batch_diff)
-          aligned[[length(aligned) + 1]] <- merged_row
-        }
-      } else {
-        # Keep all candidates
-        for (j in seq_len(nrow(candidates))) {
-          mz_batch_diff <- row1$mz - candidates[j, "mz"]
-          rt_batch_diff <- row1$rt - candidates[j, "rt"]
-          merged_row <- cbind(row1, candidates[j, ], mz_batch_diff = mz_batch_diff, rt_batch_diff = rt_batch_diff)
-          aligned[[length(aligned) + 1]] <- merged_row
-        }
-      }
+# Align features from two peaktables by m/z (<3 ppm) and RT (<0.2 min).
+# With best_match = TRUE, keeps the best-scoring match per df1 feature.
+# With collect_diag = TRUE, also returns per-feature diagnostics and log2 ratios.
+# Returns a wide cbind of matched rows (collect_diag=FALSE) or a named list (collect_diag=TRUE).
+align_features <- function(df1, df2, best_match = FALSE,
+                           collect_diag = FALSE, step_label = "") {
+  meta_cols <- c("mz", "rt", "identity", "ion", "formula")
+  m1 <- cbind(.i = seq_len(nrow(df1)), df1[, meta_cols, drop = FALSE])
+  m2 <- cbind(.j = seq_len(nrow(df2)), df2[, meta_cols, drop = FALSE])
+
+  # Sort m2 by mz; use findInterval for O(n log n) candidate search
+  m2s      <- m2[order(m2$mz), , drop = FALSE]
+  pair_idx <- lapply(seq_len(nrow(m1)), function(i) {
+    mz1 <- m1$mz[i]
+    lo  <- findInterval(mz1 * (1 - 3e-6), m2s$mz) + 1L
+    hi  <- findInterval(mz1 * (1 + 3e-6), m2s$mz)
+    if (lo > hi) return(NULL)
+    rt_ok <- which(abs(m2s$rt[lo:hi] - m1$rt[i]) < 0.2) + (lo - 1L)
+    if (length(rt_ok) == 0) return(NULL)
+    list(i = rep(i, length(rt_ok)), j = rt_ok)
+  })
+  pair_idx <- Filter(Negate(is.null), pair_idx)
+
+  if (length(pair_idx) == 0) {
+    if (collect_diag) return(list(merged = NULL, diag = NULL, l2r_long = NULL))
+    return(NULL)
+  }
+
+  all_i <- unlist(lapply(pair_idx, `[[`, "i"))
+  all_j <- m2s$.j[unlist(lapply(pair_idx, `[[`, "j"))]
+
+  pairs <- data.frame(
+    .i = all_i, .j = all_j,
+    mz.1 = m1$mz[all_i], rt.1 = m1$rt[all_i],
+    identity.1 = m1$identity[all_i], ion.1 = m1$ion[all_i], formula.1 = m1$formula[all_i],
+    mz.2 = m2$mz[all_j], rt.2 = m2$rt[all_j],
+    identity.2 = m2$identity[all_j], ion.2 = m2$ion[all_j], formula.2 = m2$formula[all_j],
+    stringsAsFactors = FALSE
+  )
+  pairs$mz_ppm  <- ppm_diff(pairs$mz.1, pairs$mz.2)
+  pairs$rt_diff <- abs(pairs$rt.1 - pairs$rt.2)
+  pairs <- pairs[pairs$mz_ppm < 3 & pairs$rt_diff < 0.2, , drop = FALSE]
+
+  if (nrow(pairs) == 0) {
+    if (collect_diag) return(list(merged = NULL, diag = NULL, l2r_long = NULL))
+    return(NULL)
+  }
+
+  has_id <- !is.na(pairs$identity.1)
+  id_ok  <- !is.na(pairs$identity.2) &
+    pairs$identity.1 == pairs$identity.2 &
+    pairs$ion.1      == pairs$ion.2 &
+    pairs$formula.1  == pairs$formula.2
+  pairs <- pairs[!has_id | id_ok, , drop = FALSE]
+
+  if (nrow(pairs) == 0) {
+    if (collect_diag) return(list(merged = NULL, diag = NULL, l2r_long = NULL))
+    return(NULL)
+  }
+
+  sample_cols <- character(0)
+
+  if (best_match) {
+    sample_cols <- intersect(
+      grep("area$", colnames(df1), value = TRUE),
+      grep("area$", colnames(df2), value = TRUE)
+    )
+    if (length(sample_cols) > 1) {
+      mat1 <- as.matrix(df1[pairs$.i, sample_cols, drop = FALSE])
+      mat2 <- as.matrix(df2[pairs$.j, sample_cols, drop = FALSE])
+      pair_stats <- vapply(seq_len(nrow(pairs)), function(k) {
+        x   <- log2(pmax(mat1[k, ], 1))
+        y   <- log2(pmax(mat2[k, ], 1))
+        l2r <- x - y
+        r   <- suppressWarnings(cor(x, y, method = "spearman", use = "pairwise.complete.obs"))
+        if (is.na(r)) r <- 0
+        c(r - 0.1 * median(abs(l2r), na.rm = TRUE), r, mean(c(x, y), na.rm = TRUE))
+      }, numeric(3))
+      pairs$score    <- pair_stats[1, ]
+      pairs$r_spear  <- pair_stats[2, ]
+      pairs$mean_int <- pair_stats[3, ]
+      pairs <- pairs[!is.na(pairs$score) & pairs$r_spear > 0.8, , drop = FALSE]
+      pairs <- do.call(rbind, lapply(split(pairs, pairs$.i), function(g) {
+        g[which.max(g$mean_int), , drop = FALSE]
+      }))
+    } else {
+      pairs$score <- NA_real_
+      pairs <- pairs[order(pairs$.i), , drop = FALSE]
+      pairs <- pairs[!duplicated(pairs$.i), , drop = FALSE]
     }
   }
-  do.call(rbind, aligned)
-}
 
-calc_stats <- function(peaktable, meta) {
-  peaktable_with_meta <- peaktable %>%
-    left_join(meta, by = c("File.name" = "File.name"))
-  peaktable_with_meta %>%
-    group_by(sample_type) %>%
-    summarise(
-      mean_intensity = mean(intensity, na.rm = TRUE),
-      sd_intensity = sd(intensity, na.rm = TRUE),
-      rsd_intensity = sd(intensity, na.rm = TRUE) / mean(intensity, na.rm = TRUE) * 100
+  if (nrow(pairs) == 0) {
+    if (collect_diag) return(list(merged = NULL, diag = NULL, l2r_long = NULL))
+    return(NULL)
+  }
+
+  out1 <- df1[pairs$.i, , drop = FALSE]
+  out2 <- df2[pairs$.j, , drop = FALSE]
+  merged_wide <- cbind(out1, out2,
+    mz_batch_diff = out1$mz - out2$mz,
+    rt_batch_diff = out1$rt - out2$rt,
+    row.names = NULL
+  )
+
+  if (!collect_diag) return(merged_wide)
+
+  # Diagnostic data (only reached when collect_diag = TRUE)
+  if (length(sample_cols) > 1 && !is.null(pairs$score)) {
+    # Re-extract final rows after dedup to build per-sample matrices
+    mat1_fin <- as.matrix(df1[pairs$.i, sample_cols, drop = FALSE])
+    mat2_fin <- as.matrix(df2[pairs$.j, sample_cols, drop = FALSE])
+    ovlp_cor <- pairs$score
+    ratio    <- mat1_fin / mat2_fin
+    ratio[ratio <= 0] <- NA_real_
+    l2r_mat  <- log2(ratio)
+    med_l2r  <- apply(l2r_mat, 1, median, na.rm = TRUE)
+    l2r_long <- data.frame(
+      step      = step_label,
+      log2ratio = as.vector(l2r_mat),
+      stringsAsFactors = FALSE
     )
-}
-```
+    l2r_long <- l2r_long[is.finite(l2r_long$log2ratio), , drop = FALSE]
+  } else {
+    ovlp_cor <- rep(NA_real_, nrow(pairs))
+    med_l2r  <- rep(NA_real_, nrow(pairs))
+    l2r_long <- NULL
+  }
 
-```{r}
+  diag <- data.frame(
+    step             = step_label,
+    mz               = out1$mz,
+    rt               = out1$rt,
+    identity         = if (!is.null(out1$identity)) out1$identity else NA_character_,
+    mz_ppm           = pairs$mz_ppm,
+    rt_diff          = pairs$rt_diff,
+    overlap_cor      = ovlp_cor,
+    median_log2ratio = med_l2r,
+    stringsAsFactors = FALSE
+  )
 
-# Batch 1 paths
-batch1 <- "E:/Projects/MP208/peaktable/PL_LIPS_PASEF_batch1"
-# Batch 2 paths
-batch2 <- "E:/Projects/MP208/peaktable/PL_LIPS_PASEF_batch2"
-output_dir <- "E:/Projects/MP208/peaktable/PL_LIPS_PASEF"
-# Read files from batch 1
-peaktable_istd_pos_1 <- read.xlsx(file.path(batch1, "peaktable_istd_pos.xlsx"))
-peaktable_istd_neg_1 <- read.xlsx(file.path(batch1, "peaktable_istd_neg.xlsx"))
-peaktable_pos_1      <- read.xlsx(file.path(batch1, "peaktable_pos.xlsx"))
-peaktable_neg_1      <- read.xlsx(file.path(batch1, "peaktable_neg.xlsx"))
-
-# Read files from batch 2
-peaktable_istd_pos_2 <- read.xlsx(file.path(batch2, "peaktable_istd_pos.xlsx"))
-peaktable_istd_neg_2 <- read.xlsx(file.path(batch2, "peaktable_istd_neg.xlsx"))
-peaktable_pos_2      <- read.xlsx(file.path(batch2, "peaktable_pos.xlsx"))
-peaktable_neg_2      <- read.xlsx(file.path(batch2, "peaktable_neg.xlsx"))
-# Read config.yml for sample type info
-# config_path <- "E:/Projects/MP208/peaktable/PL_LIPS_PASEF/config.yml"
-# config <- wf_read_yaml_config(config_path)
-# Extract sample metadata (example: meta_pos, meta_neg)
-# meta_pos <- wf_as_meta_df(config$meta_pos)
-# meta_neg <- wf_as_meta_df(config$meta_neg)
-
-# Calculate stats for each peaktable
-# stats_peaktable_istd_pos_1 <- calc_stats(peaktable_istd_pos_1, meta_pos)
-# stats_peaktable_istd_pos_2 <- calc_stats(peaktable_istd_pos_2, meta_pos)
-# stats_peaktable_istd_neg_1 <- calc_stats(peaktable_istd_neg_1, meta_neg)
-# stats_peaktable_istd_neg_2 <- calc_stats(peaktable_istd_neg_2, meta_neg)
-# stats_peaktable_pos_1      <- calc_stats(peaktable_pos_1, meta_pos)
-# stats_peaktable_pos_2      <- calc_stats(peaktable_pos_2, meta_pos)
-# stats_peaktable_neg_1      <- calc_stats(peaktable_neg_1, meta_neg)
-# stats_peaktable_neg_2      <- calc_stats(peaktable_neg_2, meta_neg)
-
-```
-
-```{r align features}
-
-
-# Merge all peaktable pairs (set best_match = FALSE to keep all candidates, or TRUE for best match only)
-merged_peaktable_istd_pos <- align_features(peaktable_istd_pos_1, peaktable_istd_pos_2, best_match = TRUE)
-merged_peaktable_istd_neg <- align_features(peaktable_istd_neg_1, peaktable_istd_neg_2, best_match = TRUE)
-merged_peaktable_pos      <- align_features(peaktable_pos_1,      peaktable_pos_2,      best_match = TRUE)
-merged_peaktable_neg      <- align_features(peaktable_neg_1,      peaktable_neg_2,      best_match = TRUE)
-
-# Write merged tables to xlsx files in the output folder with original names
-
-# Remove columns ending with .1 before export
-remove_dot1_cols <- function(df) {
-  df[, !grepl("\\.1$", colnames(df))]
+  list(merged = merged_wide, diag = diag, l2r_long = l2r_long)
 }
 
-openxlsx::write.xlsx(remove_dot1_cols(merged_peaktable_istd_pos), file.path(output_dir, "peaktable_istd_pos.xlsx"), overwrite = TRUE)
-openxlsx::write.xlsx(remove_dot1_cols(merged_peaktable_istd_neg), file.path(output_dir, "peaktable_istd_neg.xlsx"), overwrite = TRUE)
-openxlsx::write.xlsx(remove_dot1_cols(merged_peaktable_pos),      file.path(output_dir, "peaktable_pos.xlsx"),      overwrite = TRUE)
-openxlsx::write.xlsx(remove_dot1_cols(merged_peaktable_neg),      file.path(output_dir, "peaktable_neg.xlsx"),      overwrite = TRUE)
+# Remove columns with .1 suffix (cbind duplicates) and batch diff columns
+clean_merged <- function(df) {
+  df <- df[, !grepl("\\.1$", colnames(df)),            drop = FALSE]
+  df <- df[, !colnames(df) %in% c("mz_batch_diff", "rt_batch_diff"), drop = FALSE]
+  df
+}
+
+# Iteratively align a list of peaktables.
+# With collect_diag = TRUE, returns a named list with merged table and diagnostics.
+merge_table_list <- function(tables, label, collect_diag = FALSE) {
+  tables <- Filter(Negate(is.null), tables)
+  if (length(tables) == 0) return(NULL)
+  if (length(tables) == 1) {
+    if (collect_diag) {
+      return(list(
+        merged       = tables[[1]],
+        diag         = NULL,
+        counts       = NULL,
+        l2r_long     = NULL,
+        input_counts = data.frame(table = label, label = "b1 (input)",
+                                  features = nrow(tables[[1]]),
+                                  stringsAsFactors = FALSE),
+        n_final      = nrow(tables[[1]])
+      ))
+    }
+    return(tables[[1]])
+  }
+
+  input_counts <- data.frame(
+    table    = label,
+    label    = paste0("b", seq_along(tables), " (input)"),
+    features = vapply(tables, nrow, integer(1)),
+    stringsAsFactors = FALSE
+  )
+
+  diag_list  <- vector("list", length(tables) - 1)
+  count_list <- vector("list", length(tables) - 1)
+  l2r_list   <- vector("list", length(tables) - 1)
+  current    <- tables[[1]]
+
+  for (k in seq(2, length(tables))) {
+    n_before <- nrow(current)
+    step_lbl <- paste0("b", k - 1, "→b", k)
+
+    if (collect_diag) {
+      res <- align_features(current, tables[[k]], best_match = TRUE,
+                            collect_diag = TRUE, step_label = step_lbl)
+      if (is.null(res) || is.null(res$merged) || nrow(res$merged) == 0)
+        stop("Feature alignment returned 0 rows for ", label, " at batch ", k)
+      aligned <- res$merged
+    } else {
+      res     <- NULL
+      aligned <- align_features(current, tables[[k]], best_match = TRUE)
+      if (is.null(aligned) || nrow(aligned) == 0)
+        stop("Feature alignment returned 0 rows for ", label, " at batch ", k)
+    }
+
+    current <- clean_merged(aligned)
+    message(label, ": +b", k, "  ", n_before, " + ", nrow(tables[[k]]),
+            " -> ", nrow(current), " features")
+
+    if (collect_diag) {
+      if (!is.null(res$diag))
+        diag_list[[k - 1]] <- cbind(table = label, res$diag, stringsAsFactors = FALSE)
+      count_list[[k - 1]] <- data.frame(
+        table    = label,
+        step     = step_lbl,
+        n_before = n_before,
+        n_batch  = nrow(tables[[k]]),
+        n_merged = nrow(current),
+        stringsAsFactors = FALSE
+      )
+      if (!is.null(res$l2r_long) && nrow(res$l2r_long) > 0)
+        l2r_list[[k - 1]] <- cbind(table = label, res$l2r_long, stringsAsFactors = FALSE)
+    }
+  }
+
+  if (!collect_diag) return(current)
+
+  list(
+    merged       = current,
+    diag         = do.call(rbind, Filter(Negate(is.null), diag_list)),
+    counts       = do.call(rbind, count_list),
+    l2r_long     = {
+      non_null <- Filter(function(x) !is.null(x) && nrow(x) > 0, l2r_list)
+      if (length(non_null) > 0) do.call(rbind, non_null) else NULL
+    },
+    input_counts = input_counts,
+    n_final      = nrow(current)
+  )
+}
+
 ```
 
-```{r session info, include = FALSE, eval = FALSE}
+## Inputs
 
-# Session info
+```{r inputs}
+
+cfg     <- wf_read_yaml_config(params$config, label = "params$config")
+run.pos <- wf_as_flag(cfg$run.pos)
+run.neg <- wf_as_flag(cfg$run.neg)
+
+n_batches <- suppressWarnings(as.integer(params$n_batches))
+if (is.na(n_batches) || n_batches < 2)
+  stop("n_batches must be an integer >= 2, got: ", params$n_batches)
+
+path_result <- wf_cfg_required(cfg, "path_result")
+base_name   <- basename(path_result)
+batch_dirs  <- file.path(path_result, paste0(base_name, "_b", seq_len(n_batches)))
+
+missing_dirs <- batch_dirs[!dir.exists(batch_dirs)]
+if (length(missing_dirs) > 0)
+  stop("Batch directories not found:\n", paste(missing_dirs, collapse = "\n"))
+
+cat("Config:      ", params$config, "\n")
+cat("path_result: ", path_result, "\n")
+cat("n_batches:   ", n_batches, "\n")
+cat("run.pos:     ", run.pos, "\n")
+cat("run.neg:     ", run.neg, "\n")
+
+```
+
+## Feature alignment
+
+```{r merge}
+
+# Table types to process: label -> (filename, run flag)
+table_specs <- list(
+  pos      = list(file = "peaktable_pos.xlsx",      run = run.pos, out = cfg$path_peaktable_pos),
+  neg      = list(file = "peaktable_neg.xlsx",      run = run.neg, out = cfg$path_peaktable_neg),
+  istd_pos = list(file = "peaktable_istd_pos.xlsx", run = run.pos, out = cfg$path_peaktable_istd_pos),
+  istd_neg = list(file = "peaktable_istd_neg.xlsx", run = run.neg, out = cfg$path_peaktable_istd_neg)
+)
+
+tnames_to_run <- Filter(function(n) table_specs[[n]]$run, names(table_specs))
+
+process_one_table <- function(tname) {
+  ts <- table_specs[[tname]]
+  tables <- lapply(batch_dirs, function(d) {
+    p <- file.path(d, ts$file)
+    if (file.exists(p)) openxlsx::read.xlsx(p) else NULL
+  })
+  n_per_batch <- vapply(tables, function(t) if (is.null(t)) NA_integer_ else nrow(t), integer(1))
+  available   <- sum(!is.na(n_per_batch))
+  if (available == 0) {
+    message(tname, ": no files found — skipping")
+    return(NULL)
+  }
+  res <- merge_table_list(tables, tname, collect_diag = TRUE)
+  if (is.null(res)) return(NULL)
+  list(
+    res       = res,
+    available = available,
+    stats     = data.frame(
+      Table          = tname,
+      Batches_found  = available,
+      Features_final = nrow(res$merged),
+      Samples_final  = sum(grepl("area$", colnames(res$merged))),
+      stringsAsFactors = FALSE
+    )
+  )
+}
+
+n_workers    <- min(max(1L, parallel::detectCores(logical = FALSE) - 1L), length(tnames_to_run))
+use_parallel <- n_workers > 1L && length(tnames_to_run) > 1L
+
+if (use_parallel) {
+  cl <- parallel::makeCluster(n_workers)
+  on.exit(parallel::stopCluster(cl), add = TRUE)
+  parallel::clusterExport(cl,
+    c("ppm_diff", "align_features", "clean_merged", "merge_table_list",
+      "table_specs", "batch_dirs"),
+    envir = environment()
+  )
+  parallel::clusterEvalQ(cl, library(openxlsx))
+  all_res_list <- parallel::parLapply(cl, tnames_to_run, process_one_table)
+} else {
+  all_res_list <- lapply(tnames_to_run, process_one_table)
+}
+names(all_res_list) <- tnames_to_run
+
+results    <- list()
+diag_data  <- list()
+stats_rows <- list()
+for (tname in tnames_to_run) {
+  r <- all_res_list[[tname]]
+  if (is.null(r)) next
+  results[[tname]]    <- r$res$merged
+  diag_data[[tname]]  <- r$res
+  stats_rows[[tname]] <- r$stats
+}
+
+```
+
+## Output
+
+```{r write_output}
+
+if (!dir.exists(path_result)) dir.create(path_result, recursive = TRUE)
+
+for (tname in names(results)) {
+  out_path <- table_specs[[tname]]$out
+  if (wf_is_blank(out_path)) {
+    warning("Output path not set in config for ", tname, " — skipping")
+    next
+  }
+  wf_ensure_parent_dirs(out_path)
+  openxlsx::write.xlsx(results[[tname]], out_path, overwrite = TRUE)
+  message("Wrote: ", out_path)
+}
+
+# Save diagnostics so evaluate_merge can read them without re-running alignment
+if (length(diag_data) > 0) {
+  all_diag_list   <- Filter(Negate(is.null), lapply(diag_data, `[[`, "diag"))
+  all_counts_list <- Filter(Negate(is.null), lapply(diag_data, `[[`, "counts"))
+  all_l2r_list    <- Filter(function(x) !is.null(x) && nrow(x) > 0,
+                            lapply(diag_data, `[[`, "l2r_long"))
+  all_ic_list     <- Filter(Negate(is.null), lapply(diag_data, `[[`, "input_counts"))
+
+  merge_diag <- list(
+    all_diag         = if (length(all_diag_list)   > 0) do.call(rbind, all_diag_list)   else NULL,
+    all_counts       = if (length(all_counts_list) > 0) do.call(rbind, all_counts_list) else NULL,
+    all_l2r          = if (length(all_l2r_list)    > 0) do.call(rbind, all_l2r_list)    else NULL,
+    all_input_counts = if (length(all_ic_list)     > 0) do.call(rbind, all_ic_list)     else NULL,
+    n_final          = vapply(diag_data, function(x) x$n_final, integer(1))
+  )
+  diag_path <- file.path(path_result, "data", "merge_diagnostics.rds")
+  dir.create(dirname(diag_path), recursive = TRUE, showWarnings = FALSE)
+  saveRDS(merge_diag, diag_path)
+  message("Wrote diagnostics: ", diag_path)
+}
+
+if (length(stats_rows) > 0) {
+  stats_df <- do.call(rbind, stats_rows)
+  knitr::kable(
+    stats_df,
+    caption = "Merge summary",
+    col.names = c("Table", "Batches merged", "Features (final)", "Samples (final)")
+  )
+}
+
+```
+
+```{r session_info, include=FALSE, eval=FALSE}
 
 utils::sessionInfo()
 
 ```
-
-
-
-
-

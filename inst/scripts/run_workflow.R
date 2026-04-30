@@ -8,9 +8,12 @@ get_arg <- function(name) {
   args[i + 1]
 }
 
-config_file <- args[1]
-start_from <- get_arg("--start-from")
-run_module <- get_arg("--run-module")
+config_file       <- args[1]
+start_from        <- get_arg("--start-from")
+run_module        <- get_arg("--run-module")
+overlap_by_name   <- get_arg("--overlap-by-name")
+batch_assignments <- get_arg("--batch-assignments")
+n_batches_arg     <- get_arg("--n-batches")
 
 script_args <- commandArgs(trailingOnly = FALSE)
 file_arg <- grep("^--file=", script_args, value = TRUE)
@@ -42,38 +45,44 @@ is_absolute_path <- function(path) {
   grepl("^([A-Za-z]:|/|\\\\)", as.character(path)[1])
 }
 
-render_module <- function(file_name, output_prefix, config_file, path_workflow, path_result, path_temp) {
+render_module <- function(file_name, output_prefix, config_file, path_workflow, path_result, path_temp,
+                          extra_params = list()) {
   module_input <- wf_resolve_module_script(path_workflow, file_name)
   wf_render_qmd_document(
     input = module_input,
-    render_params = list(config = config_file),
+    render_params = c(list(config = config_file), extra_params),
     intermediates_dir = path_temp,
     output_file = file.path(path_result, paste0(output_prefix, "_", Sys.Date(), ".html"))
   )
 }
 
+standalone_module_keys <- c("split_batches", "merge_batches", "evaluate_merge")
+
 normalize_start_from <- function(x) {
   if (wf_is_blank(x)) return(NULL)
   key <- tolower(trimws(as.character(x)[1]))
   aliases <- c(
-    "preprocess" = "preprocessing_mzmine",
-    "preprocessing" = "preprocessing_mzmine",
-    "preprocessing_mzmine" = "preprocessing_mzmine",
-    "convert" = "convert_output",
-    "convert_output" = "convert_output",
-    "qc" = "qc_istd",
-    "qc_istd" = "qc_istd",
-    "post" = "post_processing",
-    "post_processing" = "post_processing",
-    "eval" = "evaluation",
-    "evaluation" = "evaluation",
-    "extra" = "extra_processing_lip",
-    "extra_processing_lip" = "extra_processing_lip"
+    "preprocess"            = "preprocessing_mzmine",
+    "preprocessing"         = "preprocessing_mzmine",
+    "preprocessing_mzmine"  = "preprocessing_mzmine",
+    "convert"               = "convert_output",
+    "convert_output"        = "convert_output",
+    "qc"                    = "qc_istd",
+    "qc_istd"               = "qc_istd",
+    "post"                  = "post_processing",
+    "post_processing"       = "post_processing",
+    "eval"                  = "evaluation",
+    "evaluation"            = "evaluation",
+    "extra"                 = "extra_processing_lip",
+    "extra_processing_lip"  = "extra_processing_lip",
+    "split_batches"         = "split_batches",
+    "merge_batches"         = "merge_batches",
+    "evaluate_merge"        = "evaluate_merge"
   )
   resolved <- unname(aliases[key])
   if (is.na(resolved) || wf_is_blank(resolved)) {
-    stop("Invalid --start-from value: ", x,
-         ". Allowed: preprocessing_mzmine, convert_output, qc_istd, post_processing, evaluation, extra_processing_lip")
+    stop("Invalid --start-from/--run-module value: ", x,
+         ". Allowed: preprocessing_mzmine, convert_output, qc_istd, post_processing, evaluation, extra_processing_lip, split_batches, merge_batches, evaluate_merge")
   }
   resolved
 }
@@ -124,8 +133,38 @@ run_key <- normalize_start_from(run_module)
 if (!wf_is_blank(start_from) && !wf_is_blank(run_module)) {
   stop("Use either --start-from or --run-module, not both")
 }
+if (!is.null(start_key) && start_key %in% standalone_module_keys) {
+  stop("'", start_key, "' is a standalone module; use --run-module instead of --start-from")
+}
+
+standalone_modules <- list(
+  list(key = "split_batches",  file = "split_batches.qmd",  output = "split_batches"),
+  list(key = "merge_batches",  file = "merge_batches.qmd",  output = "merge_batches"),
+  list(key = "evaluate_merge", file = "evaluate_merge.qmd", output = "evaluate_merge")
+)
+standalone_keys <- vapply(standalone_modules, function(x) x$key, character(1))
+
 plan_keys <- vapply(module_plan, function(x) x$key, character(1))
 if (!is.null(run_key)) {
+  sa_idx <- match(run_key, standalone_keys)
+  if (!is.na(sa_idx)) {
+    step <- standalone_modules[[sa_idx]]
+    ep   <- list()
+    if (identical(step$key, "split_batches")) {
+      if (!wf_is_blank(overlap_by_name))   ep$overlap_by_name   <- overlap_by_name
+      if (!wf_is_blank(batch_assignments)) ep$batch_assignments <- batch_assignments
+    } else if (identical(step$key, "merge_batches")) {
+      if (!wf_is_blank(n_batches_arg)) ep$n_batches <- n_batches_arg
+    } else if (identical(step$key, "evaluate_merge")) {
+      if (!wf_is_blank(n_batches_arg))     ep$n_batches      <- n_batches_arg
+      if (!wf_is_blank(overlap_by_name))   ep$overlap_by_name <- overlap_by_name
+    }
+    message("Running standalone module: ", step$key)
+    render_module(step$file, step$output, config_file, path_workflow, path_result, path_temp,
+                  extra_params = ep)
+    quit(save = "no", status = 0)
+  }
+
   run_idx <- match(run_key, plan_keys)
   if (is.na(run_idx)) {
     stop("Unable to resolve --run-module module index")

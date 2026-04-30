@@ -1,0 +1,268 @@
+---
+title: "Split batches"
+author: "CBMR Metabolomics Platform"
+date: "`r base::Sys.Date()`"
+
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    toc-location: left
+    theme: flatly
+    polyfill: false
+    page-layout: full
+    number-sections: true
+    number-depth: 2
+    self-contained: true
+
+params:
+  config: ""
+  overlap_by_name: ""
+  overlap_sample_types: ""
+  batch_assignments: ""
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+
+library(yaml)
+library(dplyr)
+
+helper_candidates <- c(
+  file.path(getwd(), "helpers_workflow.R"),
+  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
+  system.file("scripts", "helpers_workflow.R", package = "metpipe")
+)
+helper_candidates <- helper_candidates[file.exists(helper_candidates)]
+if (length(helper_candidates) == 0) stop("Cannot locate helpers_workflow.R")
+source(helper_candidates[[1]], local = TRUE)
+
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE, include = TRUE)
+
+```
+
+## Inputs
+
+```{r inputs}
+
+cfg         <- wf_read_yaml_config(params$config, label = "params$config")
+meta_pos    <- wf_as_meta_df(cfg$meta_pos)
+meta_neg    <- wf_as_meta_df(cfg$meta_neg)
+run.pos     <- wf_as_flag(cfg$run.pos)
+run.neg     <- wf_as_flag(cfg$run.neg)
+path_result <- wf_cfg_required(cfg, "path_result")
+
+# Parse overlap sample names (comma-separated)
+overlap_names <- if (!wf_is_blank(params$overlap_by_name)) {
+  trimws(unlist(strsplit(as.character(params$overlap_by_name), ",", fixed = TRUE)))
+} else {
+  character(0)
+}
+
+# Parse overlap sample types and resolve to sample names via Sample.type column
+overlap_type_names <- if (!wf_is_blank(params$overlap_sample_types)) {
+  types <- trimws(unlist(strsplit(as.character(params$overlap_sample_types), ",", fixed = TRUE)))
+  pos_by_type <- if (!is.null(meta_pos) && "Sample.type" %in% colnames(meta_pos))
+    meta_pos$Sample[meta_pos$Sample.type %in% types] else character(0)
+  neg_by_type <- if (!is.null(meta_neg) && "Sample.type" %in% colnames(meta_neg))
+    meta_neg$Sample[meta_neg$Sample.type %in% types] else character(0)
+  unique(c(pos_by_type, neg_by_type))
+} else {
+  character(0)
+}
+
+overlap_names <- unique(c(overlap_names, overlap_type_names))
+
+# Parse batch_assignments: R expression that evaluates to a list of index vectors
+# e.g. "list(1:30, 31:50)"
+if (wf_is_blank(params$batch_assignments)) stop("batch_assignments is required")
+batch_assignments <- tryCatch(
+  eval(parse(text = as.character(params$batch_assignments))),
+  error = function(e) stop("Cannot parse batch_assignments: ", conditionMessage(e))
+)
+if (!is.list(batch_assignments)) {
+  stop("batch_assignments must evaluate to a list, e.g. list(1:30, 31:50)")
+}
+n_batches <- length(batch_assignments)
+
+cat("Config:              ", params$config, "\n")
+cat("Overlap by name:     ", length(overlap_names) - length(overlap_type_names), "\n")
+cat("Overlap by type:     ", length(overlap_type_names), "\n")
+cat("Overlap total:       ", length(overlap_names), "\n")
+cat("Batches:             ", n_batches, "\n")
+
+```
+
+## Sample partitioning
+
+```{r partition}
+
+pos_samples <- if (run.pos && !is.null(meta_pos)) meta_pos$Sample else character(0)
+neg_samples <- if (run.neg && !is.null(meta_neg)) meta_neg$Sample else character(0)
+
+# Warn about overlap names not found in either mode
+missing_ov <- overlap_names[!overlap_names %in% union(pos_samples, neg_samples)]
+if (length(missing_ov) > 0)
+  warning("overlap_by_name: not found in pos or neg — ",
+          paste(missing_ov, collapse = ", "))
+
+pos_non_ov <- pos_samples[!pos_samples %in% overlap_names]
+neg_non_ov <- neg_samples[!neg_samples %in% overlap_names]
+
+# Shared non-overlap samples (pos order preserved)
+shared   <- pos_non_ov[pos_non_ov %in% neg_non_ov]
+pos_only <- pos_non_ov[!pos_non_ov %in% neg_non_ov]
+neg_only <- neg_non_ov[!neg_non_ov %in% pos_non_ov]
+
+if (length(pos_only) > 0)
+  message(length(pos_only), " pos-only samples will be placed in a separate batch.")
+if (length(neg_only) > 0)
+  message(length(neg_only), " neg-only samples will be placed in a separate batch.")
+
+# Validate indices against the shared sample pool
+all_idx <- unlist(batch_assignments)
+if (length(all_idx) > 0) {
+  if (length(shared) == 0) stop("No shared (pos+neg) non-overlap samples available to assign")
+  if (any(all_idx < 1) || any(all_idx > length(shared)))
+    stop("batch_assignments index out of range [1, ", length(shared), "]")
+}
+
+cat("Overlap samples:           ", length(overlap_names), "\n")
+cat("Shared non-overlap (pos):  ", length(shared), "\n")
+cat("Pos-only (extra batch):    ", length(pos_only), "\n")
+cat("Neg-only (extra batch):    ", length(neg_only), "\n")
+
+```
+
+```{r helpers, include=FALSE}
+
+# Convert a filtered data.frame back to the column-list format used in YAML
+df_to_yaml_cols <- function(df) {
+  if (is.null(df) || nrow(df) == 0) return(NULL)
+  as.list(df)
+}
+
+# Return rows for overlap samples first (original order), then batch-specific samples
+filter_meta_ordered <- function(meta, ov_names, specific_names) {
+  if (is.null(meta)) return(NULL)
+  ov_rows <- meta[meta$Sample %in% ov_names,       , drop = FALSE]
+  sp_rows <- meta[meta$Sample %in% specific_names,  , drop = FALSE]
+  res <- rbind(ov_rows, sp_rows)
+  if (nrow(res) == 0) NULL else res
+}
+
+# Select raw file paths matching a filtered meta data.frame (preserves meta row order)
+raw_files_for_meta <- function(all_raw, meta) {
+  if (is.null(meta) || nrow(meta) == 0 || is.null(all_raw)) return(NULL)
+  lut     <- setNames(unlist(all_raw), basename(unlist(all_raw)))
+  matched <- lut[meta$File.name]
+  unname(matched[!is.na(matched)])
+}
+
+# Build a batch-specific config list from the master config
+make_batch_config <- function(cfg, ov_names, specific_names, new_pr) {
+  meta_pos_src <- wf_as_meta_df(cfg$meta_pos)
+  meta_neg_src <- wf_as_meta_df(cfg$meta_neg)
+
+  mp <- if (wf_as_flag(cfg$run.pos)) filter_meta_ordered(meta_pos_src, ov_names, specific_names) else NULL
+  mn <- if (wf_as_flag(cfg$run.neg)) filter_meta_ordered(meta_neg_src, ov_names, specific_names) else NULL
+
+  rp <- !is.null(mp) && nrow(mp) > 0
+  rn <- !is.null(mn) && nrow(mn) > 0
+
+  new_cfg <- cfg
+  new_cfg$path_result             <- new_pr
+  new_cfg$path_temp               <- paste0(new_pr, "/temp")
+  new_cfg$run.pos                 <- rp
+  new_cfg$run.neg                 <- rn
+  new_cfg$meta_pos                <- if (rp) df_to_yaml_cols(mp) else NULL
+  new_cfg$meta_neg                <- if (rn) df_to_yaml_cols(mn) else NULL
+  new_cfg$raw_files_pos           <- if (rp) as.list(raw_files_for_meta(cfg$raw_files_pos, mp)) else NULL
+  new_cfg$raw_files_neg           <- if (rn) as.list(raw_files_for_meta(cfg$raw_files_neg, mn)) else NULL
+  new_cfg$mzmine_peaktable_pos    <- paste0(new_pr, "/pos/pos_full_feature_table.csv")
+  new_cfg$mzmine_peaktable_neg    <- paste0(new_pr, "/neg/neg_full_feature_table.csv")
+  new_cfg$path_peaktable_pos      <- paste0(new_pr, "/peaktable_pos.xlsx")
+  new_cfg$path_peaktable_neg      <- paste0(new_pr, "/peaktable_neg.xlsx")
+  new_cfg$path_peaktable_istd_pos <- paste0(new_pr, "/peaktable_istd_pos.xlsx")
+  new_cfg$path_peaktable_istd_neg <- paste0(new_pr, "/peaktable_istd_neg.xlsx")
+  new_cfg$rds_qc_is_pos           <- paste0(new_pr, "/data/QC_IS_pos.rds")
+  new_cfg$rds_qc_is_neg           <- paste0(new_pr, "/data/QC_IS_neg.rds")
+  new_cfg$rds_datalist            <- paste0(new_pr, "/datalist.rds")
+  new_cfg$path_datatable          <- paste0(new_pr, "/datatable.xlsx")
+  new_cfg
+}
+
+```
+
+## Batch config files
+
+```{r write_configs}
+
+base_name    <- basename(path_result)
+summary_rows <- vector("list", n_batches)
+
+for (i in seq_len(n_batches)) {
+  specific <- shared[batch_assignments[[i]]]
+  new_pr   <- normalizePath(
+    file.path(path_result, paste0(base_name, "_b", i)),
+    winslash = "/", mustWork = FALSE
+  )
+  bcfg <- make_batch_config(cfg, overlap_names, specific, new_pr)
+  dir.create(new_pr, recursive = TRUE, showWarnings = FALSE)
+  out  <- file.path(new_pr, paste0("config_b", i, ".yml"))
+  writeLines(yaml::as.yaml(bcfg), out)
+
+  n_pos <- if (!is.null(bcfg$meta_pos)) length(bcfg$meta_pos[[1]]) else 0L
+  n_neg <- if (!is.null(bcfg$meta_neg)) length(bcfg$meta_neg[[1]]) else 0L
+  summary_rows[[i]] <- data.frame(
+    Batch          = paste0("b", i),
+    Config         = basename(out),
+    Overlap        = length(overlap_names),
+    Batch_specific = length(specific),
+    Total_pos      = n_pos,
+    Total_neg      = n_neg,
+    stringsAsFactors = FALSE
+  )
+}
+
+# Extra batch for samples present in only one ionization mode
+if (length(pos_only) > 0 || length(neg_only) > 0) {
+  ie        <- n_batches + 1L
+  unmatched <- unique(c(pos_only, neg_only))
+  new_pr    <- normalizePath(
+    file.path(path_result, paste0(base_name, "_b", ie)),
+    winslash = "/", mustWork = FALSE
+  )
+  bcfg <- make_batch_config(cfg, overlap_names, unmatched, new_pr)
+  dir.create(new_pr, recursive = TRUE, showWarnings = FALSE)
+  out  <- file.path(new_pr, paste0("config_b", ie, ".yml"))
+  writeLines(yaml::as.yaml(bcfg), out)
+
+  n_pos <- if (!is.null(bcfg$meta_pos)) length(bcfg$meta_pos[[1]]) else 0L
+  n_neg <- if (!is.null(bcfg$meta_neg)) length(bcfg$meta_neg[[1]]) else 0L
+  summary_rows[[ie]] <- data.frame(
+    Batch          = paste0("b", ie, " (pos/neg-only)"),
+    Config         = basename(out),
+    Overlap        = length(overlap_names),
+    Batch_specific = length(unmatched),
+    Total_pos      = n_pos,
+    Total_neg      = n_neg,
+    stringsAsFactors = FALSE
+  )
+}
+
+summary_df <- do.call(rbind, summary_rows)
+knitr::kable(
+  summary_df,
+  caption = "Batch summary",
+  col.names = c("Batch", "Config file", "Overlap samples",
+                "Batch-specific samples", "Pos total", "Neg total")
+)
+
+```
+
+```{r session_info, include=FALSE, eval=FALSE}
+
+utils::sessionInfo()
+
+```

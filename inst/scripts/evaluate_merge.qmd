@@ -1,0 +1,250 @@
+---
+title: "Merge batch evaluation"
+author: "CBMR Metabolomics Platform"
+date: "`r base::Sys.Date()`"
+
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    toc-location: left
+    theme: flatly
+    polyfill: false
+    page-layout: full
+    number-sections: true
+    number-depth: 2
+    self-contained: true
+
+params:
+  config: ""
+  n_batches: 2
+  overlap_by_name: ""
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+
+library(yaml)
+library(dplyr)
+library(ggplot2)
+
+helper_candidates <- c(
+  file.path(getwd(), "helpers_workflow.R"),
+  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
+  system.file("scripts", "helpers_workflow.R", package = "metpipe")
+)
+helper_candidates <- helper_candidates[file.exists(helper_candidates)]
+if (length(helper_candidates) == 0) stop("Cannot locate helpers_workflow.R")
+source(helper_candidates[[1]], local = TRUE)
+
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE, include = TRUE)
+
+```
+
+## Inputs
+
+```{r inputs}
+
+cfg         <- wf_read_yaml_config(params$config, label = "params$config")
+path_result <- wf_cfg_required(cfg, "path_result")
+
+overlap_names <- if (!wf_is_blank(params$overlap_by_name)) {
+  trimws(unlist(strsplit(as.character(params$overlap_by_name), ",", fixed = TRUE)))
+} else {
+  character(0)
+}
+
+diag_path <- file.path(path_result, "data", "merge_diagnostics.rds")
+if (!file.exists(diag_path))
+  stop("Merge diagnostics not found: ", diag_path,
+       "\nRun merge_batches before evaluate_merge.")
+
+diag             <- readRDS(diag_path)
+all_diag         <- diag$all_diag
+all_counts       <- diag$all_counts
+all_l2r          <- diag$all_l2r
+all_input_counts <- diag$all_input_counts
+n_final_per_tbl  <- diag$n_final
+
+if (is.null(all_diag) || nrow(all_diag) == 0)
+  stop("No alignment diagnostics found in ", diag_path)
+
+cat("Config:     ", params$config, "\n")
+cat("Overlap:    ", length(overlap_names), "samples specified\n")
+if (length(overlap_names) > 0)
+  cat("  ", paste(overlap_names, collapse = ", "), "\n")
+cat("Table types:", paste(unique(all_diag$table), collapse = ", "), "\n")
+
+```
+
+## Alignment diagnostics
+
+### Feature counts
+
+```{r feature_counts, fig.height=4}
+
+merged_counts <- data.frame(
+  table    = names(n_final_per_tbl),
+  label    = "merged",
+  features = unname(n_final_per_tbl),
+  stringsAsFactors = FALSE
+)
+
+count_plot_df <- rbind(all_input_counts, merged_counts)
+input_levels  <- sort(unique(all_input_counts$label))
+count_plot_df$label <- factor(count_plot_df$label, levels = c(input_levels, "merged"))
+
+ggplot(count_plot_df, aes(x = label, y = features, fill = label == "merged")) +
+  geom_col(show.legend = FALSE) +
+  geom_text(aes(label = features), vjust = -0.4, size = 3) +
+  scale_fill_manual(values = c("FALSE" = "steelblue", "TRUE" = "seagreen")) +
+  facet_wrap(~table, scales = "free_y") +
+  theme_minimal(base_size = 11) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
+  labs(title = "Feature counts: input batches vs merged output",
+       x = NULL, y = "Features")
+
+knitr::kable(
+  all_counts,
+  caption = "Per-step feature counts",
+  col.names = c("Table", "Step", "Before merge", "Batch features", "After merge")
+)
+
+```
+
+### m/z alignment quality
+
+```{r mz_quality, fig.height=4}
+
+ggplot(all_diag, aes(x = mz_ppm)) +
+  geom_histogram(bins = 60, fill = "steelblue", color = "white", linewidth = 0.2) +
+  facet_grid(table ~ step) +
+  theme_minimal(base_size = 11) +
+  labs(title = "m/z difference for matched feature pairs",
+       x = "m/z difference (ppm)", y = "Features")
+
+```
+
+### RT alignment quality
+
+```{r rt_quality, fig.height=4}
+
+ggplot(all_diag, aes(x = rt_diff)) +
+  geom_histogram(bins = 60, fill = "darkorange", color = "white", linewidth = 0.2) +
+  facet_grid(table ~ step) +
+  theme_minimal(base_size = 11) +
+  labs(title = "RT difference for matched feature pairs",
+       x = "|RT difference| (min)", y = "Features")
+
+```
+
+## Overlap sample consistency
+
+```{r overlap_check}
+
+has_overlap_data <- !all(is.na(all_diag$overlap_cor))
+
+if (!has_overlap_data) {
+  cat("No shared area columns detected between batches.",
+      "Overlap sample consistency cannot be evaluated.\n")
+}
+
+```
+
+```{r overlap_cor, eval=has_overlap_data, fig.height=4}
+
+cor_data <- all_diag[!is.na(all_diag$overlap_cor), , drop = FALSE]
+
+ggplot(cor_data, aes(x = overlap_cor)) +
+  geom_histogram(bins = 50, fill = "seagreen", color = "white", linewidth = 0.2) +
+  geom_vline(xintercept = 0.8, linetype = "dashed", color = "firebrick") +
+  facet_grid(table ~ step) +
+  theme_minimal(base_size = 11) +
+  labs(title = "Overlap sample Spearman correlation per feature (batch A vs batch B)",
+       subtitle = "Red dashed line: 0.8 quality threshold",
+       x = "Spearman r", y = "Features")
+
+cor_summary <- cor_data |>
+  group_by(table, step) |>
+  summarise(
+    n_features     = n(),
+    median_cor     = round(median(overlap_cor, na.rm = TRUE), 3),
+    pct_cor_gte_09 = round(100 * mean(overlap_cor >= 0.9, na.rm = TRUE), 1),
+    pct_cor_lt_08  = round(100 * mean(overlap_cor < 0.8,  na.rm = TRUE), 1),
+    .groups = "drop"
+  )
+
+knitr::kable(
+  cor_summary,
+  caption = "Overlap sample Spearman correlation summary",
+  col.names = c("Table", "Step", "Features", "Median cor",
+                "% cor ≥ 0.9", "% cor < 0.8")
+)
+
+```
+
+```{r overlap_ratio, eval=has_overlap_data, fig.height=4}
+
+l2r_data <- all_diag[!is.na(all_diag$median_log2ratio), , drop = FALSE]
+
+ggplot(l2r_data, aes(x = median_log2ratio)) +
+  geom_histogram(bins = 60, fill = "mediumpurple", color = "white", linewidth = 0.2) +
+  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed", color = "firebrick") +
+  facet_grid(table ~ step) +
+  theme_minimal(base_size = 11) +
+  labs(title = "Median log2 ratio of overlap sample intensities (batch A / batch B)",
+       subtitle = "Red dashed lines: ±0.5 threshold (≈1.4× fold change)",
+       x = "Median log₂(batch A / batch B)", y = "Features")
+
+```
+
+```{r overlap_density, eval=has_overlap_data && !is.null(all_l2r) && nrow(all_l2r) > 0, fig.height=4}
+
+ggplot(all_l2r, aes(x = log2ratio)) +
+  geom_density(fill = "steelblue", alpha = 0.5, color = "steelblue4") +
+  geom_vline(xintercept = 0, linetype = "solid") +
+  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed", color = "firebrick") +
+  facet_grid(table ~ step) +
+  coord_cartesian(xlim = c(-3, 3)) +
+  theme_minimal(base_size = 11) +
+  labs(title = "Density of all per-sample overlap log2 ratios",
+       subtitle = "Clipped to ±3; ideal distribution is narrow and centred at 0",
+       x = "log₂(batch A / batch B)", y = "Density")
+
+```
+
+## Flagged features
+
+```{r flagged}
+
+flagged <- all_diag[
+  (!is.na(all_diag$overlap_cor)      & all_diag$overlap_cor < 0.8) |
+  (!is.na(all_diag$median_log2ratio) & abs(all_diag$median_log2ratio) > 0.5),
+  , drop = FALSE
+]
+
+if (nrow(flagged) == 0) {
+  cat("No features flagged: all matched features have overlap_cor ≥ 0.8",
+      "and |median_log2ratio| ≤ 0.5.\n")
+} else {
+  cat(nrow(flagged), "features flagged (low overlap correlation or",
+      "high intensity ratio between batches).\n\n")
+
+  show_cols <- c("table", "step", "mz", "rt", "identity",
+                 "mz_ppm", "rt_diff", "overlap_cor", "median_log2ratio")
+  flagged_show <- flagged[order(flagged$overlap_cor), show_cols, drop = FALSE]
+
+  knitr::kable(
+    head(flagged_show, 100),
+    caption = "Flagged features — sorted by overlap_cor ascending (up to 100 shown)",
+    digits  = 4
+  )
+}
+
+```
+
+```{r session_info, include=FALSE, eval=FALSE}
+
+utils::sessionInfo()
+
+```

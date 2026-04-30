@@ -81,6 +81,8 @@ resolve_yaml <- function(path_workflow, path_yaml = NULL) {
   wf_resolve_module_script(path_workflow, "prep_yaml.qmd")
 }
 
+standalone_module_keys <- c("split_batches", "merge_batches", "evaluate_merge")
+
 normalize_start_from <- function(x) {
   if (is_blank(x)) return(NULL)
   key <- tolower(trimws(as.character(x)[1]))
@@ -99,25 +101,34 @@ normalize_start_from <- function(x) {
     "eval"                  = "evaluation",
     "evaluation"            = "evaluation",
     "extra"                 = "extra_processing_lip",
-    "extra_processing_lip"  = "extra_processing_lip"
+    "extra_processing_lip"  = "extra_processing_lip",
+    "split_batches"         = "split_batches",
+    "merge_batches"         = "merge_batches",
+    "evaluate_merge"        = "evaluate_merge"
   )
   resolved <- unname(aliases[key])
   if (is.na(resolved) || is_blank(resolved)) {
-    stop("Invalid --start-from value: ", x,
-         ". Allowed: prep_yaml, preprocessing_mzmine, convert_output, qc_istd, post_processing, evaluation, extra_processing_lip")
+    stop("Invalid --start-from/--run-module value: ", x,
+         ". Allowed: prep_yaml, preprocessing_mzmine, convert_output, qc_istd, post_processing, evaluation, extra_processing_lip, split_batches, merge_batches, evaluate_merge")
   }
   resolved
 }
 
-path_raw    <- get_arg("--raw")
-start_from  <- get_arg("--start-from")
-run_module  <- get_arg("--run-module")
-start_key   <- normalize_start_from(start_from)
-run_key     <- normalize_start_from(run_module)
+path_raw          <- get_arg("--raw")
+start_from        <- get_arg("--start-from")
+run_module        <- get_arg("--run-module")
+overlap_by_name   <- get_arg("--overlap-by-name")
+batch_assignments <- get_arg("--batch-assignments")
+n_batches         <- get_arg("--n-batches")
+start_key         <- normalize_start_from(start_from)
+run_key           <- normalize_start_from(run_module)
 if (!is_blank(start_from) && !is_blank(run_module)) {
   stop("Use either --start-from or --run-module, not both")
 }
-target_key      <- if (!is.null(run_key)) run_key else start_key
+if (!is.null(start_key) && start_key %in% standalone_module_keys) {
+  stop("'", start_key, "' is a standalone module; use --run-module instead of --start-from")
+}
+target_key       <- if (!is.null(run_key)) run_key else start_key
 requires_prepare <- is.null(target_key) || identical(target_key, "prep_yaml")
 
 default_workflow <- if (dir.exists("/wd")) "/wd" else getwd()
@@ -212,6 +223,9 @@ if (!is_blank(start_from) && normalize_start_from(start_from) != "prep_yaml") {
 if (!is_blank(run_module) && normalize_start_from(run_module) != "prep_yaml") {
   run_args <- c(run_args, "--run-module", shQuote(run_module))
 }
+if (!is_blank(overlap_by_name))   run_args <- c(run_args, "--overlap-by-name",   shQuote(overlap_by_name))
+if (!is_blank(batch_assignments)) run_args <- c(run_args, "--batch-assignments", shQuote(batch_assignments))
+if (!is_blank(n_batches))         run_args <- c(run_args, "--n-batches",         shQuote(n_batches))
 
 status_run <- system2("Rscript", args = run_args)
 
