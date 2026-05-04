@@ -12,6 +12,7 @@ config_file       <- args[1]
 start_from        <- get_arg("--start-from")
 run_module        <- get_arg("--run-module")
 overlap_by_name   <- get_arg("--overlap-by-name")
+overlap_sample_types <- get_arg("--overlap-sample-types")
 batch_assignments <- get_arg("--batch-assignments")
 n_batches_arg     <- get_arg("--n-batches")
 
@@ -152,12 +153,14 @@ if (!is.null(run_key)) {
     ep   <- list()
     if (identical(step$key, "split_batches")) {
       if (!wf_is_blank(overlap_by_name))   ep$overlap_by_name   <- overlap_by_name
+      if (!wf_is_blank(overlap_sample_types))   ep$overlap_sample_types   <- overlap_sample_types
       if (!wf_is_blank(batch_assignments)) ep$batch_assignments <- batch_assignments
     } else if (identical(step$key, "merge_batches")) {
       if (!wf_is_blank(n_batches_arg)) ep$n_batches <- n_batches_arg
     } else if (identical(step$key, "evaluate_merge")) {
       if (!wf_is_blank(n_batches_arg))     ep$n_batches      <- n_batches_arg
       if (!wf_is_blank(overlap_by_name))   ep$overlap_by_name <- overlap_by_name
+      if (!wf_is_blank(overlap_sample_types))   ep$overlap_sample_types <- overlap_sample_types
     }
     message("Running standalone module: ", step$key)
     render_module(step$file, step$output, config_file, path_workflow, path_result, path_temp,
