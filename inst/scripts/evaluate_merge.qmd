@@ -2,7 +2,6 @@
 title: "Merge batch evaluation"
 author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
-
 format:
   html:
     toc: true
@@ -14,7 +13,7 @@ format:
     page-layout: full
     number-sections: true
     number-depth: 2
-    self-contained: true
+self-contained: true
 
 params:
   config: ""
@@ -27,6 +26,9 @@ params:
 library(yaml)
 library(dplyr)
 library(ggplot2)
+library(plotly)
+library(DT)
+library(openxlsx)
 
 helper_candidates <- c(
   file.path(getwd(), "helpers_workflow.R"),
@@ -38,6 +40,216 @@ if (length(helper_candidates) == 0) stop("Cannot locate helpers_workflow.R")
 source(helper_candidates[[1]], local = TRUE)
 
 knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE, include = TRUE)
+
+```
+
+```{r functions, include=FALSE}
+
+# ── Feature subset helpers ────────────────────────────────────────────────────
+
+make_feature_subsets <- function(diag_df) {
+  list(
+    `Internal standard` = diag_df[grepl("istd", diag_df$table), , drop = FALSE],
+    `With identity`     = diag_df[!grepl("istd", diag_df$table) & !is.na(diag_df$identity), , drop = FALSE],
+    `Without identity`  = diag_df[!grepl("istd", diag_df$table) &  is.na(diag_df$identity), , drop = FALSE],
+    `Overall`           = diag_df
+  )
+}
+
+make_l2r_subsets <- function(l2r_df) {
+  empty <- data.frame(table = character(), step = character(),
+                      identity = character(), sample = character(),
+                      log2ratio = numeric(), stringsAsFactors = FALSE)
+  if (is.null(l2r_df) || nrow(l2r_df) == 0)
+    return(list(`Internal standard` = empty, `With identity` = empty,
+                `Without identity`  = empty, `Overall`       = empty))
+  is_istd   <- grepl("istd", l2r_df$table)
+  has_id_col <- "identity" %in% colnames(l2r_df)
+  list(
+    `Internal standard` = l2r_df[ is_istd, , drop = FALSE],
+    `With identity`     = if (has_id_col)
+      l2r_df[!is_istd & !is.na(l2r_df$identity), , drop = FALSE]
+    else
+      l2r_df[!is_istd, , drop = FALSE],
+    `Without identity`  = if (has_id_col)
+      l2r_df[!is_istd &  is.na(l2r_df$identity), , drop = FALSE]
+    else
+      empty,
+    `Overall`           = l2r_df
+  )
+}
+
+# ── Alignment quality plots ───────────────────────────────────────────────────
+
+plot_mz_hist <- function(df) {
+  if (nrow(df) == 0) { cat("No data for this subset.\n"); return(invisible(NULL)) }
+  p <- ggplot(df, aes(x = mz_ppm)) +
+    geom_histogram(bins = 60, fill = "steelblue", color = "white", linewidth = 0.2) +
+    facet_grid(table ~ step, scales = "free_y") +
+    theme_minimal(base_size = 11) +
+    labs(#title = "m/z difference for matched feature pairs",
+         x = "m/z difference (ppm)", y = "Nr. features")
+  ggplotly(p)
+}
+
+plot_rt_hist <- function(df) {
+  if (nrow(df) == 0) { cat("No data for this subset.\n"); return(invisible(NULL)) }
+  p <- ggplot(df, aes(x = rt_diff)) +
+    geom_histogram(bins = 60, fill = "darkorange", color = "white", linewidth = 0.2) +
+    facet_grid(table ~ step, scales = "free_y") +
+    theme_minimal(base_size = 11) +
+    labs(#title = "RT difference for matched feature pairs",
+         x = "|RT difference| (min)", y = "Nr. features")
+  ggplotly(p)
+}
+
+# ── Overlap consistency plots ─────────────────────────────────────────────────
+
+plot_cor_hist <- function(df) {
+  d <- df[!is.na(df$overlap_cor), , drop = FALSE]
+  if (nrow(d) == 0) { cat("No overlap correlation data for this subset.\n"); return(invisible(NULL)) }
+  p <- ggplot(d, aes(x = overlap_cor)) +
+    geom_histogram(bins = 60, fill = "seagreen", color = "white", linewidth = 0.2) +
+    geom_vline(xintercept = 0.8, linetype = "dashed", color = "firebrick") +
+    facet_grid(table ~ step, scales = "free_y") +
+    theme_minimal(base_size = 11) +
+    labs(#title = "Overlap sample Spearman correlation per feature (batch A vs batch B)",
+         subtitle = "Red dashed line: 0.8 quality threshold",
+         x = "Spearman r", y = "Nr. features")
+  ggplotly(p)
+}
+
+print_cor_summary <- function(df) {
+  d <- df[!is.na(df$overlap_cor), , drop = FALSE]
+  if (nrow(d) == 0) return(invisible(NULL))
+  summ <- d |>
+    group_by(table, step) |>
+    summarise(
+      n_features     = n(),
+      median_cor     = round(median(overlap_cor, na.rm = TRUE), 3),
+      pct_cor_gte_09 = round(100 * mean(overlap_cor >= 0.9, na.rm = TRUE), 1),
+      pct_cor_lt_08  = round(100 * mean(overlap_cor <  0.8, na.rm = TRUE), 1),
+      .groups = "drop"
+    )
+  knitr::kable(
+    summ,
+    #caption = "Overlap sample Spearman correlation summary",
+    col.names = c("Table", "Step", "Features", "Median cor", "% cor ≥ 0.9", "% cor < 0.8")
+  )
+}
+
+plot_l2r_hist <- function(df) {
+  d <- df[!is.na(df$median_log2ratio), , drop = FALSE]
+  if (nrow(d) == 0) { cat("No log2 ratio data for this subset.\n"); return(invisible(NULL)) }
+  p <- ggplot(d, aes(x = median_log2ratio)) +
+    geom_histogram(bins = 60, fill = "mediumpurple", color = "white", linewidth = 0.2) +
+    geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed", color = "firebrick") +
+    facet_grid(table ~ step, scales = "free_y") +
+    theme_minimal(base_size = 11) +
+    labs(#title = "Median log2 ratio of overlap sample intensities (batch A / batch B)",
+         #subtitle = "Red dashed lines: ±0.5 threshold (≈1.4× fold change)",
+         x = "Median log2(batch A / batch B)", y = "Nr. features")
+  ggplotly(p)
+}
+
+plot_l2r_density <- function(l2r_df) {
+  if (is.null(l2r_df) || nrow(l2r_df) == 0) {
+    cat("No per-sample log2 ratio data available.\n")
+    return(invisible(NULL))
+  }
+  p <- 
+    ggplot(l2r_df, aes(x = log2ratio)) +
+    #geom_density(fill = NA, color = "steelblue4", alpha = 0.6, linewidth = 0.4) +
+    geom_histogram(bins = 60, fill = "steelblue4", color = "white", linewidth = 0.2) +
+    #geom_vline(xintercept = 0, linetype = "solid") +
+    geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed", color = "firebrick") +
+    facet_grid(table ~ step, scales = "free_y") +
+    #coord_cartesian(xlim = c(-3, 3)) +
+    theme_minimal(base_size = 11) +
+    labs(#title = "Log2 ratio of overlap sample intensities (batch A / batch B)",
+         #subtitle = "Clipped to +-3; ideal distribution is narrow and centred at 0",
+         x = "log2(batch A / batch B)", y = "Nr. samples")
+  ggplotly(p)
+  #print(p)
+}
+
+# ── Flagged features ──────────────────────────────────────────────────────────
+
+show_flagged <- function(df) {
+  flagged <- df[
+    (!is.na(df$overlap_cor)      & df$overlap_cor < 0.8) |
+    (!is.na(df$median_log2ratio) & abs(df$median_log2ratio) > 0.5),
+    , drop = FALSE
+  ]
+  if (nrow(flagged) == 0) {
+    cat("No features flagged: all matched features pass quality thresholds.\n")
+  } else {
+    cat(nrow(flagged), "features flagged (low overlap correlation or high intensity ratio).\n\n")
+    show_cols <- intersect(
+      c("table", "step", "mz", "rt", "identity",
+        "mz_ppm", "rt_diff", "overlap_cor", "median_log2ratio"),
+      colnames(flagged)
+    )
+    
+    # knitr::kable(
+    #   flagged[order(flagged$overlap_cor), show_cols, drop = FALSE],
+    #   #caption = "Flagged features — sorted by overlap_cor ascending (up to 100 shown)",
+    #   digits  = 4
+    # )
+    
+    datatable(
+      flagged[order(flagged$overlap_cor), show_cols, drop = FALSE],
+      options = list(
+        pageLength = 15,
+        autoWidth = TRUE,
+        dom = "Bfrtip"
+      ),
+      filter = "top",
+      rownames = FALSE
+    )
+  }
+}
+
+
+# ── PCA ───────────────────────────────────────────────────────────────────────
+
+plot_pca <- function(tbl, sample_batch_map, title) {
+  if (is.null(tbl) || nrow(tbl) == 0) { cat("No data available.\n"); return(invisible(NULL)) }
+  int_cols <- if (any(grepl("\\.d\\.area$", colnames(tbl)))) {
+    grep("\\.d\\.area$", colnames(tbl), value = TRUE)
+  } else {
+    grep("(?<!\\.rt|\\.mz)\\.d$", colnames(tbl), value = TRUE, perl = TRUE)
+  }
+  if (length(int_cols) < 3) { cat("Insufficient sample columns for PCA.\n"); return(invisible(NULL)) }
+  mat <- t(as.matrix(tbl[, int_cols, drop = FALSE]))
+  mat[is.na(mat)] <- 0
+  mat <- log2(mat + 1)
+  col_var <- apply(mat, 2, var, na.rm = TRUE)
+  mat <- mat[, col_var > 0, drop = FALSE]
+  if (ncol(mat) < 2) { cat("Insufficient variable features for PCA.\n"); return(invisible(NULL)) }
+  pca  <- prcomp(mat, scale. = TRUE, center = TRUE)
+  pct  <- round(100 * pca$sdev^2 / sum(pca$sdev^2), 1)
+  snames <- sub("^datafile\\.", "", rownames(pca$x))
+  snames <- sub("\\.d\\.area$|\\.d$|\\.mzML$", "", snames)
+  batch_vals <- sample_batch_map[snames]
+  batch_vals[is.na(batch_vals)] <- 0L
+  pca_df <- data.frame(
+    PC1    = pca$x[, 1],
+    PC2    = pca$x[, 2],
+    sample = snames,
+    batch  = factor(paste0("Batch ", batch_vals),
+                    levels = paste0("Batch ", sort(unique(batch_vals)))),
+    stringsAsFactors = FALSE
+  )
+  p <- ggplot(pca_df, aes(x = PC1, y = PC2, color = batch, label = sample)) +
+    geom_point(size = 2.5, alpha = 0.85) +
+    theme_minimal(base_size = 11) +
+    labs(title = title,
+         x = paste0("PC1 (", pct[1], "%)"),
+         y = paste0("PC2 (", pct[2], "%)"),
+         color = "Batch")
+  ggplotly(p, tooltip = c("label", "color", "x", "y"))
+}
 
 ```
 
@@ -69,11 +281,34 @@ n_final_per_tbl  <- diag$n_final
 if (is.null(all_diag) || nrow(all_diag) == 0)
   stop("No alignment diagnostics found in ", diag_path)
 
-cat("Config:     ", params$config, "\n")
-cat("Overlap:    ", length(overlap_names), "samples specified\n")
-if (length(overlap_names) > 0)
-  cat("  ", paste(overlap_names, collapse = ", "), "\n")
-cat("Table types:", paste(unique(all_diag$table), collapse = ", "), "\n")
+# Merged peaktables for PCA
+tbl_paths <- list(
+  pos      = cfg$path_peaktable_pos,
+  neg      = cfg$path_peaktable_neg,
+  istd_pos = cfg$path_peaktable_istd_pos,
+  istd_neg = cfg$path_peaktable_istd_neg
+)
+merged_tables <- lapply(tbl_paths, function(p) {
+  if (wf_is_blank(p) || !file.exists(p)) return(NULL)
+  openxlsx::read.xlsx(p)
+})
+
+# Sample → batch map: saved by merge_batches into the diagnostics RDS.
+sample_batch_map <- if (!is.null(diag$sample_batch_map) && length(diag$sample_batch_map) > 0) {
+  diag$sample_batch_map
+} else {
+  warning("sample_batch_map not found in diagnostics RDS — re-run merge_batches to enable batch colouring")
+  integer(0)
+}
+
+# Feature subsets
+feat_subsets <- make_feature_subsets(all_diag)
+l2r_subsets  <- make_l2r_subsets(all_l2r)
+
+cat("Config:                   ", params$config, "\n")
+cat("Overlap samples specified:", length(overlap_names), "\n")
+cat("Table types:              ", paste(unique(all_diag$table), collapse = ", "), "\n")
+cat("Samples mapped to batches:", length(sample_batch_map), "\n")
 
 ```
 
@@ -94,154 +329,276 @@ count_plot_df <- rbind(all_input_counts, merged_counts)
 input_levels  <- sort(unique(all_input_counts$label))
 count_plot_df$label <- factor(count_plot_df$label, levels = c(input_levels, "merged"))
 
-ggplot(count_plot_df, aes(x = label, y = features, fill = label == "merged")) +
+p_counts <- ggplot(count_plot_df, aes(x = label, y = features, fill = ifelse(label == "merged", "After merge", "Before merge"),
+                                      text = paste0(label, ": ", features))) +
   geom_col(show.legend = FALSE) +
-  geom_text(aes(label = features), vjust = -0.4, size = 3) +
-  scale_fill_manual(values = c("FALSE" = "steelblue", "TRUE" = "seagreen")) +
+  scale_fill_manual(values = c("Before merge" = "steelblue", "After merge" = "seagreen")) +
   facet_wrap(~table, scales = "free_y") +
   theme_minimal(base_size = 11) +
   theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
-  labs(title = "Feature counts: input batches vs merged output",
-       x = NULL, y = "Features")
+  labs(#title = "Feature counts: input batches vs merged output",
+       x = NULL, y = "Nr. features")
+ggplotly(p_counts, tooltip = "text")
+
+```
+
+#### Per-step feature counts
+```{r feature_counts2, fig.height=4}
 
 knitr::kable(
   all_counts,
-  caption = "Per-step feature counts",
+  #caption = "Per-step feature counts",
   col.names = c("Table", "Step", "Before merge", "Batch features", "After merge")
 )
 
 ```
 
-### m/z alignment quality
+### Alignment quality
 
-```{r mz_quality, fig.height=4}
+#### m/z difference for matched feature pairs
 
-ggplot(all_diag, aes(x = mz_ppm)) +
-  geom_histogram(bins = 60, fill = "steelblue", color = "white", linewidth = 0.2) +
-  facet_grid(table ~ step) +
-  theme_minimal(base_size = 11) +
-  labs(title = "m/z difference for matched feature pairs",
-       x = "m/z difference (ppm)", y = "Features")
+::: {.panel-tabset}
 
+##### Internal standard
+
+```{r align_istd, fig.height=4}
+plot_mz_hist(feat_subsets$`Internal standard`)
 ```
 
-### RT alignment quality
+##### With identity
 
-```{r rt_quality, fig.height=4}
-
-ggplot(all_diag, aes(x = rt_diff)) +
-  geom_histogram(bins = 60, fill = "darkorange", color = "white", linewidth = 0.2) +
-  facet_grid(table ~ step) +
-  theme_minimal(base_size = 11) +
-  labs(title = "RT difference for matched feature pairs",
-       x = "|RT difference| (min)", y = "Features")
-
+```{r align_id, fig.height=4}
+plot_mz_hist(feat_subsets$`With identity`)
 ```
+
+##### Without identity
+
+```{r align_noid, fig.height=4}
+plot_mz_hist(feat_subsets$`Without identity`)
+```
+
+##### Overall
+
+```{r align_all, fig.height=4}
+plot_mz_hist(feat_subsets$`Overall`)
+```
+
+:::
+
+#### Retention time difference for matched feature pairs
+
+::: {.panel-tabset}
+
+##### Internal standard
+
+```{r align_istd2, fig.height=4}
+plot_rt_hist(feat_subsets$`Internal standard`)
+```
+
+##### With identity
+
+```{r align_id2, fig.height=4}
+plot_rt_hist(feat_subsets$`With identity`)
+```
+
+##### Without identity
+
+```{r align_noid2, fig.height=4}
+plot_rt_hist(feat_subsets$`Without identity`)
+```
+
+##### Overall
+
+```{r align_all2, fig.height=4}
+plot_rt_hist(feat_subsets$`Overall`)
+```
+
+:::
 
 ## Overlap sample consistency
 
-```{r overlap_check}
+### Correlation per feature
+::: {.panel-tabset}
 
-has_overlap_data <- !all(is.na(all_diag$overlap_cor))
+#### Internal standard
 
-if (!has_overlap_data) {
-  cat("No shared area columns detected between batches.",
-      "Overlap sample consistency cannot be evaluated.\n")
-}
+```{r overlap_istd, fig.height=4}
+plot_cor_hist(feat_subsets$`Internal standard`)
+print_cor_summary(feat_subsets$`Internal standard`)
+```
+
+#### With identity
+
+```{r overlap_id, fig.height=4}
+plot_cor_hist(feat_subsets$`With identity`)
+print_cor_summary(feat_subsets$`With identity`)
+```
+
+#### Without identity
+
+```{r overlap_noid, fig.height=4}
+plot_cor_hist(feat_subsets$`Without identity`)
+print_cor_summary(feat_subsets$`Without identity`)
+```
+
+#### Overall
+
+```{r overlap_all, fig.height=4}
+plot_cor_hist(feat_subsets$`Overall`)
+print_cor_summary(feat_subsets$`Overall`)
+```
+
+:::
+
+### Median ratio of overlap sample intensities
+::: {.panel-tabset}
+
+#### Internal standard
+
+```{r overlap_istd2, fig.height=4}
+
+plot_l2r_hist(feat_subsets$`Internal standard`)
+```
+
+#### With identity
+
+```{r overlap_id2, fig.height=4}
+plot_l2r_hist(feat_subsets$`With identity`)
+```
+
+#### Without identity
+
+```{r overlap_noid2, fig.height=4}
+plot_l2r_hist(feat_subsets$`Without identity`)
+```
+
+#### Overall
+
+```{r overlap_all2, fig.height=4}
+plot_l2r_hist(feat_subsets$`Overall`)
+```
+
+:::
+
+### Ratio of overlap sample intensities
+::: {.panel-tabset}
+
+#### Internal standard
+
+```{r overlap_istd3, fig.height=4}
+
+plot_l2r_density(l2r_subsets$`Internal standard`)
+```
+
+#### With identity
+
+```{r overlap_id3, fig.height=4}
+plot_l2r_density(l2r_subsets$`With identity`)
+```
+
+#### Without identity
+
+```{r overlap_noid3, fig.height=4}
+plot_l2r_density(l2r_subsets$`Without identity`)
+```
+
+#### Overall
+
+```{r overlap_all3, fig.height=4}
+plot_l2r_density(l2r_subsets$`Overall`)
+```
+:::
+
+## PCA
+
+::: {.panel-tabset}
+
+### Internal standard
+
+```{r pca_is, fig.height=5}
+plot_pca(merged_tables$istd_pos, sample_batch_map, "PCA — IS positive mode")
+```
+
+```{r pca_is2, fig.height=5}
+plot_pca(merged_tables$istd_neg, sample_batch_map, "PCA — IS negative mode")
+```
+
+### With identity
+
+```{r pca_id, fig.height=5}
+pos_id <- if (!is.null(merged_tables$pos) && "identity" %in% colnames(merged_tables$pos))
+  merged_tables$pos[!is.na(merged_tables$pos$identity), , drop = FALSE] else merged_tables$pos
+
+plot_pca(pos_id, sample_batch_map, "PCA — positive mode (identified features)")
 
 ```
 
-```{r overlap_cor, eval=has_overlap_data, fig.height=4}
+```{r pca_id2, fig.height=5}
+neg_id <- if (!is.null(merged_tables$neg) && "identity" %in% colnames(merged_tables$neg))
+  merged_tables$neg[!is.na(merged_tables$neg$identity), , drop = FALSE] else merged_tables$neg
 
-cor_data <- all_diag[!is.na(all_diag$overlap_cor), , drop = FALSE]
+plot_pca(neg_id, sample_batch_map, "PCA — negative mode (identified features)")
+```
 
-ggplot(cor_data, aes(x = overlap_cor)) +
-  geom_histogram(bins = 50, fill = "seagreen", color = "white", linewidth = 0.2) +
-  geom_vline(xintercept = 0.8, linetype = "dashed", color = "firebrick") +
-  facet_grid(table ~ step) +
-  theme_minimal(base_size = 11) +
-  labs(title = "Overlap sample Spearman correlation per feature (batch A vs batch B)",
-       subtitle = "Red dashed line: 0.8 quality threshold",
-       x = "Spearman r", y = "Features")
+### Without identity
 
-cor_summary <- cor_data |>
-  group_by(table, step) |>
-  summarise(
-    n_features     = n(),
-    median_cor     = round(median(overlap_cor, na.rm = TRUE), 3),
-    pct_cor_gte_09 = round(100 * mean(overlap_cor >= 0.9, na.rm = TRUE), 1),
-    pct_cor_lt_08  = round(100 * mean(overlap_cor < 0.8,  na.rm = TRUE), 1),
-    .groups = "drop"
-  )
+```{r pca_noid, fig.height=5}
+pos_noid <- if (!is.null(merged_tables$pos) && "identity" %in% colnames(merged_tables$pos))
+  merged_tables$pos[ is.na(merged_tables$pos$identity), , drop = FALSE] else NULL
 
-knitr::kable(
-  cor_summary,
-  caption = "Overlap sample Spearman correlation summary",
-  col.names = c("Table", "Step", "Features", "Median cor",
-                "% cor ≥ 0.9", "% cor < 0.8")
-)
+plot_pca(pos_noid, sample_batch_map, "PCA — positive mode (unknown features)")
 
 ```
 
-```{r overlap_ratio, eval=has_overlap_data, fig.height=4}
+```{r pca_noid2, fig.height=5}
+neg_noid <- if (!is.null(merged_tables$neg) && "identity" %in% colnames(merged_tables$neg))
+  merged_tables$neg[ is.na(merged_tables$neg$identity), , drop = FALSE] else NULL
 
-l2r_data <- all_diag[!is.na(all_diag$median_log2ratio), , drop = FALSE]
-
-ggplot(l2r_data, aes(x = median_log2ratio)) +
-  geom_histogram(bins = 60, fill = "mediumpurple", color = "white", linewidth = 0.2) +
-  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed", color = "firebrick") +
-  facet_grid(table ~ step) +
-  theme_minimal(base_size = 11) +
-  labs(title = "Median log2 ratio of overlap sample intensities (batch A / batch B)",
-       subtitle = "Red dashed lines: ±0.5 threshold (≈1.4× fold change)",
-       x = "Median log₂(batch A / batch B)", y = "Features")
-
+plot_pca(neg_noid, sample_batch_map, "PCA — negative mode (unknown features)")
 ```
 
-```{r overlap_density, eval=has_overlap_data && !is.null(all_l2r) && nrow(all_l2r) > 0, fig.height=4}
+### Overall
 
-ggplot(all_l2r, aes(x = log2ratio)) +
-  geom_density(fill = "steelblue", alpha = 0.5, color = "steelblue4") +
-  geom_vline(xintercept = 0, linetype = "solid") +
-  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed", color = "firebrick") +
-  facet_grid(table ~ step) +
-  coord_cartesian(xlim = c(-3, 3)) +
-  theme_minimal(base_size = 11) +
-  labs(title = "Density of all per-sample overlap log2 ratios",
-       subtitle = "Clipped to ±3; ideal distribution is narrow and centred at 0",
-       x = "log₂(batch A / batch B)", y = "Density")
-
+```{r pca_all, fig.height=5}
+plot_pca(merged_tables$pos, sample_batch_map, "PCA — positive mode (all features)")
 ```
+
+```{r pca_all2, fig.height=5}
+plot_pca(merged_tables$neg, sample_batch_map, "PCA — negative mode (all features)")
+```
+
+
+:::
 
 ## Flagged features
 
-```{r flagged}
+::: {.panel-tabset}
 
-flagged <- all_diag[
-  (!is.na(all_diag$overlap_cor)      & all_diag$overlap_cor < 0.8) |
-  (!is.na(all_diag$median_log2ratio) & abs(all_diag$median_log2ratio) > 0.5),
-  , drop = FALSE
-]
+### Internal standard
 
-if (nrow(flagged) == 0) {
-  cat("No features flagged: all matched features have overlap_cor ≥ 0.8",
-      "and |median_log2ratio| ≤ 0.5.\n")
-} else {
-  cat(nrow(flagged), "features flagged (low overlap correlation or",
-      "high intensity ratio between batches).\n\n")
-
-  show_cols <- c("table", "step", "mz", "rt", "identity",
-                 "mz_ppm", "rt_diff", "overlap_cor", "median_log2ratio")
-  flagged_show <- flagged[order(flagged$overlap_cor), show_cols, drop = FALSE]
-
-  knitr::kable(
-    head(flagged_show, 100),
-    caption = "Flagged features — sorted by overlap_cor ascending (up to 100 shown)",
-    digits  = 4
-  )
-}
-
+```{r flag_istd}
+show_flagged(feat_subsets$`Internal standard`)
 ```
+
+### With identity
+
+```{r flag_id}
+show_flagged(feat_subsets$`With identity`)
+```
+
+### Without identity
+
+```{r flag_noid}
+show_flagged(feat_subsets$`Without identity`)
+```
+
+### Overall
+
+```{r flag_all}
+show_flagged(feat_subsets$`Overall`)
+```
+
+:::
 
 ```{r session_info, include=FALSE, eval=FALSE}
 

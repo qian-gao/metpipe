@@ -98,8 +98,11 @@ plot_PCA <-
           choices = pcs,
           text.size = text.size,
           ...
-        ) +
-        scale_color_npg()
+        )  +
+        scale_color_manual(values = c("#3C5488CC", "#F39B7FCC", "#91D1C2CC", "#925E9FCC", "#0099B4CC", "#7E6148CC", "#8491B4CC", "#B09C85CC", "#E64B35CC", "#4DBBD5CC", 
+                                      "#00A087CC", "#00468BCC", "#ED0000CC", "#42B540CC", "#DC0000CC", "#3B4992CC", "#EE0000CC", "#008B45CC", "#631879CC", "#008280CC", 
+                                      "#BB0021CC", "#5F559BCC", "#A20056CC", "#808180CC", "#1B1919CC", "#FDAF91CC", "#AD002ACC"))
+        #scale_color_npg()
 
     } else if(plot.type == "loading") {
 

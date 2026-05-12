@@ -46,11 +46,156 @@ ppm_diff <- function(mz1, mz2) {
   abs(mz1 - mz2) / mz1 * 1e6
 }
 
+ccs_diff <- function(ccs1, ccs2) {
+  abs(ccs1 - ccs2) / ccs1 * 100
+} 
+  
+# Clean up peaktable by removing near-duplicate features.
+# - Identified features (non-NA identity): grouped by identity string.
+# - Unknown features (NA identity): grouped by mz/rt proximity (same thresholds as align_features).
+# Within each group the row with the highest mean intensity is kept.
+# Intensity cols: *.d.area if present, otherwise *.d (excluding *.d.rt and *.d.mz).
+# Uses base R only — safe to export into parallel workers.
+remove_dup <- function(df, thres_mz_ppm = 3, thres_rt_min = 0.1) {
+  n <- nrow(df)
+  if (n == 0L) return(df)
+
+  int_cols <- if (any(grepl("\\.d\\.area$", colnames(df)))) {
+    grep("\\.d\\.area$", colnames(df), value = TRUE)
+  } else {
+    grep("(?<!\\.rt|\\.mz)\\.d$", colnames(df), value = TRUE, perl = TRUE)
+  }
+  mean_int <- if (length(int_cols) > 0L)
+    rowMeans(as.matrix(df[, int_cols, drop = FALSE]), na.rm = TRUE)
+  else
+    rep(0, n)
+
+  has_id <- !is.na(df$identity)
+
+  # Identified features: one winner per identity string
+  keep_id <- integer(0)
+  if (any(has_id)) {
+    idx_id  <- which(has_id)
+    keep_id <- unlist(
+      tapply(idx_id, df$identity[idx_id],
+             function(rows) rows[which.max(mean_int[rows])]),
+      use.names = FALSE
+    )
+  }
+
+  # Unknown features: Union-Find over mz/rt proximity
+  keep_unk <- integer(0)
+  if (any(!has_id)) {
+    idx_unk <- which(!has_id)
+    m       <- length(idx_unk)
+
+    ord  <- order(df$mz[idx_unk])
+    mz_s <- df$mz[idx_unk[ord]]
+    rt_s <- df$rt[idx_unk[ord]]
+
+    parent <- seq_len(m)
+    find_root <- function(x) {
+      while (parent[x] != x) { parent[x] <<- parent[parent[x]]; x <- parent[x] }
+      x
+    }
+    union_nodes <- function(x, y) {
+      rx <- find_root(x); ry <- find_root(y)
+      if (rx != ry) parent[ry] <<- rx
+    }
+
+    for (i in seq_len(m - 1L)) {
+      lo <- findInterval(mz_s[i] * (1 - thres_mz_ppm * 1e-6), mz_s) + 1L
+      hi <- findInterval(mz_s[i] * (1 + thres_mz_ppm * 1e-6), mz_s)
+      js <- seq.int(max(lo, i + 1L), hi)
+      if (length(js) == 0L) next
+      js <- js[abs(rt_s[js] - rt_s[i]) < thres_rt_min]
+      for (j in js) union_nodes(i, j)
+    }
+
+    roots        <- vapply(seq_len(m), find_root, integer(1L))
+    groups       <- integer(m)
+    groups[ord]  <- roots
+    local_keep   <- unlist(
+      tapply(seq_len(m), groups,
+             function(k) k[order(mean_int[idx_unk[k]], decreasing = TRUE)[seq_len(min(2L, length(k)))]]),
+      use.names = FALSE
+    )
+    keep_unk <- idx_unk[local_keep]
+  }
+
+  df[sort(c(keep_id, keep_unk)), , drop = FALSE]
+}
+
+# Detect intensity columns regardless of format:
+#  - ISTD mzmine-raw:          datafile.Name.d.area  (.d.area$)
+#  - ISTD or other with .area: Name.area              (.area$)
+#  - Converted main peaktable: Name.d                 (.d$, not .rt or .mz)
+#  - Waters / mzML:            Name.mzML              (.mzML$)
+get_sample_cols <- function(df) {
+  cn <- colnames(df)
+  if (any(grepl("\\.d\\.area$", cn))) return(grep("\\.d\\.area$", cn, value = TRUE))
+  if (any(grepl("\\.area$",    cn))) return(grep("\\.area$",    cn, value = TRUE))
+  if (any(grepl("(?<!\\.rt|\\.mz)\\.d$", cn, perl = TRUE)))
+    return(grep("(?<!\\.rt|\\.mz)\\.d$", cn, value = TRUE, perl = TRUE))
+  grep("\\.mzML$", cn, value = TRUE)
+}
+
+# Build a named integer vector: overlap_sample_name -> batch_index.
+# Overlap samples are those present in every batch's meta. Each is assigned to
+# the batch whose batch-specific samples bracket it in the master running sequence.
+build_overlap_assignment <- function(master_meta, batch_metas) {
+  if (is.null(master_meta) || !"Sample" %in% colnames(master_meta)) return(NULL)
+  n_b <- length(batch_metas)
+  if (n_b == 0L) return(NULL)
+
+  all_batch_samples <- lapply(batch_metas, function(m) {
+    if (is.null(m) || !"Sample" %in% colnames(m)) character(0L) else m$Sample
+  })
+
+  freq          <- table(unlist(all_batch_samples))
+  overlap_samps <- names(freq)[freq >= n_b]
+  if (length(overlap_samps) == 0L) return(NULL)
+
+  specific_samps <- lapply(all_batch_samples, function(s) s[!s %in% overlap_samps])
+
+  pos_of <- setNames(seq_along(master_meta$Sample), master_meta$Sample)
+
+  batch_ranges <- lapply(specific_samps, function(sp) {
+    p <- pos_of[sp[sp %in% names(pos_of)]]
+    if (length(p) == 0L) return(c(NA_integer_, NA_integer_))
+    c(min(p), max(p))
+  })
+
+  assignment <- vapply(overlap_samps, function(s) {
+    p <- pos_of[[s]]
+    if (is.null(p) || is.na(p)) return(1L)
+    dists <- vapply(batch_ranges, function(r) {
+      if (anyNA(r)) return(Inf)
+      if (p >= r[1L] && p <= r[2L]) return(0)
+      as.numeric(min(abs(p - r[1L]), abs(p - r[2L])))
+    }, numeric(1L))
+    which.min(dists)
+  }, integer(1L))
+
+  setNames(assignment, overlap_samps)
+}
+
+# Drop columns belonging to overlap samples not assigned to this batch.
+# Matches columns whose name starts with an unassigned sample name followed by ".d".
+filter_overlap_cols <- function(df, overlap_assignment, batch_num) {
+  if (is.null(overlap_assignment) || length(overlap_assignment) == 0L) return(df)
+  remove_samps <- names(overlap_assignment)[overlap_assignment != batch_num]
+  if (length(remove_samps) == 0L) return(df)
+  esc  <- gsub("([.\\^$*+?{}|()\\[\\]])", "\\\\\\1", remove_samps)
+  pat  <- paste0("^(", paste(esc, collapse = "|"), ")\\.d")
+  df[, !grepl(pat, colnames(df), perl = TRUE), drop = FALSE]
+}
+
 # Align features from two peaktables by m/z (<3 ppm) and RT (<0.2 min).
 # With best_match = TRUE, keeps the best-scoring match per df1 feature.
 # With collect_diag = TRUE, also returns per-feature diagnostics and log2 ratios.
 # Returns a wide cbind of matched rows (collect_diag=FALSE) or a named list (collect_diag=TRUE).
-align_features <- function(df1, df2, best_match = FALSE,
+align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_match = FALSE,
                            collect_diag = FALSE, step_label = "") {
   meta_cols <- c("mz", "rt", "identity", "ion", "formula")
   m1 <- cbind(.i = seq_len(nrow(df1)), df1[, meta_cols, drop = FALSE])
@@ -63,7 +208,7 @@ align_features <- function(df1, df2, best_match = FALSE,
     lo  <- findInterval(mz1 * (1 - 3e-6), m2s$mz) + 1L
     hi  <- findInterval(mz1 * (1 + 3e-6), m2s$mz)
     if (lo > hi) return(NULL)
-    rt_ok <- which(abs(m2s$rt[lo:hi] - m1$rt[i]) < 0.2) + (lo - 1L)
+    rt_ok <- which(abs(m2s$rt[lo:hi] - m1$rt[i]) < thres_rt_min) + (lo - 1L)
     if (length(rt_ok) == 0) return(NULL)
     list(i = rep(i, length(rt_ok)), j = rt_ok)
   })
@@ -87,7 +232,7 @@ align_features <- function(df1, df2, best_match = FALSE,
   )
   pairs$mz_ppm  <- ppm_diff(pairs$mz.1, pairs$mz.2)
   pairs$rt_diff <- abs(pairs$rt.1 - pairs$rt.2)
-  pairs <- pairs[pairs$mz_ppm < 3 & pairs$rt_diff < 0.2, , drop = FALSE]
+  pairs <- pairs[pairs$mz_ppm < thres_mz_ppm & pairs$rt_diff < thres_rt_min, , drop = FALSE]
 
   if (nrow(pairs) == 0) {
     if (collect_diag) return(list(merged = NULL, diag = NULL, l2r_long = NULL))
@@ -109,10 +254,7 @@ align_features <- function(df1, df2, best_match = FALSE,
   sample_cols <- character(0)
 
   if (best_match) {
-    sample_cols <- intersect(
-      grep("area$", colnames(df1), value = TRUE),
-      grep("area$", colnames(df2), value = TRUE)
-    )
+    sample_cols <- intersect(get_sample_cols(df1), get_sample_cols(df2))
     if (length(sample_cols) > 1) {
       mat1 <- as.matrix(df1[pairs$.i, sample_cols, drop = FALSE])
       mat2 <- as.matrix(df2[pairs$.j, sample_cols, drop = FALSE])
@@ -127,9 +269,10 @@ align_features <- function(df1, df2, best_match = FALSE,
       pairs$score    <- pair_stats[1, ]
       pairs$r_spear  <- pair_stats[2, ]
       pairs$mean_int <- pair_stats[3, ]
-      pairs <- pairs[!is.na(pairs$score) & pairs$r_spear > 0.8, , drop = FALSE]
+      pairs <- pairs[!is.na(pairs$score) & pairs$r_spear > 0.7, , drop = FALSE]
       pairs <- do.call(rbind, lapply(split(pairs, pairs$.i), function(g) {
         g[which.max(g$mean_int), , drop = FALSE]
+        #g[which.min(g$mz_ppm), , drop = FALSE]
       }))
     } else {
       pairs$score <- NA_real_
@@ -158,13 +301,18 @@ align_features <- function(df1, df2, best_match = FALSE,
     # Re-extract final rows after dedup to build per-sample matrices
     mat1_fin <- as.matrix(df1[pairs$.i, sample_cols, drop = FALSE])
     mat2_fin <- as.matrix(df2[pairs$.j, sample_cols, drop = FALSE])
-    ovlp_cor <- pairs$score
+    ovlp_cor <- pairs$r_spear
     ratio    <- mat1_fin / mat2_fin
     ratio[ratio <= 0] <- NA_real_
     l2r_mat  <- log2(ratio)
     med_l2r  <- apply(l2r_mat, 1, median, na.rm = TRUE)
+    id_vec   <- if (!is.null(out1$identity)) out1$identity else rep(NA_character_, nrow(l2r_mat))
+    samp_vec <- sub("^datafile\\.", "", colnames(l2r_mat))
+    samp_vec <- sub("\\.d\\.area$|\\.d$|\\.mzML$", "", samp_vec)
     l2r_long <- data.frame(
-      step      = step_label,
+      step      = rep(step_label, nrow(l2r_mat) * ncol(l2r_mat)),
+      identity  = rep(id_vec,     ncol(l2r_mat)),
+      sample    = rep(samp_vec,   each = nrow(l2r_mat)),
       log2ratio = as.vector(l2r_mat),
       stringsAsFactors = FALSE
     )
@@ -235,14 +383,14 @@ merge_table_list <- function(tables, label, collect_diag = FALSE) {
     step_lbl <- paste0("b", k - 1, "→b", k)
 
     if (collect_diag) {
-      res <- align_features(current, tables[[k]], best_match = TRUE,
+      res <- align_features(remove_dup(current), remove_dup(tables[[k]]), best_match = TRUE,
                             collect_diag = TRUE, step_label = step_lbl)
       if (is.null(res) || is.null(res$merged) || nrow(res$merged) == 0)
         stop("Feature alignment returned 0 rows for ", label, " at batch ", k)
       aligned <- res$merged
     } else {
       res     <- NULL
-      aligned <- align_features(current, tables[[k]], best_match = TRUE)
+      aligned <- align_features(remove_dup(current), remove_dup(tables[[k]]), best_match = TRUE)
       if (is.null(aligned) || nrow(aligned) == 0)
         stop("Feature alignment returned 0 rows for ", label, " at batch ", k)
     }
@@ -310,6 +458,61 @@ cat("n_batches:   ", n_batches, "\n")
 cat("run.pos:     ", run.pos, "\n")
 cat("run.neg:     ", run.neg, "\n")
 
+# Load each batch config and assign overlap samples to the batch whose specific
+# samples bracket them in the master running sequence.
+batch_cfgs  <- lapply(seq_len(n_batches), function(i) {
+  p <- file.path(batch_dirs[i], paste0("config_b", i, ".yml"))
+  if (!file.exists(p)) { warning("Batch config not found: ", p); return(NULL) }
+  yaml::read_yaml(p)
+})
+batch_metas <- lapply(batch_cfgs, function(bcfg) {
+  if (is.null(bcfg)) return(NULL)
+  m <- wf_as_meta_df(bcfg$meta_pos)
+  if (is.null(m)) wf_as_meta_df(bcfg$meta_neg) else m
+})
+master_meta_for_overlap <- {
+  m <- wf_as_meta_df(cfg$meta_pos)
+  if (is.null(m)) wf_as_meta_df(cfg$meta_neg) else m
+}
+overlap_assignment <- build_overlap_assignment(master_meta_for_overlap, batch_metas)
+
+overlap_assignment_pos <- overlap_assignment
+overlap_assignment_neg <- overlap_assignment
+
+names(overlap_assignment_pos) <- make.names(gsub(".d", "", cfg$meta_pos$File.name[match(names(overlap_assignment_pos), cfg$meta_pos$Sample)]))
+names(overlap_assignment_neg) <- make.names(gsub(".d", "", cfg$meta_neg$File.name[match(names(overlap_assignment_neg), cfg$meta_pos$Sample)]))
+    
+  
+# Build sample→batch map: saved to diagnostics RDS for evaluate_merge to use directly.
+# Keys must match the column names used in the peaktable xlsx files.
+# convert_output.qmd writes columns as make.names(File.name) minus the .area suffix,
+# so for .d files the column is make.names("NAME.d") → key = sub(".d$", "", that).
+# Collect from BOTH meta_pos and meta_neg so neg-mode samples are also mapped.
+sbm_samps <- lapply(seq_along(batch_cfgs), function(i) {
+  bcfg <- batch_cfgs[[i]]
+  if (is.null(bcfg)) return(character(0L))
+  meta_list <- Filter(Negate(is.null), list(
+    wf_as_meta_df(bcfg$meta_pos),
+    wf_as_meta_df(bcfg$meta_neg)
+  ))
+  samps <- character(0L)
+  for (m in meta_list) {
+    if ("File.name" %in% colnames(m))
+      samps <- c(samps, sub("\\.(d|mzML)$", "", make.names(m$File.name)))
+    else if ("Sample" %in% colnames(m))
+      samps <- c(samps, m$Sample)
+  }
+  unique(samps)
+})
+sample_batch_map <- unlist(lapply(seq_along(sbm_samps), function(i) {
+  setNames(rep(i, length(sbm_samps[[i]])), sbm_samps[[i]])
+}))
+sample_batch_map <- c(overlap_assignment_pos, overlap_assignment_neg, sample_batch_map)
+sample_batch_map <- sample_batch_map[!duplicated(names(sample_batch_map))]
+
+cat("Overlap samples assigned to batches:", length(overlap_assignment), "\n")
+cat("Total samples mapped to batches:    ", length(sample_batch_map), "\n")
+
 ```
 
 ## Feature alignment
@@ -328,26 +531,51 @@ tnames_to_run <- Filter(function(n) table_specs[[n]]$run, names(table_specs))
 
 process_one_table <- function(tname) {
   ts <- table_specs[[tname]]
-  tables <- lapply(batch_dirs, function(d) {
-    p <- file.path(d, ts$file)
-    if (file.exists(p)) openxlsx::read.xlsx(p) else NULL
+
+  # Load without overlap filtering: overlap samples appear in both batches,
+  # enabling Spearman correlation and log2 ratio computation in align_features.
+  tables_full <- lapply(seq_along(batch_dirs), function(bi) {
+    p <- file.path(batch_dirs[bi], ts$file)
+    if (!file.exists(p)) return(NULL)
+    openxlsx::read.xlsx(p)
   })
-  n_per_batch <- vapply(tables, function(t) if (is.null(t)) NA_integer_ else nrow(t), integer(1))
+
+  n_per_batch <- vapply(tables_full, function(t) if (is.null(t)) NA_integer_ else nrow(t), integer(1))
   available   <- sum(!is.na(n_per_batch))
   if (available == 0) {
     message(tname, ": no files found — skipping")
     return(NULL)
   }
-  res <- merge_table_list(tables, tname, collect_diag = TRUE)
-  if (is.null(res)) return(NULL)
+
+  # Load with overlap filtering: each batch keeps only its assigned overlap samples.
+  tables_filtered <- lapply(seq_along(batch_dirs), function(bi) {
+    if (is.null(tables_full[[bi]])) return(NULL)
+    filter_overlap_cols(tables_full[[bi]], overlap_assignment, bi)
+  })
+
+  # Diagnostics pass: shared overlap columns → valid correlation / l2r data.
+  res_diag <- merge_table_list(tables_full, tname, collect_diag = TRUE)
+  if (is.null(res_diag)) return(NULL)
+
+  # Output pass: filtered tables → correct single copy of each overlap sample.
+  merged_out <- merge_table_list(tables_filtered, tname, collect_diag = FALSE)
+  if (is.null(merged_out)) return(NULL)
+
   list(
-    res       = res,
+    res = list(
+      merged       = merged_out,
+      diag         = res_diag$diag,
+      counts       = res_diag$counts,
+      l2r_long     = res_diag$l2r_long,
+      input_counts = res_diag$input_counts,
+      n_final      = nrow(merged_out)
+    ),
     available = available,
-    stats     = data.frame(
+    stats = data.frame(
       Table          = tname,
       Batches_found  = available,
-      Features_final = nrow(res$merged),
-      Samples_final  = sum(grepl("area$", colnames(res$merged))),
+      Features_final = nrow(merged_out),
+      Samples_final  = sum(grepl("area$", colnames(merged_out))),
       stringsAsFactors = FALSE
     )
   )
@@ -361,7 +589,8 @@ if (use_parallel) {
   on.exit(parallel::stopCluster(cl), add = TRUE)
   parallel::clusterExport(cl,
     c("ppm_diff", "align_features", "clean_merged", "merge_table_list",
-      "table_specs", "batch_dirs"),
+      "table_specs", "batch_dirs", "remove_dup", "get_sample_cols",
+      "filter_overlap_cols", "overlap_assignment"),
     envir = environment()
   )
   parallel::clusterEvalQ(cl, library(openxlsx))
@@ -414,7 +643,8 @@ if (length(diag_data) > 0) {
     all_counts       = if (length(all_counts_list) > 0) do.call(rbind, all_counts_list) else NULL,
     all_l2r          = if (length(all_l2r_list)    > 0) do.call(rbind, all_l2r_list)    else NULL,
     all_input_counts = if (length(all_ic_list)     > 0) do.call(rbind, all_ic_list)     else NULL,
-    n_final          = vapply(diag_data, function(x) x$n_final, integer(1))
+    n_final          = vapply(diag_data, function(x) x$n_final, integer(1)),
+    sample_batch_map = sample_batch_map
   )
   diag_path <- file.path(path_result, "data", "merge_diagnostics.rds")
   dir.create(dirname(diag_path), recursive = TRUE, showWarnings = FALSE)

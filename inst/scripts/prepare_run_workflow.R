@@ -139,6 +139,7 @@ default_temp     <- if (dir.exists("/home/Temp")) "/home/Temp" else tempdir()
 path_workflow <- pick_first(get_arg("--workflow"), default_workflow)
 path_result   <- pick_first(get_arg("--result"),   default_result)
 path_yaml     <- get_arg("--yaml")
+batch_size    <- pick_first(get_arg("--batch-size"), 100)
 
 default_mzmine <- file.path(path_workflow, "mzmine_linux", "bin", "mzmine")
 if (!file.exists(default_mzmine)) default_mzmine <- "/wd/mzmine_linux/bin/mzmine"
@@ -195,7 +196,8 @@ if (!is_blank(config_override)) {
         path_temp     = path_temp,
         author        = author,
         qc_types      = qc_types,
-        software      = software
+        software      = software,
+        batch_size    = batch_size
       ),
       intermediates_dir = path_temp,
       output_file = file.path(path_result, paste0("generate_yml_", Sys.Date(), ".html"))

@@ -16,7 +16,7 @@
 #' @param keep.lipid.orig Logical; keep original lipid names when parsing.
 #' @param standardized.name Logical; infer metadata fields from standardized file names.
 #' @param standerdized.name Deprecated alias for `standardized.name`.
-#'
+#' @param batch_size Number of samples per batch.
 #' @return A `metpipe_datalist` with `pos` and/or `neg` elements,
 #'   each returned by [import_peaktable()].
 #' @export
@@ -48,7 +48,8 @@ run_import_peaktable <-
     find_is = FALSE,
     add_lipid_info = FALSE,
     keep.lipid.orig = NULL,
-    standerdized.name = NULL
+    standerdized.name = NULL,
+    batch_size = 100
   ){
 
     if (!is.null(standerdized.name)) {
@@ -74,7 +75,8 @@ run_import_peaktable <-
           find_is = find_is,
           add_lipid_info = add_lipid_info,
           keep.lipid.orig = keep.lipid.orig,
-          standardized.name = standardized.name
+          standardized.name = standardized.name,
+          batch_size = batch_size
         )
     } else {
       datalist$pos <- NULL
@@ -92,7 +94,8 @@ run_import_peaktable <-
           find_is = find_is,
           add_lipid_info = add_lipid_info,
           keep.lipid.orig = keep.lipid.orig,
-          standardized.name = standardized.name
+          standardized.name = standardized.name,
+          batch_size = batch_size
         )
     } else {
       datalist$neg <- NULL

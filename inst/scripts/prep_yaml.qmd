@@ -25,6 +25,7 @@ params:
   author: ""
   qc_types: ""
   software: "mzmine"
+  batch_size: ""
 ---
 
 ```{r setup environment, include = FALSE, warning = FALSE}
@@ -70,6 +71,8 @@ path_temp = params$path_temp
 author = params$author
 qc_types = params$qc_types
 software = tolower(ifelse(is_blank(params$software), "mzmine", params$software))
+batch_size = as.numeric(params$batch_size)
+
 if (!software %in% c("mzmine", "msdialui")) {
   stop("Unsupported software value: ", params$software)
 }
@@ -175,7 +178,8 @@ if (run.pos) {
   meta_pos <- 
     map_standard_name_to_meta(raw_files_pos,
                               qc_types = qc_types,
-                              pasef_as_dda = pasef_as_dda) 
+                              pasef_as_dda = pasef_as_dda,
+                              batch_size = batch_size) 
 }
 
 if (dir.exists(path_files_neg)){
@@ -187,7 +191,8 @@ if (run.neg) {
   meta_neg <- 
     map_standard_name_to_meta(raw_files_neg,
                               qc_types = qc_types,
-                              pasef_as_dda = pasef_as_dda) 
+                              pasef_as_dda = pasef_as_dda,
+                              batch_size = batch_size) 
 }
 
 if (!run.pos && !run.neg) {

@@ -5,7 +5,8 @@
 #' @param raw_files Character vector of raw data file paths or names.
 #' @param qc_types Character vector of QC sample labels recognized in names.
 #' @param pasef_as_dda Logical; treat PASEF acquisitions as DDA.
-#'
+#' @param batch_size Number of samples per batch.
+#' 
 #' @returns A metadata data frame with sample type, run order, and batch columns.
 #' @export
 #' 
@@ -14,7 +15,8 @@
 map_standard_name_to_meta <- 
   function(raw_files,
            qc_types = c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix"),
-           pasef_as_dda = FALSE){
+           pasef_as_dda = FALSE,
+           batch_size = 100){
 
     if (is.null(raw_files) || length(raw_files) == 0) {
       stop("raw_files must be a non-empty character vector")
@@ -98,7 +100,7 @@ map_standard_name_to_meta <-
                                   TRUE ~ Sample),
              Run.order = dense_rank(Run.order)) %>% 
         arrange(Run.order) %>% 
-        mutate(Sample.batch = paste0("Batch ", row_number() %/% 100 + 1)) %>% 
+        mutate(Sample.batch = paste0("Batch ", row_number() %/% batch_size + 1)) %>% 
         group_by(Sample) %>% 
         mutate(n = n(),
                Sample = ifelse(n > 1, 

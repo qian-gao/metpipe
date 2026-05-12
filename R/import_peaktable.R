@@ -13,7 +13,8 @@
 #' @param add_lipid_info Logical; parse lipid annotations via [add_lipid_info()].
 #' @param keep.lipid.orig Logical; keep original lipid names when parsing.
 #' @param standardized.name Logical; infer metadata from standardized file names.
-#'
+#' @param batch_size Number of samples per batch.
+#' 
 #' @return A list with `peaks`, `features`, and `meta` (plus raw copies).
 #' @examples
 #' \dontrun{
@@ -39,7 +40,8 @@ import_peaktable <-
       find_is = FALSE,
       add_lipid_info = FALSE,
       keep.lipid.orig = NULL,
-      standardized.name = FALSE
+      standardized.name = FALSE,
+      batch_size = 100
   ){
 
     if (is.null(peaktable) || !nzchar(peaktable) || !file.exists(peaktable)) {
@@ -159,7 +161,7 @@ import_peaktable <-
                Sample = paste0(Sample, "_", Extract.rep),
                Run.order = dense_rank(Run.order)) %>% 
         arrange(Run.order) %>% 
-        mutate(Sample.batch = paste0("Batch ", row_number() %/% 100 + 1)) %>% 
+        mutate(Sample.batch = paste0("Batch ", row_number() %/% batch_size + 1)) %>% 
         arrange(Sample.seq) %>% 
         group_by(Sample) %>% 
         mutate(n = n(),
@@ -194,7 +196,7 @@ import_peaktable <-
                Sample.seq = row_number(),
                Run.order = dense_rank(Run.order)) %>% 
         arrange(Run.order) %>% 
-        mutate(Sample.batch = paste0("Batch ", row_number() %/% 100 + 1),
+        mutate(Sample.batch = paste0("Batch ", row_number() %/% batch_size + 1),
                Sample = File.name) %>% 
         arrange(Sample.seq)
       

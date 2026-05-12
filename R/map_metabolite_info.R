@@ -54,7 +54,35 @@ map_metabolite_info <-
     
     # Run the RefMet request on the Metabolomics Workbench server to convert 
     # metabolites name to standardized names
-    req <- curl::curl_fetch_memory("https://www.metabolomicsworkbench.org/databases/refmet/name_to_refmet_new_min.php", handle = h)
+    #req <- curl::curl_fetch_memory("https://www.metabolomicsworkbench.org/databases/refmet/name_to_refmet_new_min.php", handle = h)
+    
+    fetch_with_retry <- function(url, handle, max_retries = 5, delay = 1) {
+      attempt <- 1
+      
+      repeat {
+        result <- tryCatch(
+          {
+            curl::curl_fetch_memory(url, handle = handle)
+          },
+          error = function(e) {
+            if (attempt >= max_retries) {
+              stop(sprintf("Request failed after %d attempts: %s", attempt, e$message))
+            } else {
+              message(sprintf("Attempt %d failed. Retrying...", attempt))
+              Sys.sleep(delay)
+              attempt <<- attempt + 1
+              return(NULL)
+            }
+          }
+        )
+        
+        if (!is.null(result)) {
+          return(result)
+        }
+      }
+    }
+    
+    req <- fetch_with_retry(url = "https://www.metabolomicsworkbench.org/databases/refmet/name_to_refmet_new_min.php", handle = h)
     
     refmet <- read.table(text = rawToChar(req$content), header = TRUE, na.strings = "-", stringsAsFactors = FALSE, quote = "", comment.char = "", sep="\t");
     
