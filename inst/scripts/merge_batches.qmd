@@ -18,7 +18,6 @@ format:
 
 params:
   config: ""
-  n_batches: 2
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -78,7 +77,8 @@ remove_dup <- function(df, thres_mz_ppm = 3, thres_rt_min = 0.1) {
     idx_id  <- which(has_id)
     keep_id <- unlist(
       tapply(idx_id, df$identity[idx_id],
-             function(rows) rows[which.max(mean_int[rows])]),
+             #function(rows) rows[which.max(mean_int[rows])]),
+             function(rows) rows[order(mean_int[rows], decreasing = TRUE)[seq_len(min(2L, length(rows)))]]),
       use.names = FALSE
     )
   }
@@ -196,8 +196,21 @@ filter_overlap_cols <- function(df, overlap_assignment, batch_num) {
 # With collect_diag = TRUE, also returns per-feature diagnostics and log2 ratios.
 # Returns a wide cbind of matched rows (collect_diag=FALSE) or a named list (collect_diag=TRUE).
 align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_match = FALSE,
+                           thres_cor = 0.7, thres_log2ratio = 0.3,
                            collect_diag = FALSE, step_label = "") {
-  meta_cols <- c("mz", "rt", "identity", "ion", "formula")
+  
+  if ("ccs" %in% colnames(df1)) {
+    ccs_flag <- TRUE
+  } else {
+    ccs_flag <- FALSE
+  }
+  
+  if (ccs_flag){
+    meta_cols <- c("mz", "rt", "identity", "ion", "formula", "ccs")
+  } else {
+    meta_cols <- c("mz", "rt", "identity", "ion", "formula")
+  }
+  
   m1 <- cbind(.i = seq_len(nrow(df1)), df1[, meta_cols, drop = FALSE])
   m2 <- cbind(.j = seq_len(nrow(df2)), df2[, meta_cols, drop = FALSE])
 
@@ -222,16 +235,30 @@ align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_
   all_i <- unlist(lapply(pair_idx, `[[`, "i"))
   all_j <- m2s$.j[unlist(lapply(pair_idx, `[[`, "j"))]
 
-  pairs <- data.frame(
-    .i = all_i, .j = all_j,
-    mz.1 = m1$mz[all_i], rt.1 = m1$rt[all_i],
-    identity.1 = m1$identity[all_i], ion.1 = m1$ion[all_i], formula.1 = m1$formula[all_i],
-    mz.2 = m2$mz[all_j], rt.2 = m2$rt[all_j],
-    identity.2 = m2$identity[all_j], ion.2 = m2$ion[all_j], formula.2 = m2$formula[all_j],
-    stringsAsFactors = FALSE
-  )
+  if (ccs_flag){
+    pairs <- data.frame(
+      .i = all_i, .j = all_j,
+      mz.1 = m1$mz[all_i], rt.1 = m1$rt[all_i], ccs.1 = m1$ccs[all_i],
+      identity.1 = m1$identity[all_i], ion.1 = m1$ion[all_i], formula.1 = m1$formula[all_i],
+      mz.2 = m2$mz[all_j], rt.2 = m2$rt[all_j], ccs.2 = m2$ccs[all_j],
+      identity.2 = m2$identity[all_j], ion.2 = m2$ion[all_j], formula.2 = m2$formula[all_j],
+      stringsAsFactors = FALSE
+    )    
+  } else {
+    pairs <- data.frame(
+      .i = all_i, .j = all_j,
+      mz.1 = m1$mz[all_i], rt.1 = m1$rt[all_i],
+      identity.1 = m1$identity[all_i], ion.1 = m1$ion[all_i], formula.1 = m1$formula[all_i],
+      mz.2 = m2$mz[all_j], rt.2 = m2$rt[all_j],
+      identity.2 = m2$identity[all_j], ion.2 = m2$ion[all_j], formula.2 = m2$formula[all_j],
+      stringsAsFactors = FALSE
+    )
+  }
+  
   pairs$mz_ppm  <- ppm_diff(pairs$mz.1, pairs$mz.2)
   pairs$rt_diff <- abs(pairs$rt.1 - pairs$rt.2)
+  pairs$ccs_percent <- ccs_diff(pairs$ccs.1, pairs$ccs.2)
+  
   pairs <- pairs[pairs$mz_ppm < thres_mz_ppm & pairs$rt_diff < thres_rt_min, , drop = FALSE]
 
   if (nrow(pairs) == 0) {
@@ -264,12 +291,13 @@ align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_
         l2r <- x - y
         r   <- suppressWarnings(cor(x, y, method = "spearman", use = "pairwise.complete.obs"))
         if (is.na(r)) r <- 0
-        c(r - 0.1 * median(abs(l2r), na.rm = TRUE), r, mean(c(x, y), na.rm = TRUE))
+        #c(r - 0.1 * median(abs(l2r), na.rm = TRUE), r, mean(c(x, y), na.rm = TRUE))
+        c(median(abs(l2r), na.rm = TRUE), r, mean(c(x, y), na.rm = TRUE))
       }, numeric(3))
       pairs$score    <- pair_stats[1, ]
       pairs$r_spear  <- pair_stats[2, ]
       pairs$mean_int <- pair_stats[3, ]
-      pairs <- pairs[!is.na(pairs$score) & pairs$r_spear > 0.7, , drop = FALSE]
+      pairs <- pairs[!is.na(pairs$score) & pairs$r_spear > thres_cor & abs(pairs$score) < thres_log2ratio, , drop = FALSE]
       pairs <- do.call(rbind, lapply(split(pairs, pairs$.i), function(g) {
         g[which.max(g$mean_int), , drop = FALSE]
         #g[which.min(g$mz_ppm), , drop = FALSE]
@@ -323,17 +351,33 @@ align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_
     l2r_long <- NULL
   }
 
-  diag <- data.frame(
-    step             = step_label,
-    mz               = out1$mz,
-    rt               = out1$rt,
-    identity         = if (!is.null(out1$identity)) out1$identity else NA_character_,
-    mz_ppm           = pairs$mz_ppm,
-    rt_diff          = pairs$rt_diff,
-    overlap_cor      = ovlp_cor,
-    median_log2ratio = med_l2r,
-    stringsAsFactors = FALSE
-  )
+  if (ccs_flag){
+    diag <- data.frame(
+      step             = step_label,
+      mz               = out1$mz,
+      rt               = out1$rt,
+      ccs              = out1$ccs,
+      identity         = if (!is.null(out1$identity)) out1$identity else NA_character_,
+      mz_ppm           = pairs$mz_ppm,
+      rt_diff          = pairs$rt_diff,
+      ccs_percent      = pairs$ccs_percent,
+      overlap_cor      = ovlp_cor,
+      median_log2ratio = med_l2r,
+      stringsAsFactors = FALSE
+    )     
+  } else {
+    diag <- data.frame(
+      step             = step_label,
+      mz               = out1$mz,
+      rt               = out1$rt,
+      identity         = if (!is.null(out1$identity)) out1$identity else NA_character_,
+      mz_ppm           = pairs$mz_ppm,
+      rt_diff          = pairs$rt_diff,
+      overlap_cor      = ovlp_cor,
+      median_log2ratio = med_l2r,
+      stringsAsFactors = FALSE
+    )    
+  }
 
   list(merged = merged_wide, diag = diag, l2r_long = l2r_long)
 }
@@ -383,14 +427,20 @@ merge_table_list <- function(tables, label, collect_diag = FALSE) {
     step_lbl <- paste0("b", k - 1, "→b", k)
 
     if (collect_diag) {
-      res <- align_features(remove_dup(current), remove_dup(tables[[k]]), best_match = TRUE,
+      res <- align_features(remove_dup(current, thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min), 
+                            remove_dup(tables[[k]], thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min), 
+                            thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min, best_match = TRUE,
+                            thres_cor = thres_cor, thres_log2ratio = thres_log2ratio,
                             collect_diag = TRUE, step_label = step_lbl)
       if (is.null(res) || is.null(res$merged) || nrow(res$merged) == 0)
         stop("Feature alignment returned 0 rows for ", label, " at batch ", k)
       aligned <- res$merged
     } else {
       res     <- NULL
-      aligned <- align_features(remove_dup(current), remove_dup(tables[[k]]), best_match = TRUE)
+      aligned <- align_features(remove_dup(current, thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min), 
+                                remove_dup(tables[[k]], thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min), 
+                                thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min, best_match = TRUE,
+                                thres_cor = thres_cor, thres_log2ratio = thres_log2ratio)
       if (is.null(aligned) || nrow(aligned) == 0)
         stop("Feature alignment returned 0 rows for ", label, " at batch ", k)
     }
@@ -439,8 +489,13 @@ merge_table_list <- function(tables, label, collect_diag = FALSE) {
 cfg     <- wf_read_yaml_config(params$config, label = "params$config")
 run.pos <- wf_as_flag(cfg$run.pos)
 run.neg <- wf_as_flag(cfg$run.neg)
+n_batches <- suppressWarnings(as.integer(cfg$n_batches))
+thres_mz_ppm <- cfg$thres_mz_ppm
+thres_rt_min <- cfg$thres_rt_min
+thres_cor <- cfg$thres_cor
+thres_log2ratio <- cfg$thres_log2ratio
 
-n_batches <- suppressWarnings(as.integer(params$n_batches))
+
 if (is.na(n_batches) || n_batches < 2)
   stop("n_batches must be an integer >= 2, got: ", params$n_batches)
 
@@ -588,7 +643,7 @@ if (use_parallel) {
   cl <- parallel::makeCluster(n_workers)
   on.exit(parallel::stopCluster(cl), add = TRUE)
   parallel::clusterExport(cl,
-    c("ppm_diff", "align_features", "clean_merged", "merge_table_list",
+    c("ppm_diff", "ccs_diff", "align_features", "clean_merged", "merge_table_list",
       "table_specs", "batch_dirs", "remove_dup", "get_sample_cols",
       "filter_overlap_cols", "overlap_assignment"),
     envir = environment()

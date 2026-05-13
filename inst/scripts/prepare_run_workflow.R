@@ -117,10 +117,10 @@ normalize_start_from <- function(x) {
 path_raw          <- get_arg("--raw")
 start_from        <- get_arg("--start-from")
 run_module        <- get_arg("--run-module")
-overlap_by_name   <- get_arg("--overlap-by-name")
-overlap_sample_types <- get_arg("--overlap-sample-types")
-batch_assignments <- get_arg("--batch-assignments")
-n_batches         <- get_arg("--n-batches")
+# overlap_by_name   <- get_arg("--overlap-by-name")
+# overlap_sample_types <- get_arg("--overlap-sample-types")
+# batch_assignments <- get_arg("--batch-assignments")
+# n_batches         <- get_arg("--n-batches")
 start_key         <- normalize_start_from(start_from)
 run_key           <- normalize_start_from(run_module)
 if (!is_blank(start_from) && !is_blank(run_module)) {
@@ -226,10 +226,10 @@ if (!is_blank(start_from) && normalize_start_from(start_from) != "prep_yaml") {
 if (!is_blank(run_module) && normalize_start_from(run_module) != "prep_yaml") {
   run_args <- c(run_args, "--run-module", shQuote(run_module))
 }
-if (!is_blank(overlap_by_name))   run_args <- c(run_args, "--overlap-by-name",   shQuote(overlap_by_name))
-if (!is_blank(overlap_sample_types))   run_args <- c(run_args, "--overlap-sample-types",   shQuote(overlap_sample_types))
-if (!is_blank(batch_assignments)) run_args <- c(run_args, "--batch-assignments", shQuote(batch_assignments))
-if (!is_blank(n_batches))         run_args <- c(run_args, "--n-batches",         shQuote(n_batches))
+# if (!is_blank(overlap_by_name))   run_args <- c(run_args, "--overlap-by-name",   shQuote(overlap_by_name))
+# if (!is_blank(overlap_sample_types))   run_args <- c(run_args, "--overlap-sample-types",   shQuote(overlap_sample_types))
+# if (!is_blank(batch_assignments)) run_args <- c(run_args, "--batch-assignments", shQuote(batch_assignments))
+# if (!is_blank(n_batches))         run_args <- c(run_args, "--n-batches",         shQuote(n_batches))
 
 status_run <- system2("Rscript", args = run_args)
 

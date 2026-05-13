@@ -17,8 +17,6 @@ self-contained: true
 
 params:
   config: ""
-  n_batches: 2
-  overlap_by_name: ""
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -103,6 +101,17 @@ plot_rt_hist <- function(df) {
   ggplotly(p)
 }
 
+plot_ccs_hist <- function(df) {
+  if (nrow(df) == 0) { cat("No data for this subset.\n"); return(invisible(NULL)) }
+  p <- ggplot(df, aes(x = ccs_percent)) +
+    geom_histogram(bins = 60, fill = "mediumpurple", color = "white", linewidth = 0.2) +
+    facet_grid(table ~ step, scales = "free_y") +
+    theme_minimal(base_size = 11) +
+    labs(#title = "RT difference for matched feature pairs",
+         x = "ccs difference (%)", y = "Nr. features")
+  ggplotly(p)
+}
+
 # ── Overlap consistency plots ─────────────────────────────────────────────────
 
 plot_cor_hist <- function(df) {
@@ -143,7 +152,7 @@ plot_l2r_hist <- function(df) {
   if (nrow(d) == 0) { cat("No log2 ratio data for this subset.\n"); return(invisible(NULL)) }
   p <- ggplot(d, aes(x = median_log2ratio)) +
     geom_histogram(bins = 60, fill = "mediumpurple", color = "white", linewidth = 0.2) +
-    geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed", color = "firebrick") +
+    geom_vline(xintercept = c(-0.3, 0.3), linetype = "dashed", color = "firebrick") +
     facet_grid(table ~ step, scales = "free_y") +
     theme_minimal(base_size = 11) +
     labs(#title = "Median log2 ratio of overlap sample intensities (batch A / batch B)",
@@ -162,7 +171,7 @@ plot_l2r_density <- function(l2r_df) {
     #geom_density(fill = NA, color = "steelblue4", alpha = 0.6, linewidth = 0.4) +
     geom_histogram(bins = 60, fill = "steelblue4", color = "white", linewidth = 0.2) +
     #geom_vline(xintercept = 0, linetype = "solid") +
-    geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed", color = "firebrick") +
+    geom_vline(xintercept = c(-0.3, 0.3), linetype = "dashed", color = "firebrick") +
     facet_grid(table ~ step, scales = "free_y") +
     #coord_cartesian(xlim = c(-3, 3)) +
     theme_minimal(base_size = 11) +
@@ -178,7 +187,8 @@ plot_l2r_density <- function(l2r_df) {
 show_flagged <- function(df) {
   flagged <- df[
     (!is.na(df$overlap_cor)      & df$overlap_cor < 0.8) |
-    (!is.na(df$median_log2ratio) & abs(df$median_log2ratio) > 0.5),
+    #(!is.na(df$median_log2ratio) & abs(df$median_log2ratio) > 0.5),
+    (!is.na(df$median_log2ratio) & abs(df$median_log2ratio) > 0.1),
     , drop = FALSE
   ]
   if (nrow(flagged) == 0) {
@@ -199,10 +209,12 @@ show_flagged <- function(df) {
     
     datatable(
       flagged[order(flagged$overlap_cor), show_cols, drop = FALSE],
+      extensions = "Buttons",
       options = list(
         pageLength = 15,
         autoWidth = TRUE,
-        dom = "Bfrtip"
+        dom = "Bfrtip",
+        buttons = c("copy", "csv", "excel")
       ),
       filter = "top",
       rownames = FALSE
@@ -259,9 +271,9 @@ plot_pca <- function(tbl, sample_batch_map, title) {
 
 cfg         <- wf_read_yaml_config(params$config, label = "params$config")
 path_result <- wf_cfg_required(cfg, "path_result")
-
-overlap_names <- if (!wf_is_blank(params$overlap_by_name)) {
-  trimws(unlist(strsplit(as.character(params$overlap_by_name), ",", fixed = TRUE)))
+  
+overlap_names <- if (!wf_is_blank(cfg$overlap_by_name)) {
+  trimws(unlist(strsplit(as.character(cfg$overlap_by_name), ",", fixed = TRUE)))
 } else {
   character(0)
 }
@@ -411,6 +423,36 @@ plot_rt_hist(feat_subsets$`Without identity`)
 
 ```{r align_all2, fig.height=4}
 plot_rt_hist(feat_subsets$`Overall`)
+```
+
+:::
+
+#### ccs difference for matched feature pairs
+
+::: {.panel-tabset}
+
+##### Internal standard
+
+```{r align_istd3, fig.height=4}
+plot_ccs_hist(feat_subsets$`Internal standard`)
+```
+
+##### With identity
+
+```{r align_id3, fig.height=4}
+plot_ccs_hist(feat_subsets$`With identity`)
+```
+
+##### Without identity
+
+```{r align_noid3, fig.height=4}
+plot_ccs_hist(feat_subsets$`Without identity`)
+```
+
+##### Overall
+
+```{r align_all3, fig.height=4}
+plot_ccs_hist(feat_subsets$`Overall`)
 ```
 
 :::

@@ -18,9 +18,6 @@ format:
 
 params:
   config: ""
-  overlap_by_name: ""
-  overlap_sample_types: ""
-  batch_assignments: ""
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -51,17 +48,17 @@ meta_neg    <- wf_as_meta_df(cfg$meta_neg)
 run.pos     <- wf_as_flag(cfg$run.pos)
 run.neg     <- wf_as_flag(cfg$run.neg)
 path_result <- wf_cfg_required(cfg, "path_result")
-
+  
 # Parse overlap sample names (comma-separated)
-overlap_names <- if (!wf_is_blank(params$overlap_by_name)) {
-  trimws(unlist(strsplit(as.character(params$overlap_by_name), ",", fixed = TRUE)))
+overlap_names <- if (!wf_is_blank(cfg$overlap_by_name)) {
+  trimws(unlist(strsplit(as.character(cfg$overlap_by_name), ",", fixed = TRUE)))
 } else {
   character(0)
 }
 
 # Parse overlap sample types and resolve to sample names via Sample.type column
-overlap_type_names <- if (!wf_is_blank(params$overlap_sample_types)) {
-  types <- trimws(unlist(strsplit(as.character(params$overlap_sample_types), ",", fixed = TRUE)))
+overlap_type_names <- if (!wf_is_blank(cfg$overlap_sample_types)) {
+  types <- trimws(unlist(strsplit(as.character(cfg$overlap_sample_types), ",", fixed = TRUE)))
   pos_by_type <- if (!is.null(meta_pos) && "Sample.type" %in% colnames(meta_pos))
     meta_pos$Sample[meta_pos$Sample.type %in% types] else character(0)
   neg_by_type <- if (!is.null(meta_neg) && "Sample.type" %in% colnames(meta_neg))
@@ -75,9 +72,9 @@ overlap_names <- unique(c(overlap_names, overlap_type_names))
 
 # Parse batch_assignments: R expression that evaluates to a list of index vectors
 # e.g. "list(1:30, 31:50)"
-if (wf_is_blank(params$batch_assignments)) stop("batch_assignments is required")
+if (wf_is_blank(cfg$batch_assignments)) stop("batch_assignments is required")
 batch_assignments <- tryCatch(
-  eval(parse(text = as.character(params$batch_assignments))),
+  eval(parse(text = as.character(cfg$batch_assignments))),
   error = function(e) stop("Cannot parse batch_assignments: ", conditionMessage(e))
 )
 if (!is.list(batch_assignments)) {

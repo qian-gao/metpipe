@@ -312,6 +312,19 @@ rds_datalist <- paste0(path_result, "/datalist.rds")
 path_datatable <- paste0(path_result, "/datatable.xlsx")
 ```
 
+```{r}
+## Split and merge batches for preprocessing of long sequence
+overlap_by_name <- ""
+overlap_sample_types <- "NIST,PO,PO1205,PO25,PO50,PO100,PO200,BL,CP,PO"
+n_batches <- 4
+batch_assignments <- "list(c(1:320), c(321:655), c(656:991), c(992:1308))"
+thres_mz_ppm <- 3
+thres_rt_min <- 0.1
+thres_cor <- 0.7
+thres_log2ratio <- 0.3
+
+```
+
 ## Default parameters for processing workflow
 ```{r}
 
@@ -376,7 +389,16 @@ config <- list(
   rds_qc_is_pos = rds_qc_is_pos,
   rds_qc_is_neg = rds_qc_is_neg,
   rds_datalist = rds_datalist,
-  path_datatable = path_datatable
+  path_datatable = path_datatable,
+  
+  overlap_by_name = overlap_by_name,
+  overlap_sample_types = overlap_sample_types,
+  n_batches = n_batches,
+  batch_assignments = batch_assignments,
+  thres_mz_ppm = thres_mz_ppm,
+  thres_rt_min = thres_rt_min,
+  thres_cor = thres_cor,
+  thres_log2ratio = thres_log2ratio
 )
 
 yaml_str <- as.yaml(config)
