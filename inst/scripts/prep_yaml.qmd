@@ -316,8 +316,8 @@ path_datatable <- paste0(path_result, "/datatable.xlsx")
 ## Split and merge batches for preprocessing of long sequence
 overlap_by_name <- ""
 overlap_sample_types <- "NIST,PO,PO1205,PO25,PO50,PO100,PO200,BL,CP,PO"
-n_batches <- 4
-batch_assignments <- "list(c(1:320), c(321:655), c(656:991), c(992:1308))"
+n_batches <- 
+batch_assignments <- "" # list(c(1:10), c(11:20))
 thres_mz_ppm <- 3
 thres_rt_min <- 0.1
 thres_cor <- 0.7

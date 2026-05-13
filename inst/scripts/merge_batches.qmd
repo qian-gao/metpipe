@@ -391,7 +391,9 @@ clean_merged <- function(df) {
 
 # Iteratively align a list of peaktables.
 # With collect_diag = TRUE, returns a named list with merged table and diagnostics.
-merge_table_list <- function(tables, label, collect_diag = FALSE) {
+merge_table_list <- function(tables, label, collect_diag = FALSE,
+                             thres_mz_ppm = 3, thres_rt_min = 0.1, best_match = TRUE,
+                             thres_cor = 0.7, thres_log2ratio = 0.3) {
   tables <- Filter(Negate(is.null), tables)
   if (length(tables) == 0) return(NULL)
   if (length(tables) == 1) {
@@ -584,7 +586,8 @@ table_specs <- list(
 
 tnames_to_run <- Filter(function(n) table_specs[[n]]$run, names(table_specs))
 
-process_one_table <- function(tname) {
+process_one_table <- function(tname, thres_mz_ppm = 3, thres_rt_min = 0.1, best_match = TRUE,
+                              thres_cor = 0.7, thres_log2ratio = 0.3) {
   ts <- table_specs[[tname]]
 
   # Load without overlap filtering: overlap samples appear in both batches,
@@ -609,11 +612,15 @@ process_one_table <- function(tname) {
   })
 
   # Diagnostics pass: shared overlap columns → valid correlation / l2r data.
-  res_diag <- merge_table_list(tables_full, tname, collect_diag = TRUE)
+  res_diag <- merge_table_list(tables_full, tname, collect_diag = TRUE,
+                               thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min, best_match = best_match,
+                               thres_cor = thres_cor, thres_log2ratio = thres_log2ratio)
   if (is.null(res_diag)) return(NULL)
 
   # Output pass: filtered tables → correct single copy of each overlap sample.
-  merged_out <- merge_table_list(tables_filtered, tname, collect_diag = FALSE)
+  merged_out <- merge_table_list(tables_filtered, tname, collect_diag = FALSE,
+                                 thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min, best_match = best_match,
+                                 thres_cor = thres_cor, thres_log2ratio = thres_log2ratio)
   if (is.null(merged_out)) return(NULL)
 
   list(
@@ -649,9 +656,13 @@ if (use_parallel) {
     envir = environment()
   )
   parallel::clusterEvalQ(cl, library(openxlsx))
-  all_res_list <- parallel::parLapply(cl, tnames_to_run, process_one_table)
+  all_res_list <- parallel::parLapply(cl, tnames_to_run, process_one_table,
+                                 thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min, best_match = TRUE,
+                                 thres_cor = thres_cor, thres_log2ratio = thres_log2ratio)
 } else {
-  all_res_list <- lapply(tnames_to_run, process_one_table)
+  all_res_list <- lapply(tnames_to_run, process_one_table,
+                                 thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min, best_match = TRUE,
+                                 thres_cor = thres_cor, thres_log2ratio = thres_log2ratio)
 }
 names(all_res_list) <- tnames_to_run
 
