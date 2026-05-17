@@ -292,7 +292,7 @@ align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_
         r   <- suppressWarnings(cor(x, y, method = "spearman", use = "pairwise.complete.obs"))
         if (is.na(r)) r <- 0
         #c(r - 0.1 * median(abs(l2r), na.rm = TRUE), r, mean(c(x, y), na.rm = TRUE))
-        c(median(abs(l2r), na.rm = TRUE), r, mean(c(x, y), na.rm = TRUE))
+        c(median(l2r, na.rm = TRUE), r, mean(c(x, y), na.rm = TRUE))
       }, numeric(3))
       pairs$score    <- pair_stats[1, ]
       pairs$r_spear  <- pair_stats[2, ]
