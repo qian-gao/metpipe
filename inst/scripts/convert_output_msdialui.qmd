@@ -313,7 +313,7 @@ msdial_convert_mode <- function(mode_label, file_set, sample_names, out_path, ou
   mz_block <- msdial_align_measurement_block(file_set$mz, area_ids, sample_map, "d.mz")
   combined <- cbind(prefixed_area, rt_block, mz_block)
 
-  isted_idx <- (!is.na(features$formula) & grepl("'", features$formula, fixed = TRUE)) | grepl("(\\(d[1-9]\\))", features$identity)
+  isted_idx <- (!is.na(features$formula) & grepl("'", features$formula, fixed = TRUE)) | grepl("-D[1-9]", features$identity)
   features_istd <- features[isted_idx, , drop = FALSE]
   combined_istd <- combined[isted_idx, , drop = FALSE]
   peaktable_istd <- cbind(features_istd, combined_istd)
