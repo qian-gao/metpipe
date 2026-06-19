@@ -1,0 +1,837 @@
+---
+title: "Merge batches (post-processing)"
+author: "CBMR Metabolomics Platform"
+date: "`r base::Sys.Date()`"
+
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    toc-location: left
+    theme: flatly
+    polyfill: false
+    page-layout: full
+    number-sections: true
+    number-depth: 2
+    self-contained: true
+
+params:
+  #config: ""
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+
+library(yaml)
+library(dplyr)
+library(openxlsx)
+
+helper_candidates <- c(
+  file.path(getwd(), "helpers_workflow.R"),
+  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
+  system.file("scripts", "helpers_workflow.R", package = "metpipe")
+)
+helper_candidates <- helper_candidates[file.exists(helper_candidates)]
+if (length(helper_candidates) == 0) stop("Cannot locate helpers_workflow.R")
+source(helper_candidates[[1]], local = TRUE)
+
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE, include = TRUE)
+
+```
+
+```{r functions, include=FALSE}
+
+ppm_diff <- function(mz1, mz2) abs(mz1 - mz2) / mz1 * 1e6
+ccs_diff <- function(ccs1, ccs2) abs(ccs1 - ccs2) / ccs1 * 100
+
+# Remove near-duplicate features within one batch's feature-row df.
+# Identified features grouped by identity; unknown features grouped by mz/rt proximity.
+# Within each group keeps up to 2 rows with highest mean intensity.
+# remove_dup <- function(df, thres_mz_ppm = 3, thres_rt_min = 0.1) {
+#   n <- nrow(df)
+#   if (n == 0L) return(df)
+# 
+#   int_cols <- if (any(grepl("\\.d\\.area$", colnames(df)))) {
+#     grep("\\.d\\.area$", colnames(df), value = TRUE)
+#   } else {
+#     grep("(?<!\\.rt|\\.mz)\\.d$", colnames(df), value = TRUE, perl = TRUE)
+#   }
+#   mean_int <- if (length(int_cols) > 0L) {
+#     rowMeans(as.matrix(df[, int_cols, drop = FALSE]), na.rm = TRUE)
+#   } else {
+#     rep(0, n)
+#   }
+# 
+#   has_id  <- df$Feature_type == "Known"
+#   keep_id <- integer(0)
+#   if (any(has_id)) {
+#     idx_id  <- which(has_id)
+#     keep_id <- unlist(
+#       tapply(idx_id, df$Metabolite_name[idx_id],
+#              function(rows) rows[order(mean_int[rows], decreasing = TRUE)[seq_len(min(2L, length(rows)))]]),
+#       use.names = FALSE
+#     )
+#   }
+# 
+#   keep_unk <- integer(0)
+#   if (any(!has_id)) {
+#     idx_unk <- which(!has_id)
+#     m       <- length(idx_unk)
+#     ord     <- order(df$mz[idx_unk])
+#     mz_s    <- df$mz[idx_unk[ord]]
+#     rt_s    <- df$rt[idx_unk[ord]]
+#     parent  <- seq_len(m)
+#     find_root <- function(x) {
+#       while (parent[x] != x) { parent[x] <<- parent[parent[x]]; x <- parent[x] }
+#       x
+#     }
+#     union_nodes <- function(x, y) {
+#       rx <- find_root(x); ry <- find_root(y)
+#       if (rx != ry) parent[ry] <<- rx
+#     }
+#     for (i in seq_len(m - 1L)) {
+#       lo <- findInterval(mz_s[i] * (1 - thres_mz_ppm * 1e-6), mz_s) + 1L
+#       hi <- findInterval(mz_s[i] * (1 + thres_mz_ppm * 1e-6), mz_s)
+#       js <- seq.int(max(lo, i + 1L), hi)
+#       if (length(js) == 0L) next
+#       js <- js[abs(rt_s[js] - rt_s[i]) < thres_rt_min]
+#       for (j in js) union_nodes(i, j)
+#     }
+#     roots       <- vapply(seq_len(m), find_root, integer(1L))
+#     groups      <- integer(m); groups[ord] <- roots
+#     local_keep  <- unlist(
+#       tapply(seq_len(m), groups,
+#              function(k) k[order(mean_int[idx_unk[k]], decreasing = TRUE)[seq_len(min(2L, length(k)))]]),
+#       use.names = FALSE
+#     )
+#     keep_unk <- idx_unk[local_keep]
+#   }
+# 
+#   df[sort(c(keep_id, keep_unk)), , drop = FALSE]
+# }
+
+# Detect intensity columns (*.d.area, *.area, *.d, *.mzML).
+get_sample_cols <- function(df) {
+  cn <- colnames(df)
+  if (any(grepl("\\.d\\.area$", cn))) return(grep("\\.d\\.area$", cn, value = TRUE))
+  if (any(grepl("\\.area$",    cn))) return(grep("\\.area$",    cn, value = TRUE))
+  if (any(grepl("(?<!\\.rt|\\.mz)\\.d$", cn, perl = TRUE)))
+    return(grep("(?<!\\.rt|\\.mz)\\.d$", cn, value = TRUE, perl = TRUE))
+  grep("\\.mzML$", cn, value = TRUE)
+}
+
+# Identify overlap samples (present in > 1 batch) and assign each occurrence to a batch.
+# Returns a named list: element per overlap sample name, value = logical vector of length
+# n_batches where TRUE means keep this batch's copy in the merged output.
+# Assignment uses global Run.order (absolute instrument sequence): each occurrence
+# is assigned to the batch whose patient-sample run-order range brackets it.
+# If Run.order is unavailable, keeps only the first batch's copy.
+build_overlap_assignment <- function(batch_data) {
+  n_b         <- length(batch_data)
+  batch_samps <- lapply(batch_data, function(bd) bd$datatable$Sample)
+  freq        <- table(unlist(batch_samps))
+  overlap_samps <- names(freq)[freq > 1L]
+  if (length(overlap_samps) == 0L) return(NULL)
+
+  specific_by_batch <- lapply(batch_samps, function(s) s[!s %in% overlap_samps])
+  has_ro            <- "Run.order" %in% colnames(batch_data[[1]]$datatable)
+
+  ro_ranges <- lapply(seq_len(n_b), function(i) {
+    if (!has_ro) return(c(NA_real_, NA_real_))
+    bd   <- batch_data[[i]]
+    spc  <- specific_by_batch[[i]]
+    rows <- bd$datatable[bd$datatable$Sample %in% spc, , drop = FALSE]
+    if (nrow(rows) == 0L) return(c(NA_real_, NA_real_))
+    c(min(rows$Run.order, na.rm = TRUE), max(rows$Run.order, na.rm = TRUE))
+  })
+
+  assignment <- lapply(overlap_samps, function(s) {
+    ro_vals <- vapply(seq_len(n_b), function(i) {
+      if (!has_ro) return(NA_real_)
+      rows <- batch_data[[i]]$datatable
+      rows <- rows[rows$Sample == s, , drop = FALSE]
+      if (nrow(rows) == 0L) return(NA_real_)
+      rows$Run.order[1L]
+    }, numeric(1L))
+
+    present <- !is.na(ro_vals)
+
+    if (!has_ro || !any(present)) {
+      keep <- logical(n_b)
+      if (any(present)) keep[which(present)[1L]] <- TRUE
+      return(keep)
+    }
+
+    keep <- vapply(seq_len(n_b), function(i) {
+      if (!present[i]) return(FALSE)
+      r <- ro_ranges[[i]]
+      if (anyNA(r)) return(FALSE)
+      ro_vals[i] >= r[1L] && ro_vals[i] <= r[2L]
+    }, logical(1L))
+
+    if (!any(keep)) {
+      dists <- vapply(seq_len(n_b), function(i) {
+        if (!present[i]) return(Inf)
+        r <- ro_ranges[[i]]
+        if (anyNA(r)) return(Inf)
+        max(0, ro_vals[i] - r[2L], r[1L] - ro_vals[i])
+      }, numeric(1L))
+      keep <- logical(n_b)
+      keep[which.min(dists)] <- TRUE
+    }
+
+    keep
+  })
+  setNames(assignment, overlap_samps)
+}
+
+# Non-intensity columns in a feature-row df built by build_feat_peaktable().
+FEAT_META_COLS <- c("mz", "rt", "Identity", "Feature_type", "metabolite_name",
+                    "ion", "formula", "ccs")
+
+# Convert one batch's datatable + feature.info into a feature-row df for align_features().
+# Rows = features; columns = meta cols + one intensity column per sample (<Sample>.d).
+build_feat_peaktable <- function(dt, fi, polarity, include_ccs = FALSE) {
+  fi_p <- fi[!is.na(fi$Polarity) & fi$Polarity == polarity, ]
+  if (nrow(fi_p) == 0L) return(NULL)
+
+  avail <- fi_p$Metabolite_name[fi_p$Metabolite_name %in% colnames(dt)]
+  if (length(avail) == 0L) return(NULL)
+  fi_p <- fi_p[match(avail, fi_p$Metabolite_name), ]
+
+  int_mat           <- t(as.matrix(dt[, avail, drop = FALSE]))
+  colnames(int_mat) <- paste0(dt$Sample, ".d")
+
+  id_vec <- if ("Identity"     %in% colnames(fi_p)) fi_p$Identity     else NA_character_
+  ft_vec <- if ("Feature_type" %in% colnames(fi_p)) fi_p$Feature_type else NA_character_
+  id_vec[is.na(id_vec) | id_vec == ""] <- NA_character_
+
+  out <- data.frame(
+    mz              = fi_p$mz,
+    rt              = fi_p$rt,
+    Identity        = id_vec,
+    Feature_type    = ft_vec,
+    Metabolite_name = fi_p$Metabolite_name,
+    ion             = if ("ion"     %in% colnames(fi_p)) fi_p$ion     else NA_character_,
+    Formula         = if ("Formula" %in% colnames(fi_p)) fi_p$Formula else NA_character_,
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  if (include_ccs)
+    out$ccs <- if ("ccs" %in% colnames(fi_p)) fi_p$ccs else NA_real_
+
+  cbind(out, as.data.frame(int_mat, check.names = FALSE))
+}
+
+# Align features from two feature-row dfs by m/z and RT proximity.
+# Matching rules differ by Feature_type:
+#   "Known"  : require identity + metabolite_name + ion to match exactly.
+#   other    : mz/rt proximity only; if both have non-NA identity, they must match.
+# With best_match = TRUE, resolves multiple candidates via Spearman correlation
+# over shared overlap sample columns (falls back to smallest mz_ppm when no shared cols).
+align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_match = FALSE,
+                           thres_cor = 0.7, thres_log2ratio = 0.3,
+                           collect_diag = FALSE, step_label = "") {
+
+  ccs_flag <- "ccs" %in% colnames(df1)
+
+  meta_cols <- c("mz", "rt", "Identity", "Feature_type", "Metabolite_name", "ion", "Formula")
+  if (ccs_flag) meta_cols <- c(meta_cols, "ccs")
+  meta_cols <- intersect(meta_cols, intersect(colnames(df1), colnames(df2)))
+
+  m1  <- cbind(.i = seq_len(nrow(df1)), df1[, meta_cols, drop = FALSE])
+  m2  <- cbind(.j = seq_len(nrow(df2)), df2[, meta_cols, drop = FALSE])
+  m2s <- m2[order(m2$mz), , drop = FALSE]
+
+  pair_idx <- lapply(seq_len(nrow(m1)), function(i) {
+    mz1 <- m1$mz[i]
+    lo  <- findInterval(mz1 * (1 - thres_mz_ppm * 1e-6), m2s$mz) + 1L
+    hi  <- findInterval(mz1 * (1 + thres_mz_ppm * 1e-6), m2s$mz)
+    if (lo > hi) return(NULL)
+    rt_ok <- which(abs(m2s$rt[lo:hi] - m1$rt[i]) < thres_rt_min) + (lo - 1L)
+    if (length(rt_ok) == 0) return(NULL)
+    list(i = rep(i, length(rt_ok)), j = rt_ok)
+  })
+  pair_idx <- Filter(Negate(is.null), pair_idx)
+
+  if (length(pair_idx) == 0) {
+    if (collect_diag) return(list(merged = NULL, diag = NULL, l2r_long = NULL))
+    return(NULL)
+  }
+
+  all_i <- unlist(lapply(pair_idx, `[[`, "i"))
+  all_j <- m2s$.j[unlist(lapply(pair_idx, `[[`, "j"))]
+
+  # Build pairs with .1/.2 suffixed meta cols
+  meta1 <- m1[all_i, meta_cols, drop = FALSE]
+  meta2 <- m2[all_j, meta_cols, drop = FALSE]
+  colnames(meta1) <- paste0(meta_cols, ".1")
+  colnames(meta2) <- paste0(meta_cols, ".2")
+  pairs <- cbind(data.frame(.i = all_i, .j = all_j, stringsAsFactors = FALSE), meta1, meta2)
+
+  pairs$mz_ppm  <- ppm_diff(pairs$mz.1, pairs$mz.2)
+  pairs$rt_diff <- abs(pairs$rt.1 - pairs$rt.2)
+  pairs$ccs_percent <- if (ccs_flag && "ccs.1" %in% colnames(pairs))
+    ccs_diff(pairs$ccs.1, pairs$ccs.2) else NA_real_
+
+  pairs <- pairs[pairs$mz_ppm < thres_mz_ppm & pairs$rt_diff < thres_rt_min, , drop = FALSE]
+
+  if (nrow(pairs) == 0) {
+    if (collect_diag) return(list(merged = NULL, diag = NULL, l2r_long = NULL))
+    return(NULL)
+  }
+
+  # Type-specific match filter
+  has_ft  <- "Feature_type.1" %in% colnames(pairs)
+  is_known <- has_ft & !is.na(pairs$Feature_type.1) & pairs$Feature_type.1 == "Known"
+
+  known_ok <- if (any(is_known)) {
+    !is.na(pairs$Feature_type.2) & pairs$Feature_type.2 == "Known" &
+    # !is.na(pairs$identity.1)        & !is.na(pairs$identity.2)        &
+    # pairs$identity.1 == pairs$identity.2 &
+    !is.na(pairs$Metabolite_name.1) & !is.na(pairs$Metabolite_name.2) &
+    pairs$Metabolite_name.1 == pairs$Metabolite_name.2 &
+    !is.na(pairs$ion.1)             & !is.na(pairs$ion.2)             &
+    pairs$ion.1 == pairs$ion.2
+  } else rep(FALSE, nrow(pairs))
+
+  # has_id_both <- !is.na(pairs$identity.1) & !is.na(pairs$identity.2)
+  # unk_ok      <- !has_id_both | (pairs$identity.1 == pairs$identity.2)
+
+  pairs <- pairs[(is_known & known_ok) | !is_known, , drop = FALSE]
+
+  if (nrow(pairs) == 0) {
+    if (collect_diag) return(list(merged = NULL, diag = NULL, l2r_long = NULL))
+    return(NULL)
+  }
+
+  sample_cols <- character(0)
+
+  if (best_match) {
+    sample_cols <- intersect(get_sample_cols(df1), get_sample_cols(df2))
+    if (length(sample_cols) > 1) {
+      mat1 <- as.matrix(df1[pairs$.i, sample_cols, drop = FALSE])
+      mat2 <- as.matrix(df2[pairs$.j, sample_cols, drop = FALSE])
+      pair_stats <- vapply(seq_len(nrow(pairs)), function(k) {
+        x   <- log2(pmax(mat1[k, ], 1))
+        y   <- log2(pmax(mat2[k, ], 1))
+        l2r <- x - y
+        r   <- suppressWarnings(cor(x, y, method = "spearman", use = "pairwise.complete.obs"))
+        if (is.na(r)) r <- 0
+        c(median(l2r, na.rm = TRUE), r, mean(c(x, y), na.rm = TRUE))
+      }, numeric(3))
+      pairs$score    <- pair_stats[1, ]
+      pairs$r_spear  <- pair_stats[2, ]
+      pairs$mean_int <- pair_stats[3, ]
+      pairs <- pairs[!is.na(pairs$score) & pairs$r_spear > thres_cor &
+                     abs(pairs$score) < thres_log2ratio, , drop = FALSE]
+      pairs <- do.call(rbind, lapply(split(pairs, pairs$.i), function(g) {
+        g[which.max(g$mean_int), , drop = FALSE]
+      }))
+    } else {
+      pairs$score <- NA_real_
+      pairs <- pairs[order(pairs$.i, pairs$mz_ppm), , drop = FALSE]
+      pairs <- pairs[!duplicated(pairs$.i), , drop = FALSE]
+    }
+  }
+
+  if (nrow(pairs) == 0) {
+    if (collect_diag) return(list(merged = NULL, diag = NULL, l2r_long = NULL))
+    return(NULL)
+  }
+
+  out1        <- df1[pairs$.i, , drop = FALSE]
+  out2        <- df2[pairs$.j, , drop = FALSE]
+  merged_wide <- cbind(out1, out2,
+    mz_batch_diff = out1$mz - out2$mz,
+    rt_batch_diff = out1$rt - out2$rt,
+    row.names = NULL
+  )
+
+  if (!collect_diag) return(merged_wide)
+
+  if (length(sample_cols) > 1 && !is.null(pairs$score)) {
+    mat1_fin <- as.matrix(df1[pairs$.i, sample_cols, drop = FALSE])
+    mat2_fin <- as.matrix(df2[pairs$.j, sample_cols, drop = FALSE])
+    ovlp_cor <- pairs$r_spear
+    ratio    <- mat1_fin / mat2_fin; ratio[ratio <= 0] <- NA_real_
+    l2r_mat  <- log2(ratio)
+    med_l2r  <- apply(l2r_mat, 1, median, na.rm = TRUE)
+    id_vec   <- if (!is.null(out1$identity)) out1$identity else rep(NA_character_, nrow(l2r_mat))
+    samp_vec <- sub("^datafile\\.", "", colnames(l2r_mat))
+    samp_vec <- sub("\\.d\\.area$|\\.d$|\\.mzML$", "", samp_vec)
+    l2r_long <- data.frame(
+      step      = rep(step_label, nrow(l2r_mat) * ncol(l2r_mat)),
+      identity  = rep(id_vec,     ncol(l2r_mat)),
+      sample    = rep(samp_vec,   each = nrow(l2r_mat)),
+      log2ratio = as.vector(l2r_mat),
+      stringsAsFactors = FALSE
+    )
+    l2r_long <- l2r_long[is.finite(l2r_long$log2ratio), , drop = FALSE]
+  } else {
+    ovlp_cor <- rep(NA_real_, nrow(pairs))
+    med_l2r  <- rep(NA_real_, nrow(pairs))
+    l2r_long <- NULL
+  }
+
+  diag_base <- data.frame(
+    step             = step_label,
+    mz               = out1$mz,
+    rt               = out1$rt,
+    Identity         = if (!is.null(out1$Identity)) out1$Identity else NA_character_,
+    Feature_type     = if (!is.null(out1$Feature_type)) out1$Feature_type else NA_character_,
+    mz_ppm           = pairs$mz_ppm,
+    rt_diff          = pairs$rt_diff,
+    overlap_cor      = ovlp_cor,
+    median_log2ratio = med_l2r,
+    stringsAsFactors = FALSE
+  )
+  if (ccs_flag)
+    diag_base$ccs         <- out1$ccs
+    diag_base$ccs_percent <- pairs$ccs_percent
+
+  list(merged = merged_wide, diag = diag_base, l2r_long = l2r_long)
+}
+
+# Remove cbind duplicate columns (.1 suffix) and alignment diff columns.
+clean_merged <- function(df) {
+  df <- df[, !grepl("\\.1$", colnames(df)),            drop = FALSE]
+  df <- df[, !colnames(df) %in% c("mz_batch_diff", "rt_batch_diff"), drop = FALSE]
+  df
+}
+
+# Iteratively align a list of feature-row dfs across batches.
+merge_table_list <- function(tables, label, collect_diag = FALSE,
+                             thres_mz_ppm = 3, thres_rt_min = 0.1, best_match = TRUE,
+                             thres_cor = 0.7, thres_log2ratio = 0.3) {
+  tables <- Filter(Negate(is.null), tables)
+  if (length(tables) == 0) return(NULL)
+  if (length(tables) == 1) {
+    if (collect_diag)
+      return(list(merged = tables[[1]], diag = NULL, counts = NULL, l2r_long = NULL,
+                  input_counts = data.frame(table = label, label = "b1 (input)",
+                                            features = nrow(tables[[1]]),
+                                            stringsAsFactors = FALSE),
+                  n_final = nrow(tables[[1]])))
+    return(tables[[1]])
+  }
+
+  input_counts <- data.frame(
+    table    = label,
+    label    = paste0("b", seq_along(tables), " (input)"),
+    features = vapply(tables, nrow, integer(1)),
+    stringsAsFactors = FALSE
+  )
+
+  diag_list  <- vector("list", length(tables) - 1)
+  count_list <- vector("list", length(tables) - 1)
+  l2r_list   <- vector("list", length(tables) - 1)
+  current    <- tables[[1]]
+
+  for (k in seq(2, length(tables))) {
+    n_before <- nrow(current)
+    step_lbl <- paste0("b", k - 1, "→b", k)
+    if (collect_diag) {
+      res <- align_features(#remove_dup(current, thres_mz_ppm, thres_rt_min),
+                            #remove_dup(tables[[k]], thres_mz_ppm, thres_rt_min),
+                            current,
+                            tables[[k]],
+                            thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min,
+                            best_match = TRUE, thres_cor = thres_cor,
+                            thres_log2ratio = thres_log2ratio,
+                            collect_diag = TRUE, step_label = step_lbl)
+      if (is.null(res) || is.null(res$merged) || nrow(res$merged) == 0)
+        stop("Feature alignment returned 0 rows for ", label, " at batch ", k)
+      aligned <- res$merged
+    } else {
+      res     <- NULL
+      aligned <- align_features(#remove_dup(current, thres_mz_ppm, thres_rt_min),
+                                #remove_dup(tables[[k]], thres_mz_ppm, thres_rt_min),
+                                current,
+                                tables[[k]],
+                                thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min,
+                                best_match = TRUE, thres_cor = thres_cor,
+                                thres_log2ratio = thres_log2ratio)
+      if (is.null(aligned) || nrow(aligned) == 0)
+        stop("Feature alignment returned 0 rows for ", label, " at batch ", k)
+    }
+
+    current <- clean_merged(aligned)
+    message(label, ": +b", k, "  ", n_before, " + ", nrow(tables[[k]]),
+            " -> ", nrow(current), " features")
+
+    if (collect_diag) {
+      if (!is.null(res$diag))
+        diag_list[[k - 1]] <- cbind(table = label, res$diag, stringsAsFactors = FALSE)
+      count_list[[k - 1]] <- data.frame(
+        table    = label, step = step_lbl,
+        n_before = n_before, n_batch = nrow(tables[[k]]), n_merged = nrow(current),
+        stringsAsFactors = FALSE
+      )
+      if (!is.null(res$l2r_long) && nrow(res$l2r_long) > 0)
+        l2r_list[[k - 1]] <- cbind(table = label, res$l2r_long, stringsAsFactors = FALSE)
+    }
+  }
+
+  if (!collect_diag) return(current)
+
+  list(
+    merged       = current,
+    diag         = do.call(rbind, Filter(Negate(is.null), diag_list)),
+    counts       = do.call(rbind, count_list),
+    l2r_long     = {
+      non_null <- Filter(function(x) !is.null(x) && nrow(x) > 0, l2r_list)
+      if (length(non_null) > 0) do.call(rbind, non_null) else NULL
+    },
+    input_counts = input_counts,
+    n_final      = nrow(current)
+  )
+}
+
+# Run correlation-pass alignment for one polarity using full (unfiltered) batch tables.
+# Returns the merge_table_list result; $merged is the canonical feature-row df.
+merge_by_polarity <- function(polarity, batch_data,
+                               thres_mz_ppm = 3, thres_rt_min = 0.1,
+                               thres_cor = 0.7, thres_log2ratio = 0.3) {
+  has_ccs <- any(vapply(batch_data, function(bd) {
+    fi_p <- bd$feature.info[!is.na(bd$feature.info$Polarity) &
+                              bd$feature.info$Polarity == polarity, ]
+    "ccs" %in% colnames(fi_p) && any(!is.na(fi_p$ccs))
+  }, logical(1L)))
+
+  tables <- lapply(batch_data, function(bd)
+    build_feat_peaktable(bd$datatable, bd$feature.info, polarity, include_ccs = has_ccs))
+  tables <- Filter(Negate(is.null), tables)
+  if (length(tables) == 0L) return(NULL)
+
+  message("Aligning ", polarity, " features: ",
+          paste(vapply(tables, nrow, integer(1L)), collapse = " + "), " per batch")
+
+  merge_table_list(tables, label = polarity, collect_diag = TRUE,
+                   thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min,
+                   best_match = TRUE, thres_cor = thres_cor,
+                   thres_log2ratio = thres_log2ratio)
+}
+
+# Map each row of the canonical feature df to the Metabolite_name used in a
+# given batch's feature.info for one polarity.
+# Known features: match by metabolite_name + ion.
+# Unknown features: match by identity if present, then mz/rt proximity.
+# Returns NA for canonical features not found in this batch.
+map_canonical_to_batch <- function(canonical_feat_df, fi_batch, polarity,
+                                    thres_mz_ppm, thres_rt_min) {
+  fi_p <- fi_batch[!is.na(fi_batch$Polarity) & fi_batch$Polarity == polarity, ]
+  if (nrow(fi_p) == 0L) return(rep(NA_character_, nrow(canonical_feat_df)))
+
+  fi_has_id  <- "Identity"     %in% colnames(fi_p)
+  fi_has_ion <- "ion"          %in% colnames(fi_p)
+
+  vapply(seq_len(nrow(canonical_feat_df)), function(k) {
+    row       <- canonical_feat_df[k, ]
+    feat_type <- if ("Feature_type" %in% colnames(row)) row$Feature_type else NA_character_
+
+    if (!is.na(feat_type) && feat_type == "Known") {
+      id  <- if ("Identity"        %in% colnames(row)) row$Identity        else NA_character_
+      mn  <- if ("Metabolite_name" %in% colnames(row)) row$Metabolite_name else NA_character_
+      ion <- if ("ion"             %in% colnames(row)) row$ion             else NA_character_
+      if (!is.na(id) && !is.na(mn) && !is.na(ion) && fi_has_id && fi_has_ion) {
+        idx <- which(!is.na(fi_p$Identity) & 
+                     #fi_p$Identity == id &
+                     fi_p$Metabolite_name == mn &
+                     !is.na(fi_p$ion) & fi_p$ion == ion)
+        if (length(idx) > 0L) return(fi_p$Metabolite_name[idx[1L]])
+      }
+      if (!is.na(id) && fi_has_id) {
+        idx <- which(!is.na(fi_p$Identity) & fi_p$Identity == id)
+        if (length(idx) > 0L) return(fi_p$Metabolite_name[idx[1L]])
+      }
+    } 
+    # else {
+    #   id <- if ("identity" %in% colnames(row)) row$identity else NA_character_
+    #   if (fi_has_id && !is.na(id) && nchar(id) > 0L) {
+    #     idx <- which(!is.na(fi_p$Identity) & fi_p$Identity == id)
+    #     if (length(idx) > 0L) return(fi_p$Metabolite_name[idx[1L]])
+    #   }
+    # }
+
+    mz_k  <- row$mz; rt_k <- row$rt
+    ppm_v <- abs(fi_p$mz - mz_k) / mz_k * 1e6
+    rt_v  <- abs(fi_p$rt  - rt_k)
+    cand  <- which(ppm_v < thres_mz_ppm * 2 & rt_v < thres_rt_min * 2)
+    if (length(cand) > 0L)
+      return(fi_p$Metabolite_name[cand[which.min(ppm_v[cand])]])
+
+    NA_character_
+  }, character(1L))
+}
+
+# Build the output datatable rows for one batch.
+# Keeps: patient samples (not in any other batch) + overlap samples assigned to this batch.
+# Pulls feature intensities from this batch's own datatable columns, using the
+# canonical->batch Metabolite_name mapping for each polarity.
+# Returns a data.frame with meta cols + pos feature cols + neg feature cols, or NULL.
+build_batch_output <- function(bd, batch_idx, overlap_assignment,
+                                canonical_pos, canonical_neg,
+                                names_pos, names_neg,
+                                thres_mz_ppm, thres_rt_min,
+                                meta_cols) {
+  dt        <- bd$datatable
+  all_samps <- dt$Sample
+  ovlp_samps <- if (!is.null(overlap_assignment)) names(overlap_assignment) else character(0L)
+
+  keep_ovlp <- if (length(ovlp_samps) > 0L) {
+    vapply(ovlp_samps, function(s) {
+      assign <- overlap_assignment[[s]]
+      length(assign) >= batch_idx && isTRUE(assign[batch_idx])
+    }, logical(1L))
+  } else logical(0L)
+
+  keep_rows <- !(all_samps %in% ovlp_samps) |
+               (all_samps %in% ovlp_samps[keep_ovlp])
+  dt_keep <- dt[keep_rows, , drop = FALSE]
+  if (nrow(dt_keep) == 0L) return(NULL)
+
+  meta_slice <- dt_keep[, intersect(meta_cols, colnames(dt_keep)), drop = FALSE]
+
+  build_int_slice <- function(canonical_feat_df, canon_names, polarity) {
+    if (is.null(canonical_feat_df) || is.null(canon_names)) return(NULL)
+    batch_names <- map_canonical_to_batch(canonical_feat_df, bd$feature.info,
+                                           polarity, thres_mz_ppm, thres_rt_min)
+    n_feat <- length(canon_names)
+    n_samp <- nrow(dt_keep)
+    out_mat <- matrix(NA_real_, nrow = n_samp, ncol = n_feat,
+                      dimnames = list(NULL, canon_names))
+    for (j in seq_len(n_feat)) {
+      bn <- batch_names[j]
+      if (!is.na(bn) && bn %in% colnames(dt_keep))
+        out_mat[, j] <- as.numeric(dt_keep[, bn])
+    }
+    as.data.frame(out_mat, check.names = FALSE)
+  }
+
+  pos_slice <- build_int_slice(canonical_pos, names_pos, "pos")
+  neg_slice <- build_int_slice(canonical_neg, names_neg, "neg")
+
+  do.call(cbind, Filter(Negate(is.null),
+    list(as.data.frame(meta_slice, check.names = FALSE), pos_slice, neg_slice)))
+}
+
+```
+
+## Inputs
+
+```{r inputs}
+#params <- list(config = "E:/Projects/MP208_FLINC/peaktable/PL_LIPS_PASEF/config_win.yml")
+
+cfg          <- wf_read_yaml_config(params$config, label = "params$config")
+run.pos      <- wf_as_flag(cfg$run.pos)
+run.neg      <- wf_as_flag(cfg$run.neg)
+n_batches    <- suppressWarnings(as.integer(cfg$n_batches))
+thres_mz_ppm    <- if (is.null(cfg$thres_mz_ppm))    3    else cfg$thres_mz_ppm
+thres_rt_min    <- if (is.null(cfg$thres_rt_min))    0.1  else cfg$thres_rt_min
+thres_cor       <- if (is.null(cfg$thres_cor))       0.7  else cfg$thres_cor
+thres_log2ratio <- if (is.null(cfg$thres_log2ratio)) 0.3  else cfg$thres_log2ratio
+
+if (is.na(n_batches) || n_batches < 2)
+  stop("n_batches must be an integer >= 2, got: ", cfg$n_batches)
+
+path_result <- wf_cfg_required(cfg, "path_result")
+base_name   <- basename(path_result)
+batch_dirs  <- file.path(path_result, paste0(base_name, "_b", seq_len(n_batches)))
+
+missing_dirs <- batch_dirs[!dir.exists(batch_dirs)]
+if (length(missing_dirs) > 0)
+  stop("Batch directories not found:\n", paste(missing_dirs, collapse = "\n"))
+
+cat("Config:      ", params$config, "\n")
+cat("path_result: ", path_result, "\n")
+cat("n_batches:   ", n_batches, "\n")
+cat("run.pos:     ", run.pos, "\n")
+cat("run.neg:     ", run.neg, "\n")
+
+# Load datatable.xlsx from each batch directory
+batch_data <- lapply(seq_len(n_batches), function(i) {
+  p <- file.path(batch_dirs[i], "datatable.xlsx")
+  if (!file.exists(p)) stop("datatable.xlsx not found in batch ", i, ": ", p)
+  list(
+    datatable    = readxl::read_excel(p, sheet = "datatable"),
+    feature.info = readxl::read_excel(p, sheet = "feature.info")
+  )
+})
+
+# Identify meta columns (non-feature columns) from batch 1
+all_feat_names <- unique(unlist(lapply(batch_data, function(bd) bd$feature.info$Metabolite_name)))
+meta_cols      <- colnames(batch_data[[1]]$datatable)
+meta_cols      <- meta_cols[!meta_cols %in% all_feat_names]
+cat("Sample metadata columns:", paste(meta_cols, collapse = ", "), "\n\n")
+
+for (i in seq_along(batch_data)) {
+  bd <- batch_data[[i]]
+  cat(sprintf("Batch %d: %d samples, %d features (%d pos / %d neg)\n",
+      i, nrow(bd$datatable), nrow(bd$feature.info),
+      sum(!is.na(bd$feature.info$Polarity) & bd$feature.info$Polarity == "pos"),
+      sum(!is.na(bd$feature.info$Polarity) & bd$feature.info$Polarity == "neg")))
+}
+
+# Identify and assign overlap samples
+overlap_assignment <- build_overlap_assignment(batch_data)
+if (!is.null(overlap_assignment)) {
+  cat(sprintf("\nOverlap samples detected: %d\n", length(overlap_assignment)))
+  keep_counts <- vapply(overlap_assignment, sum, integer(1L))
+  cat(sprintf("  Copies kept per sample: min=%d, max=%d\n",
+              min(keep_counts), max(keep_counts)))
+} else {
+  cat("\nNo overlap samples detected.\n")
+}
+
+```
+
+## Feature alignment
+
+Positive and negative mode features are aligned separately across batches using
+m/z (< `r thres_mz_ppm` ppm) and RT (< `r thres_rt_min` min).
+Known features are matched by identity + Metabolite_name + ion; unknown features
+by mz/rt proximity (identity must agree when both features have one).
+Spearman correlation over shared overlap sample columns resolves multiple candidates.
+
+```{r merge}
+
+res_pos <- if (run.pos)
+  merge_by_polarity("pos", batch_data, thres_mz_ppm, thres_rt_min,
+                    thres_cor, thres_log2ratio)
+
+res_neg <- if (run.neg)
+  merge_by_polarity("neg", batch_data, thres_mz_ppm, thres_rt_min,
+                    thres_cor, thres_log2ratio)
+
+if (run.pos && (is.null(res_pos) || is.null(res_pos$merged)))
+  stop("Feature alignment returned no results for positive mode")
+if (run.neg && (is.null(res_neg) || is.null(res_neg$merged)))
+  stop("Feature alignment returned no results for negative mode")
+
+```
+
+## Output
+
+```{r write_output}
+
+# Canonical feature-row dfs from the alignment (meta cols = batch 1 reference)
+canonical_pos <- if (!is.null(res_pos)) res_pos$merged else NULL
+canonical_neg <- if (!is.null(res_neg)) res_neg$merged else NULL
+
+# Canonical Metabolite_names = column names in the merged datatable output.
+# These come directly from the metabolite_name column of the canonical dfs,
+# which holds batch 1's Metabolite_name for each aligned feature.
+names_pos <- if (!is.null(canonical_pos)) canonical_pos$metabolite_name else NULL
+names_neg <- if (!is.null(canonical_neg)) canonical_neg$metabolite_name else NULL
+
+# Build per-batch output slices: each batch contributes its own sample rows
+# (patient samples + overlap samples assigned to this batch) with intensities
+# pulled from that batch's own datatable columns.
+batch_slices <- lapply(seq_len(n_batches), function(i) {
+  s <- build_batch_output(
+    bd                 = batch_data[[i]],
+    batch_idx          = i,
+    overlap_assignment = overlap_assignment,
+    canonical_pos      = canonical_pos,
+    canonical_neg      = canonical_neg,
+    names_pos          = names_pos,
+    names_neg          = names_neg,
+    thres_mz_ppm       = thres_mz_ppm,
+    thres_rt_min       = thres_rt_min,
+    meta_cols          = meta_cols
+  )
+  if (!is.null(s)) message("Batch ", i, ": ", nrow(s), " sample rows")
+  s
+})
+
+datatable_out <- do.call(rbind, Filter(Negate(is.null), batch_slices))
+rownames(datatable_out) <- NULL
+
+# Reconstruct feature.info for aligned canonical features from batch 1 reference
+fi_ref         <- batch_data[[1]]$feature.info
+feat_names_out <- c(names_pos, names_neg)
+feat_names_out <- feat_names_out[!is.na(feat_names_out)]
+feat_info_out  <- fi_ref[match(feat_names_out, fi_ref$Metabolite_name), ]
+
+# Write merged datatable.xlsx
+path_datatable <- wf_cfg_required(cfg, "path_datatable")
+wf_ensure_parent_dirs(path_datatable)
+
+wb <- openxlsx::createWorkbook()
+openxlsx::addWorksheet(wb, "datatable")
+openxlsx::writeData(wb, "datatable", datatable_out)
+openxlsx::addWorksheet(wb, "feature.info")
+openxlsx::writeData(wb, "feature.info", feat_info_out)
+openxlsx::saveWorkbook(wb, path_datatable, overwrite = TRUE)
+message("Wrote: ", path_datatable)
+
+# Save diagnostics RDS for evaluate_merge_datatable
+diag_path <- file.path(path_result, "data", "merge_diagnostics_datatable.rds")
+wf_ensure_parent_dirs(diag_path)
+
+# sample_batch_map: named integer vector, sample name -> batch number
+batch_num_vec <- suppressWarnings(as.integer(gsub("Batch\\s*", "", datatable_out$Sample.batch)))
+sample_batch_map <- setNames(batch_num_vec, datatable_out$Sample)
+sample_batch_map <- sample_batch_map[!is.na(sample_batch_map)]
+
+all_diag <- do.call(rbind, Filter(Negate(is.null), list(
+  if (!is.null(res_pos) && !is.null(res_pos$diag)) cbind(table = "pos", res_pos$diag, stringsAsFactors = FALSE) else NULL,
+  if (!is.null(res_neg) && !is.null(res_neg$diag)) cbind(table = "neg", res_neg$diag, stringsAsFactors = FALSE) else NULL
+)))
+
+all_counts <- do.call(rbind, Filter(Negate(is.null), list(
+  res_pos$counts, res_neg$counts
+)))
+
+all_l2r <- do.call(rbind, Filter(function(x) !is.null(x) && nrow(x) > 0, list(
+  if (!is.null(res_pos) && !is.null(res_pos$l2r_long)) cbind(table = "pos", res_pos$l2r_long, stringsAsFactors = FALSE) else NULL,
+  if (!is.null(res_neg) && !is.null(res_neg$l2r_long)) cbind(table = "neg", res_neg$l2r_long, stringsAsFactors = FALSE) else NULL
+)))
+
+all_input_counts <- do.call(rbind, Filter(Negate(is.null), list(
+  res_pos$input_counts, res_neg$input_counts
+)))
+
+n_final <- c(
+  if (!is.null(res_pos)) c(pos = res_pos$n_final) else NULL,
+  if (!is.null(res_neg)) c(neg = res_neg$n_final) else NULL
+)
+
+saveRDS(list(
+  all_diag         = all_diag,
+  all_counts       = all_counts,
+  all_l2r          = all_l2r,
+  all_input_counts = all_input_counts,
+  n_final          = n_final,
+  sample_batch_map = sample_batch_map,
+  path_datatable   = path_datatable
+), diag_path)
+message("Wrote diagnostics: ", diag_path)
+
+# Summary table
+stats_rows <- list()
+if (!is.null(res_pos))
+  stats_rows[["pos"]] <- data.frame(Mode = "pos", Batches = n_batches,
+    Features_input  = paste(res_pos$input_counts$features, collapse = " + "),
+    Features_merged = res_pos$n_final, stringsAsFactors = FALSE)
+if (!is.null(res_neg))
+  stats_rows[["neg"]] <- data.frame(Mode = "neg", Batches = n_batches,
+    Features_input  = paste(res_neg$input_counts$features, collapse = " + "),
+    Features_merged = res_neg$n_final, stringsAsFactors = FALSE)
+
+if (length(stats_rows) > 0) {
+  knitr::kable(
+    do.call(rbind, stats_rows),
+    caption = paste0("Merge summary — ", nrow(datatable_out), " samples, ",
+                     length(feat_names_out), " features"),
+    row.names = FALSE
+  )
+}
+
+```
+
+```{r session_info, include=FALSE, eval=FALSE}
+
+utils::sessionInfo()
+
+```

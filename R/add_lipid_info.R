@@ -37,10 +37,10 @@ add_lipid_info <-
                  Identity_sum = str_split(Identity_sum, "[/_]")[[1]][1],
                  Class = if_else(grepl(" (", Identity_sum, fixed = TRUE),
                                  str_split(Identity_sum, "[ (]",)[[1]][1],
-                                 if_else(grepl("O-", Identity_sum), 
+                                 if_else(grepl("O-|P-", Identity_sum), 
                                          str_split(Identity_sum, "-")[[1]][1],
                                          str_split(Identity_sum, " ")[[1]][1])),
-                 Identity_sum = if_else(grepl("O-", Identity_sum), 
+                 Identity_sum = if_else(grepl("O-|P-", Identity_sum), 
                                         str_split(Identity_sum, "-")[[1]][2],
                                         str_split(Identity_sum, " ")[[1]][2]),
                  N.carbons.1 = as.numeric(str_split(Identity_sum, ":")[[1]][1]),
@@ -75,6 +75,9 @@ add_lipid_info <-
                                         Identity_sum),
                  Identity_sum = if_else(grepl("O ", Identity_sum),
                                         gsub("O ", "O-", Identity_sum), 
+                                        Identity_sum),
+                 Identity_sum = if_else(grepl("P ", Identity_sum),
+                                        gsub("P ", "P-", Identity_sum), 
                                         Identity_sum),
                  Identity_sum = if_else(Feature_type != "Known", Identity_raw, Identity_sum)
                  

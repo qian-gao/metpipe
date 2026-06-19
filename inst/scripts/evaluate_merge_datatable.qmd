@@ -1,0 +1,657 @@
+---
+title: "Merge batch evaluation (post-processing)"
+author: "CBMR Metabolomics Platform"
+date: "`r base::Sys.Date()`"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    toc-location: left
+    theme: flatly
+    polyfill: false
+    page-layout: full
+    number-sections: true
+    number-depth: 2
+self-contained: true
+
+params:
+  config: ""
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+
+library(yaml)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(DT)
+library(openxlsx)
+
+helper_candidates <- c(
+  file.path(getwd(), "helpers_workflow.R"),
+  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
+  system.file("scripts", "helpers_workflow.R", package = "metpipe")
+)
+helper_candidates <- helper_candidates[file.exists(helper_candidates)]
+if (length(helper_candidates) == 0) stop("Cannot locate helpers_workflow.R")
+source(helper_candidates[[1]], local = TRUE)
+
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE, include = TRUE)
+
+```
+
+```{r functions, include=FALSE}
+
+# ── Feature subset helpers ────────────────────────────────────────────────────
+
+make_feature_subsets <- function(diag_df) {
+  # "Known" features (feature_type == "Known") take the role of IS in this workflow
+  is_known <- !is.na(diag_df$feature_type) & diag_df$feature_type == "Known"
+  list(
+    `Known features` = diag_df[ is_known, , drop = FALSE],
+    `With identity`  = diag_df[!is_known & !is.na(diag_df$identity), , drop = FALSE],
+    `Without identity` = diag_df[!is_known &  is.na(diag_df$identity), , drop = FALSE],
+    `Overall`          = diag_df
+  )
+}
+
+make_l2r_subsets <- function(l2r_df) {
+  empty <- data.frame(table = character(), step = character(),
+                      identity = character(), sample = character(),
+                      log2ratio = numeric(), stringsAsFactors = FALSE)
+  if (is.null(l2r_df) || nrow(l2r_df) == 0)
+    return(list(`Known features` = empty, `With identity` = empty,
+                `Without identity` = empty, `Overall` = empty))
+  has_id_col <- "identity" %in% colnames(l2r_df)
+  has_ft_col <- "feature_type" %in% colnames(l2r_df)
+  is_known   <- if (has_ft_col) !is.na(l2r_df$feature_type) & l2r_df$feature_type == "Known"
+                else rep(FALSE, nrow(l2r_df))
+  list(
+    `Known features`   = l2r_df[ is_known, , drop = FALSE],
+    `With identity`    = if (has_id_col)
+      l2r_df[!is_known & !is.na(l2r_df$identity), , drop = FALSE]
+    else
+      l2r_df[!is_known, , drop = FALSE],
+    `Without identity` = if (has_id_col)
+      l2r_df[!is_known &  is.na(l2r_df$identity), , drop = FALSE]
+    else
+      empty,
+    `Overall`          = l2r_df
+  )
+}
+
+# ── Alignment quality plots ───────────────────────────────────────────────────
+
+plot_mz_hist <- function(df) {
+  if (nrow(df) == 0) { cat("No data for this subset.\n"); return(invisible(NULL)) }
+  p <- ggplot(df, aes(x = mz_ppm)) +
+    geom_histogram(bins = 60, fill = "steelblue", color = "white", linewidth = 0.2) +
+    facet_grid(table ~ step, scales = "free_y") +
+    theme_minimal(base_size = 11) +
+    labs(x = "m/z difference (ppm)", y = "Nr. features")
+  ggplotly(p)
+}
+
+plot_rt_hist <- function(df) {
+  if (nrow(df) == 0) { cat("No data for this subset.\n"); return(invisible(NULL)) }
+  p <- ggplot(df, aes(x = rt_diff)) +
+    geom_histogram(bins = 60, fill = "darkorange", color = "white", linewidth = 0.2) +
+    facet_grid(table ~ step, scales = "free_y") +
+    theme_minimal(base_size = 11) +
+    labs(x = "|RT difference| (min)", y = "Nr. features")
+  ggplotly(p)
+}
+
+plot_ccs_hist <- function(df) {
+  if (nrow(df) == 0) { cat("No data for this subset.\n"); return(invisible(NULL)) }
+  p <- ggplot(df, aes(x = ccs_percent)) +
+    geom_histogram(bins = 60, fill = "mediumpurple", color = "white", linewidth = 0.2) +
+    facet_grid(table ~ step, scales = "free_y") +
+    theme_minimal(base_size = 11) +
+    labs(x = "ccs difference (%)", y = "Nr. features")
+  ggplotly(p)
+}
+
+# ── Overlap consistency plots ─────────────────────────────────────────────────
+
+plot_cor_hist <- function(df) {
+  d <- df[!is.na(df$overlap_cor), , drop = FALSE]
+  if (nrow(d) == 0) { cat("No overlap correlation data for this subset.\n"); return(invisible(NULL)) }
+  p <- ggplot(d, aes(x = overlap_cor)) +
+    geom_histogram(bins = 60, fill = "seagreen", color = "white", linewidth = 0.2) +
+    geom_vline(xintercept = 0.8, linetype = "dashed", color = "firebrick") +
+    facet_grid(table ~ step, scales = "free_y") +
+    theme_minimal(base_size = 11) +
+    labs(subtitle = "Red dashed line: 0.8 quality threshold",
+         x = "Spearman r", y = "Nr. features")
+  ggplotly(p)
+}
+
+print_cor_summary <- function(df) {
+  d <- df[!is.na(df$overlap_cor), , drop = FALSE]
+  if (nrow(d) == 0) return(invisible(NULL))
+  summ <- d |>
+    group_by(table, step) |>
+    summarise(
+      n_features     = n(),
+      median_cor     = round(median(overlap_cor, na.rm = TRUE), 3),
+      pct_cor_gte_09 = round(100 * mean(overlap_cor >= 0.9, na.rm = TRUE), 1),
+      pct_cor_lt_08  = round(100 * mean(overlap_cor <  0.8, na.rm = TRUE), 1),
+      .groups = "drop"
+    )
+  knitr::kable(
+    summ,
+    col.names = c("Table", "Step", "Features", "Median cor", "% cor ≥ 0.9", "% cor < 0.8")
+  )
+}
+
+plot_l2r_hist <- function(df) {
+  d <- df[!is.na(df$median_log2ratio), , drop = FALSE]
+  if (nrow(d) == 0) { cat("No log2 ratio data for this subset.\n"); return(invisible(NULL)) }
+  p <- ggplot(d, aes(x = median_log2ratio)) +
+    geom_histogram(bins = 60, fill = "mediumpurple", color = "white", linewidth = 0.2) +
+    geom_vline(xintercept = c(-0.3, 0.3), linetype = "dashed", color = "firebrick") +
+    facet_grid(table ~ step, scales = "free_y") +
+    theme_minimal(base_size = 11) +
+    labs(x = "Median log2(batch A / batch B)", y = "Nr. features")
+  ggplotly(p)
+}
+
+plot_l2r_density <- function(l2r_df) {
+  if (is.null(l2r_df) || nrow(l2r_df) == 0) {
+    cat("No per-sample log2 ratio data available.\n")
+    return(invisible(NULL))
+  }
+  p <- ggplot(l2r_df, aes(x = log2ratio)) +
+    geom_histogram(bins = 60, fill = "steelblue4", color = "white", linewidth = 0.2) +
+    geom_vline(xintercept = c(-0.3, 0.3), linetype = "dashed", color = "firebrick") +
+    facet_grid(table ~ step, scales = "free_y") +
+    theme_minimal(base_size = 11) +
+    labs(x = "log2(batch A / batch B)", y = "Nr. samples")
+  ggplotly(p)
+}
+
+# ── Flagged features ──────────────────────────────────────────────────────────
+
+show_flagged <- function(df) {
+  flagged <- df[
+    (!is.na(df$overlap_cor)      & df$overlap_cor < 0.8) |
+    (!is.na(df$median_log2ratio) & abs(df$median_log2ratio) > 0.1),
+    , drop = FALSE
+  ]
+  if (nrow(flagged) == 0) {
+    cat("No features flagged: all matched features pass quality thresholds.\n")
+  } else {
+    cat(nrow(flagged), "features flagged (low overlap correlation or high intensity ratio).\n\n")
+    show_cols <- intersect(
+      c("table", "step", "mz", "rt", "identity",
+        "mz_ppm", "rt_diff", "overlap_cor", "median_log2ratio"),
+      colnames(flagged)
+    )
+    datatable(
+      flagged[order(flagged$overlap_cor), show_cols, drop = FALSE],
+      extensions = "Buttons",
+      options = list(
+        pageLength = 15,
+        autoWidth = TRUE,
+        dom = "Bfrtip",
+        buttons = c("copy", "csv", "excel")
+      ),
+      filter = "top",
+      rownames = FALSE
+    )
+  }
+}
+
+# ── PCA ───────────────────────────────────────────────────────────────────────
+
+# PCA for datatable format (samples as rows, features as columns).
+# dt:              merged datatable data.frame (sample rows)
+# fi:              feature.info data.frame
+# polarity:        "pos", "neg", or NULL (use both)
+# identity_filter: "known" (feature_type == "Known"), "with_id" (!is.na(Identity)),
+#                  "without_id" (is.na(Identity)), or NULL (all)
+# sample_batch_map: named integer vector, sample name -> batch number
+plot_pca_datatable <- function(dt, fi, polarity = NULL, identity_filter = NULL,
+                                sample_batch_map, title) {
+  if (is.null(dt) || nrow(dt) == 0) { cat("No data available.\n"); return(invisible(NULL)) }
+
+  # Select features matching polarity + identity_filter
+  fi_sub <- fi
+  if (!is.null(polarity)) {
+    fi_sub <- fi_sub[!is.na(fi_sub$Polarity) & fi_sub$Polarity == polarity, , drop = FALSE]
+  }
+  if (!is.null(identity_filter)) {
+    has_ft  <- "Feature_type" %in% colnames(fi_sub)
+    has_id  <- "Identity"     %in% colnames(fi_sub)
+    fi_sub  <- switch(identity_filter,
+      known       = if (has_ft) fi_sub[!is.na(fi_sub$Feature_type) & fi_sub$Feature_type == "Known", , drop = FALSE]
+                    else fi_sub,
+      with_id     = if (has_id) fi_sub[!is.na(fi_sub$Identity) & fi_sub$Identity != "", , drop = FALSE]
+                    else fi_sub,
+      without_id  = if (has_id) fi_sub[ is.na(fi_sub$Identity) | fi_sub$Identity == "", , drop = FALSE]
+                    else fi_sub,
+      fi_sub
+    )
+  }
+  if (nrow(fi_sub) == 0) { cat("No features for this subset.\n"); return(invisible(NULL)) }
+
+  feat_cols <- intersect(fi_sub$Metabolite_name, colnames(dt))
+  if (length(feat_cols) < 3) { cat("Insufficient feature columns for PCA.\n"); return(invisible(NULL)) }
+
+  mat <- as.matrix(dt[, feat_cols, drop = FALSE])
+  mat[is.na(mat)] <- 0
+  mat <- log2(mat + 1)
+  col_var <- apply(mat, 2, var, na.rm = TRUE)
+  mat <- mat[, col_var > 0, drop = FALSE]
+  if (ncol(mat) < 2) { cat("Insufficient variable features for PCA.\n"); return(invisible(NULL)) }
+
+  pca <- prcomp(mat, scale. = TRUE, center = TRUE)
+  pct <- round(100 * pca$sdev^2 / sum(pca$sdev^2), 1)
+
+  snames    <- dt$Sample
+  batch_raw <- sample_batch_map[snames]
+  batch_raw[is.na(batch_raw)] <- 0L
+  pca_df <- data.frame(
+    PC1    = pca$x[, 1],
+    PC2    = pca$x[, 2],
+    sample = snames,
+    batch  = factor(paste0("Batch ", batch_raw),
+                    levels = paste0("Batch ", sort(unique(batch_raw)))),
+    stringsAsFactors = FALSE
+  )
+  p <- ggplot(pca_df, aes(x = PC1, y = PC2, color = batch, label = sample)) +
+    geom_point(size = 2.5, alpha = 0.85) +
+    theme_minimal(base_size = 11) +
+    labs(title = title,
+         x = paste0("PC1 (", pct[1], "%)"),
+         y = paste0("PC2 (", pct[2], "%)"),
+         color = "Batch")
+  ggplotly(p, tooltip = c("label", "color", "x", "y"))
+}
+
+```
+
+## Inputs
+
+```{r inputs}
+
+cfg          <- wf_read_yaml_config(params$config, label = "params$config")
+path_result  <- wf_cfg_required(cfg, "path_result")
+path_datatable <- wf_cfg_required(cfg, "path_datatable")
+
+diag_path <- file.path(path_result, "data", "merge_diagnostics_datatable.rds")
+if (!file.exists(diag_path))
+  stop("Merge diagnostics not found: ", diag_path,
+       "\nRun merge_batches_datatable before evaluate_merge_datatable.")
+
+diag             <- readRDS(diag_path)
+all_diag         <- diag$all_diag
+all_counts       <- diag$all_counts
+all_l2r          <- diag$all_l2r
+all_input_counts <- diag$all_input_counts
+n_final_per_tbl  <- diag$n_final
+
+if (is.null(all_diag) || nrow(all_diag) == 0)
+  stop("No alignment diagnostics found in ", diag_path)
+
+# Sample -> batch map saved by merge_batches_datatable
+sample_batch_map <- if (!is.null(diag$sample_batch_map) && length(diag$sample_batch_map) > 0) {
+  diag$sample_batch_map
+} else {
+  warning("sample_batch_map not found in diagnostics RDS — re-run merge_batches_datatable")
+  integer(0)
+}
+
+# Merged datatable for PCA
+dt_merged <- if (!wf_is_blank(path_datatable) && file.exists(path_datatable)) {
+  openxlsx::read.xlsx(path_datatable, sheet = "datatable")
+} else {
+  warning("Merged datatable not found: ", path_datatable)
+  NULL
+}
+fi_merged <- if (!wf_is_blank(path_datatable) && file.exists(path_datatable)) {
+  openxlsx::read.xlsx(path_datatable, sheet = "feature.info")
+} else {
+  NULL
+}
+
+feat_subsets <- make_feature_subsets(all_diag)
+l2r_subsets  <- make_l2r_subsets(all_l2r)
+
+cat("Config:                   ", params$config, "\n")
+cat("Table types:              ", paste(unique(all_diag$table), collapse = ", "), "\n")
+cat("Samples mapped to batches:", length(sample_batch_map), "\n")
+
+```
+
+## Alignment diagnostics
+
+### Feature counts
+
+```{r feature_counts, fig.height=4}
+
+merged_counts <- data.frame(
+  table    = names(n_final_per_tbl),
+  label    = "merged",
+  features = unname(n_final_per_tbl),
+  stringsAsFactors = FALSE
+)
+
+count_plot_df <- rbind(all_input_counts, merged_counts)
+input_levels  <- sort(unique(all_input_counts$label))
+count_plot_df$label <- factor(count_plot_df$label, levels = c(input_levels, "merged"))
+
+p_counts <- ggplot(count_plot_df, aes(x = label, y = features,
+                                      fill = ifelse(label == "merged", "After merge", "Before merge"),
+                                      text = paste0(label, ": ", features))) +
+  geom_col(show.legend = FALSE) +
+  scale_fill_manual(values = c("Before merge" = "steelblue", "After merge" = "seagreen")) +
+  facet_wrap(~table, scales = "free_y") +
+  theme_minimal(base_size = 11) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
+  labs(x = NULL, y = "Nr. features")
+ggplotly(p_counts, tooltip = "text")
+
+```
+
+#### Per-step feature counts
+```{r feature_counts2, fig.height=4}
+
+knitr::kable(
+  all_counts,
+  col.names = c("Table", "Step", "Before merge", "Batch features", "After merge")
+)
+
+```
+
+### Alignment quality
+
+#### m/z difference for matched feature pairs
+
+::: {.panel-tabset}
+
+##### Known features
+
+```{r align_known, fig.height=4}
+plot_mz_hist(feat_subsets$`Known features`)
+```
+
+##### With identity
+
+```{r align_id, fig.height=4}
+plot_mz_hist(feat_subsets$`With identity`)
+```
+
+##### Without identity
+
+```{r align_noid, fig.height=4}
+plot_mz_hist(feat_subsets$`Without identity`)
+```
+
+##### Overall
+
+```{r align_all, fig.height=4}
+plot_mz_hist(feat_subsets$`Overall`)
+```
+
+:::
+
+#### Retention time difference for matched feature pairs
+
+::: {.panel-tabset}
+
+##### Known features
+
+```{r align_known2, fig.height=4}
+plot_rt_hist(feat_subsets$`Known features`)
+```
+
+##### With identity
+
+```{r align_id2, fig.height=4}
+plot_rt_hist(feat_subsets$`With identity`)
+```
+
+##### Without identity
+
+```{r align_noid2, fig.height=4}
+plot_rt_hist(feat_subsets$`Without identity`)
+```
+
+##### Overall
+
+```{r align_all2, fig.height=4}
+plot_rt_hist(feat_subsets$`Overall`)
+```
+
+:::
+
+#### ccs difference for matched feature pairs
+
+::: {.panel-tabset}
+
+##### Known features
+
+```{r align_known3, fig.height=4}
+plot_ccs_hist(feat_subsets$`Known features`)
+```
+
+##### With identity
+
+```{r align_id3, fig.height=4}
+plot_ccs_hist(feat_subsets$`With identity`)
+```
+
+##### Without identity
+
+```{r align_noid3, fig.height=4}
+plot_ccs_hist(feat_subsets$`Without identity`)
+```
+
+##### Overall
+
+```{r align_all3, fig.height=4}
+plot_ccs_hist(feat_subsets$`Overall`)
+```
+
+:::
+
+## Overlap sample consistency
+
+### Correlation per feature
+::: {.panel-tabset}
+
+#### Known features
+
+```{r overlap_known, fig.height=4}
+plot_cor_hist(feat_subsets$`Known features`)
+print_cor_summary(feat_subsets$`Known features`)
+```
+
+#### With identity
+
+```{r overlap_id, fig.height=4}
+plot_cor_hist(feat_subsets$`With identity`)
+print_cor_summary(feat_subsets$`With identity`)
+```
+
+#### Without identity
+
+```{r overlap_noid, fig.height=4}
+plot_cor_hist(feat_subsets$`Without identity`)
+print_cor_summary(feat_subsets$`Without identity`)
+```
+
+#### Overall
+
+```{r overlap_all, fig.height=4}
+plot_cor_hist(feat_subsets$`Overall`)
+print_cor_summary(feat_subsets$`Overall`)
+```
+
+:::
+
+### Median ratio of overlap sample intensities
+::: {.panel-tabset}
+
+#### Known features
+
+```{r overlap_known2, fig.height=4}
+plot_l2r_hist(feat_subsets$`Known features`)
+```
+
+#### With identity
+
+```{r overlap_id2, fig.height=4}
+plot_l2r_hist(feat_subsets$`With identity`)
+```
+
+#### Without identity
+
+```{r overlap_noid2, fig.height=4}
+plot_l2r_hist(feat_subsets$`Without identity`)
+```
+
+#### Overall
+
+```{r overlap_all2, fig.height=4}
+plot_l2r_hist(feat_subsets$`Overall`)
+```
+
+:::
+
+### Ratio of overlap sample intensities
+::: {.panel-tabset}
+
+#### Known features
+
+```{r overlap_known3, fig.height=4}
+plot_l2r_density(l2r_subsets$`Known features`)
+```
+
+#### With identity
+
+```{r overlap_id3, fig.height=4}
+plot_l2r_density(l2r_subsets$`With identity`)
+```
+
+#### Without identity
+
+```{r overlap_noid3, fig.height=4}
+plot_l2r_density(l2r_subsets$`Without identity`)
+```
+
+#### Overall
+
+```{r overlap_all3, fig.height=4}
+plot_l2r_density(l2r_subsets$`Overall`)
+```
+:::
+
+## PCA
+
+::: {.panel-tabset}
+
+### Known features
+
+```{r pca_known_pos, fig.height=5}
+plot_pca_datatable(dt_merged, fi_merged, polarity = "pos", identity_filter = "known",
+                   sample_batch_map = sample_batch_map,
+                   title = "PCA — positive mode (Known features)")
+```
+
+```{r pca_known_neg, fig.height=5}
+plot_pca_datatable(dt_merged, fi_merged, polarity = "neg", identity_filter = "known",
+                   sample_batch_map = sample_batch_map,
+                   title = "PCA — negative mode (Known features)")
+```
+
+### With identity
+
+```{r pca_id_pos, fig.height=5}
+plot_pca_datatable(dt_merged, fi_merged, polarity = "pos", identity_filter = "with_id",
+                   sample_batch_map = sample_batch_map,
+                   title = "PCA — positive mode (identified features)")
+```
+
+```{r pca_id_neg, fig.height=5}
+plot_pca_datatable(dt_merged, fi_merged, polarity = "neg", identity_filter = "with_id",
+                   sample_batch_map = sample_batch_map,
+                   title = "PCA — negative mode (identified features)")
+```
+
+### Without identity
+
+```{r pca_noid_pos, fig.height=5}
+plot_pca_datatable(dt_merged, fi_merged, polarity = "pos", identity_filter = "without_id",
+                   sample_batch_map = sample_batch_map,
+                   title = "PCA — positive mode (unknown features)")
+```
+
+```{r pca_noid_neg, fig.height=5}
+plot_pca_datatable(dt_merged, fi_merged, polarity = "neg", identity_filter = "without_id",
+                   sample_batch_map = sample_batch_map,
+                   title = "PCA — negative mode (unknown features)")
+```
+
+### Overall
+
+```{r pca_all_pos, fig.height=5}
+plot_pca_datatable(dt_merged, fi_merged, polarity = "pos", identity_filter = NULL,
+                   sample_batch_map = sample_batch_map,
+                   title = "PCA — positive mode (all features)")
+```
+
+```{r pca_all_neg, fig.height=5}
+plot_pca_datatable(dt_merged, fi_merged, polarity = "neg", identity_filter = NULL,
+                   sample_batch_map = sample_batch_map,
+                   title = "PCA — negative mode (all features)")
+```
+
+### Combined pos + neg
+
+```{r pca_combined, fig.height=5}
+plot_pca_datatable(dt_merged, fi_merged, polarity = NULL, identity_filter = NULL,
+                   sample_batch_map = sample_batch_map,
+                   title = "PCA — positive + negative mode (all features)")
+```
+
+:::
+
+## Flagged features
+
+::: {.panel-tabset}
+
+### Known features
+
+```{r flag_known}
+show_flagged(feat_subsets$`Known features`)
+```
+
+### With identity
+
+```{r flag_id}
+show_flagged(feat_subsets$`With identity`)
+```
+
+### Without identity
+
+```{r flag_noid}
+show_flagged(feat_subsets$`Without identity`)
+```
+
+### Overall
+
+```{r flag_all}
+show_flagged(feat_subsets$`Overall`)
+```
+
+:::
+
+```{r session_info, include=FALSE, eval=FALSE}
+
+utils::sessionInfo()
+
+```

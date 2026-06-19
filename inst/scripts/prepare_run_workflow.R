@@ -104,7 +104,9 @@ normalize_start_from <- function(x) {
     "extra_processing_lip"  = "extra_processing_lip",
     "split_batches"         = "split_batches",
     "merge_batches"         = "merge_batches",
-    "evaluate_merge"        = "evaluate_merge"
+    "evaluate_merge"        = "evaluate_merge",
+    "merge_batches_datatable"  = "merge_batches_datatable",
+    "evaluate_merge_datatable" = "evaluate_merge_datatable"
   )
   resolved <- unname(aliases[key])
   if (is.na(resolved) || is_blank(resolved)) {

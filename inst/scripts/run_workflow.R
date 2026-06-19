@@ -76,9 +76,11 @@ normalize_start_from <- function(x) {
     "evaluation"            = "evaluation",
     "extra"                 = "extra_processing_lip",
     "extra_processing_lip"  = "extra_processing_lip",
-    "split_batches"         = "split_batches",
-    "merge_batches"         = "merge_batches",
-    "evaluate_merge"        = "evaluate_merge"
+    "split_batches"            = "split_batches",
+    "merge_batches"            = "merge_batches",
+    "evaluate_merge"           = "evaluate_merge",
+    "merge_batches_datatable"  = "merge_batches_datatable",
+    "evaluate_merge_datatable" = "evaluate_merge_datatable"
   )
   resolved <- unname(aliases[key])
   if (is.na(resolved) || wf_is_blank(resolved)) {
@@ -141,7 +143,9 @@ if (!is.null(start_key) && start_key %in% standalone_module_keys) {
 standalone_modules <- list(
   list(key = "split_batches",  file = "split_batches.qmd",  output = "split_batches"),
   list(key = "merge_batches",  file = "merge_batches.qmd",  output = "merge_batches"),
-  list(key = "evaluate_merge", file = "evaluate_merge.qmd", output = "evaluate_merge")
+  list(key = "evaluate_merge", file = "evaluate_merge.qmd", output = "evaluate_merge"),
+  list(key = "merge_batches_datatable",  file = "merge_batches_datatable.qmd",  output = "merge_batches_datatable"),
+  list(key = "evaluate_merge_datatable", file = "evaluate_merge_datatable.qmd", output = "evaluate_merge_datatable")
 )
 standalone_keys <- vapply(standalone_modules, function(x) x$key, character(1))
 
