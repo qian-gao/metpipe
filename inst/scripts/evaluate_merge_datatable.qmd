@@ -47,11 +47,11 @@ knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE, include = 
 
 make_feature_subsets <- function(diag_df) {
   # "Known" features (feature_type == "Known") take the role of IS in this workflow
-  is_known <- !is.na(diag_df$feature_type) & diag_df$feature_type == "Known"
+  is_known <- !is.na(diag_df$Feature_type) & diag_df$Feature_type == "Known"
   list(
-    `Known features` = diag_df[ is_known, , drop = FALSE],
-    `With identity`  = diag_df[!is_known & !is.na(diag_df$identity), , drop = FALSE],
-    `Without identity` = diag_df[!is_known &  is.na(diag_df$identity), , drop = FALSE],
+    #`Known features` = diag_df[ is_known, , drop = FALSE],
+    `With identity`  = diag_df[is_known, , drop = FALSE],
+    `Without identity` = diag_df[!is_known, , drop = FALSE],
     `Overall`          = diag_df
   )
 }
@@ -64,19 +64,13 @@ make_l2r_subsets <- function(l2r_df) {
     return(list(`Known features` = empty, `With identity` = empty,
                 `Without identity` = empty, `Overall` = empty))
   has_id_col <- "identity" %in% colnames(l2r_df)
-  has_ft_col <- "feature_type" %in% colnames(l2r_df)
-  is_known   <- if (has_ft_col) !is.na(l2r_df$feature_type) & l2r_df$feature_type == "Known"
+  has_ft_col <- "Feature_type" %in% colnames(l2r_df)
+  is_known   <- if (has_ft_col) !is.na(l2r_df$Feature_type) & l2r_df$Feature_type == "Known"
                 else rep(FALSE, nrow(l2r_df))
   list(
-    `Known features`   = l2r_df[ is_known, , drop = FALSE],
-    `With identity`    = if (has_id_col)
-      l2r_df[!is_known & !is.na(l2r_df$identity), , drop = FALSE]
-    else
-      l2r_df[!is_known, , drop = FALSE],
-    `Without identity` = if (has_id_col)
-      l2r_df[!is_known &  is.na(l2r_df$identity), , drop = FALSE]
-    else
-      empty,
+    #`Known features`   = l2r_df[ is_known, , drop = FALSE],
+    `With identity`    = l2r_df[is_known, , drop = FALSE],
+    `Without identity` = l2r_df[!is_known, , drop = FALSE],
     `Overall`          = l2r_df
   )
 }
@@ -185,7 +179,7 @@ show_flagged <- function(df) {
   } else {
     cat(nrow(flagged), "features flagged (low overlap correlation or high intensity ratio).\n\n")
     show_cols <- intersect(
-      c("table", "step", "mz", "rt", "identity",
+      c("table", "step", "mz", "rt", "Identity",
         "mz_ppm", "rt_diff", "overlap_cor", "median_log2ratio"),
       colnames(flagged)
     )
@@ -210,7 +204,7 @@ show_flagged <- function(df) {
 # dt:              merged datatable data.frame (sample rows)
 # fi:              feature.info data.frame
 # polarity:        "pos", "neg", or NULL (use both)
-# identity_filter: "known" (feature_type == "Known"), "with_id" (!is.na(Identity)),
+# identity_filter: "known" (Feature_type == "Known"), "with_id" (!is.na(Identity)),
 #                  "without_id" (is.na(Identity)), or NULL (all)
 # sample_batch_map: named integer vector, sample name -> batch number
 plot_pca_datatable <- function(dt, fi, polarity = NULL, identity_filter = NULL,
@@ -276,7 +270,7 @@ plot_pca_datatable <- function(dt, fi, polarity = NULL, identity_filter = NULL,
 ## Inputs
 
 ```{r inputs}
-
+#params <- list(config = "E:/Projects/MP208_FLINC/peaktable/PL_LIPS_PASEF/config_win.yml")
 cfg          <- wf_read_yaml_config(params$config, label = "params$config")
 path_result  <- wf_cfg_required(cfg, "path_result")
 path_datatable <- wf_cfg_required(cfg, "path_datatable")
@@ -372,12 +366,6 @@ knitr::kable(
 
 ::: {.panel-tabset}
 
-##### Known features
-
-```{r align_known, fig.height=4}
-plot_mz_hist(feat_subsets$`Known features`)
-```
-
 ##### With identity
 
 ```{r align_id, fig.height=4}
@@ -401,12 +389,6 @@ plot_mz_hist(feat_subsets$`Overall`)
 #### Retention time difference for matched feature pairs
 
 ::: {.panel-tabset}
-
-##### Known features
-
-```{r align_known2, fig.height=4}
-plot_rt_hist(feat_subsets$`Known features`)
-```
 
 ##### With identity
 
@@ -432,12 +414,6 @@ plot_rt_hist(feat_subsets$`Overall`)
 
 ::: {.panel-tabset}
 
-##### Known features
-
-```{r align_known3, fig.height=4}
-plot_ccs_hist(feat_subsets$`Known features`)
-```
-
 ##### With identity
 
 ```{r align_id3, fig.height=4}
@@ -462,13 +438,6 @@ plot_ccs_hist(feat_subsets$`Overall`)
 
 ### Correlation per feature
 ::: {.panel-tabset}
-
-#### Known features
-
-```{r overlap_known, fig.height=4}
-plot_cor_hist(feat_subsets$`Known features`)
-print_cor_summary(feat_subsets$`Known features`)
-```
 
 #### With identity
 
@@ -496,12 +465,6 @@ print_cor_summary(feat_subsets$`Overall`)
 ### Median ratio of overlap sample intensities
 ::: {.panel-tabset}
 
-#### Known features
-
-```{r overlap_known2, fig.height=4}
-plot_l2r_hist(feat_subsets$`Known features`)
-```
-
 #### With identity
 
 ```{r overlap_id2, fig.height=4}
@@ -525,12 +488,6 @@ plot_l2r_hist(feat_subsets$`Overall`)
 ### Ratio of overlap sample intensities
 ::: {.panel-tabset}
 
-#### Known features
-
-```{r overlap_known3, fig.height=4}
-plot_l2r_density(l2r_subsets$`Known features`)
-```
-
 #### With identity
 
 ```{r overlap_id3, fig.height=4}
@@ -553,20 +510,6 @@ plot_l2r_density(l2r_subsets$`Overall`)
 ## PCA
 
 ::: {.panel-tabset}
-
-### Known features
-
-```{r pca_known_pos, fig.height=5}
-plot_pca_datatable(dt_merged, fi_merged, polarity = "pos", identity_filter = "known",
-                   sample_batch_map = sample_batch_map,
-                   title = "PCA — positive mode (Known features)")
-```
-
-```{r pca_known_neg, fig.height=5}
-plot_pca_datatable(dt_merged, fi_merged, polarity = "neg", identity_filter = "known",
-                   sample_batch_map = sample_batch_map,
-                   title = "PCA — negative mode (Known features)")
-```
 
 ### With identity
 
@@ -623,12 +566,6 @@ plot_pca_datatable(dt_merged, fi_merged, polarity = NULL, identity_filter = NULL
 ## Flagged features
 
 ::: {.panel-tabset}
-
-### Known features
-
-```{r flag_known}
-show_flagged(feat_subsets$`Known features`)
-```
 
 ### With identity
 

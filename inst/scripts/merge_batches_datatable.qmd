@@ -17,7 +17,7 @@ format:
     self-contained: true
 
 params:
-  #config: ""
+  config: ""
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -377,7 +377,7 @@ align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_
     step             = step_label,
     mz               = out1$mz,
     rt               = out1$rt,
-    Identity         = if (!is.null(out1$Identity)) out1$Identity else NA_character_,
+    Identity         = if (!is.null(out1$Metabolite_name)) out1$Metabolite_name else NA_character_,
     Feature_type     = if (!is.null(out1$Feature_type)) out1$Feature_type else NA_character_,
     mz_ppm           = pairs$mz_ppm,
     rt_diff          = pairs$rt_diff,
@@ -603,7 +603,7 @@ build_batch_output <- function(bd, batch_idx, overlap_assignment,
     for (j in seq_len(n_feat)) {
       bn <- batch_names[j]
       if (!is.na(bn) && bn %in% colnames(dt_keep))
-        out_mat[, j] <- as.numeric(dt_keep[, bn])
+        out_mat[, j] <- as.numeric(unlist(dt_keep[, bn]))
     }
     as.data.frame(out_mat, check.names = FALSE)
   }
@@ -721,8 +721,8 @@ canonical_neg <- if (!is.null(res_neg)) res_neg$merged else NULL
 # Canonical Metabolite_names = column names in the merged datatable output.
 # These come directly from the metabolite_name column of the canonical dfs,
 # which holds batch 1's Metabolite_name for each aligned feature.
-names_pos <- if (!is.null(canonical_pos)) canonical_pos$metabolite_name else NULL
-names_neg <- if (!is.null(canonical_neg)) canonical_neg$metabolite_name else NULL
+names_pos <- if (!is.null(canonical_pos)) canonical_pos$Metabolite_name else NULL
+names_neg <- if (!is.null(canonical_neg)) canonical_neg$Metabolite_name else NULL
 
 # Build per-batch output slices: each batch contributes its own sample rows
 # (patient samples + overlap samples assigned to this batch) with intensities
@@ -775,8 +775,8 @@ sample_batch_map <- setNames(batch_num_vec, datatable_out$Sample)
 sample_batch_map <- sample_batch_map[!is.na(sample_batch_map)]
 
 all_diag <- do.call(rbind, Filter(Negate(is.null), list(
-  if (!is.null(res_pos) && !is.null(res_pos$diag)) cbind(table = "pos", res_pos$diag, stringsAsFactors = FALSE) else NULL,
-  if (!is.null(res_neg) && !is.null(res_neg$diag)) cbind(table = "neg", res_neg$diag, stringsAsFactors = FALSE) else NULL
+  if (!is.null(res_pos) && !is.null(res_pos$diag)) res_pos$diag else NULL,
+  if (!is.null(res_neg) && !is.null(res_neg$diag)) res_neg$diag else NULL
 )))
 
 all_counts <- do.call(rbind, Filter(Negate(is.null), list(
@@ -784,8 +784,8 @@ all_counts <- do.call(rbind, Filter(Negate(is.null), list(
 )))
 
 all_l2r <- do.call(rbind, Filter(function(x) !is.null(x) && nrow(x) > 0, list(
-  if (!is.null(res_pos) && !is.null(res_pos$l2r_long)) cbind(table = "pos", res_pos$l2r_long, stringsAsFactors = FALSE) else NULL,
-  if (!is.null(res_neg) && !is.null(res_neg$l2r_long)) cbind(table = "neg", res_neg$l2r_long, stringsAsFactors = FALSE) else NULL
+  if (!is.null(res_pos) && !is.null(res_pos$l2r_long)) res_pos$l2r_long else NULL,
+  if (!is.null(res_neg) && !is.null(res_neg$l2r_long)) res_neg$l2r_long else NULL
 )))
 
 all_input_counts <- do.call(rbind, Filter(Negate(is.null), list(
