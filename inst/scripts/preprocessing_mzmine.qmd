@@ -194,9 +194,12 @@ if (length(raw_files) == 0) stop("run.pos=TRUE but no positive raw files are def
 # path_lib <- list(path_lib_istd_pos, path_lib_pos)
 # path_lib <- path_lib[!is.na(path_lib)]
 path_lib <- path_lib_istd_pos
-parameters <- ifelse(grepl("OPS", analysis), 
-                     read_xml(gsub(".mzbatch", "_pos.mzbatch", mzmine_params)),
-                     read_xml(mzmine_params))
+
+if (grepl("OPS", analysis)){
+  parameters <- read_xml(gsub(".mzbatch", "_pos.mzbatch", mzmine_params))
+} else {
+  parameters <- read_xml(mzmine_params)
+}
 param_file <- paste0(path_output, "/mzmine_parameters_pos.mzbatch")
 
 if (!file.exists(param_file)){
@@ -243,9 +246,13 @@ if (length(raw_files) == 0) stop("run.neg=TRUE but no negative raw files are def
 # path_lib <- list(path_lib_istd_neg, path_lib_neg)
 # path_lib <- path_lib[!is.na(path_lib)]
 path_lib <- path_lib_istd_neg
-parameters <- ifelse(grepl("OPS", analysis), 
-                     read_xml(gsub(".mzbatch", "_neg.mzbatch", mzmine_params)),
-                     read_xml(mzmine_params))
+
+if (grepl("OPS", analysis)){
+  parameters <- read_xml(gsub(".mzbatch", "_neg.mzbatch", mzmine_params))
+} else {
+  parameters <- read_xml(mzmine_params)
+}
+
 param_file <- paste0(path_output, "/mzmine_parameters_neg.mzbatch")
 
 if (!file.exists(param_file)){

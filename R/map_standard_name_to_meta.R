@@ -32,7 +32,7 @@ map_standard_name_to_meta <-
         data.frame(
           File.name,
           stringr::str_split_fixed(
-            string = File.name,
+            string = gsub(".raw", "", File.name),
             pattern = "-",
             n = Inf
           )[, c(1:7)],
@@ -55,7 +55,7 @@ map_standard_name_to_meta <-
         data.frame(
           File.name,
           stringr::str_split_fixed(
-            string = File.name,
+            string = gsub(".d|.mzML", "", File.name),
             pattern = "_",
             n = Inf
           )[, c(1:7)],
