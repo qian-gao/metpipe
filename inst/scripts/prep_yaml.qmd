@@ -156,8 +156,17 @@ if (nrow(method) > 1) {
 ```{r}
 # Raw data files
 
-path_files_pos <- paste0(path_raw, "/pos/")
-path_files_neg <- paste0(path_raw, "/neg/")
+if (grepl("OPS", analysis_i)){
+  
+  path_files_pos <- path_raw
+  path_files_neg <- path_raw
+  
+} else {
+  
+  path_files_pos <- paste0(path_raw, "/pos/")
+  path_files_neg <- paste0(path_raw, "/neg/")  
+}
+
 
 run.pos <- FALSE
 run.neg <- FALSE
