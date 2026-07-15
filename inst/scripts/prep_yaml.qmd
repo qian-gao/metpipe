@@ -22,6 +22,7 @@ params:
   path_workflow: ""
   path_mzmine: ""
   path_temp: ""
+  path_meta: ""
   author: ""
   qc_types: ""
   software: "mzmine"
@@ -32,6 +33,7 @@ params:
 
 library(yaml)
 library(dplyr)
+library(openxlsx)
 
 helper_candidates <- c(
   file.path(getwd(), "helpers_workflow.R"),
@@ -68,6 +70,7 @@ path_result = params$path_result
 path_workflow = params$path_workflow
 path_mzmine = params$path_mzmine
 path_temp = params$path_temp
+path_meta = params$path_meta
 author = params$author
 qc_types = params$qc_types
 software = tolower(ifelse(is_blank(params$software), "mzmine", params$software))
@@ -160,8 +163,8 @@ run.pos <- FALSE
 run.neg <- FALSE
 raw_files_pos <- NULL
 raw_files_neg <- NULL
-meta_pos <- NULL
-meta_neg <- NULL
+run.meta_pos <- is.null(path_meta)
+run.meta_neg <- is.null(path_meta)
 
 if (analysis_i %in% c("FPASEF")){
   pasef_as_dda <- TRUE
@@ -175,11 +178,15 @@ if (dir.exists(path_files_pos)){
 }
 
 if (run.pos) {
-  meta_pos <- 
-    map_standard_name_to_meta(raw_files_pos,
-                              qc_types = qc_types,
-                              pasef_as_dda = pasef_as_dda,
-                              batch_size = batch_size) 
+  if (run.meta_pos){
+    meta_pos <- 
+      map_standard_name_to_meta(raw_files_pos,
+                                qc_types = qc_types,
+                                pasef_as_dda = pasef_as_dda,
+                                batch_size = batch_size)     
+  } else {
+    meta_pos <- read.xlsx(path_meta, "pos")
+  }
 }
 
 if (dir.exists(path_files_neg)){
@@ -188,11 +195,15 @@ if (dir.exists(path_files_neg)){
 }
 
 if (run.neg) {
-  meta_neg <- 
-    map_standard_name_to_meta(raw_files_neg,
-                              qc_types = qc_types,
-                              pasef_as_dda = pasef_as_dda,
-                              batch_size = batch_size) 
+  if (run.meta_neg){
+    meta_neg <- 
+      map_standard_name_to_meta(raw_files_neg,
+                                qc_types = qc_types,
+                                pasef_as_dda = pasef_as_dda,
+                                batch_size = batch_size)     
+  } else {
+    meta_neg <- read.xlsx(path_meta, "neg")
+  }
 }
 
 if (!run.pos && !run.neg) {

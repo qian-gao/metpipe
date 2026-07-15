@@ -1,0 +1,160 @@
+---
+title: "Prepare metadata for workflow"
+author: "CBMR Metabolomics Platform"
+date: "`r base::Sys.Date()`"
+          
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    toc-location: left
+    theme: flatly
+    polyfill: false
+    page-layout: full
+    number-sections: true
+    number-depth: 2
+self-contained: true
+
+params:
+  path_raw: ""
+  path_result: ""
+  #path_workflow: ""
+  # path_mzmine: ""
+  # path_temp: ""
+  author: ""
+  qc_types: ""
+  # software: ""
+  batch_size: ""
+---
+
+```{r setup environment, include = FALSE, warning = FALSE}
+
+library(dplyr)
+library(openxlsx)
+
+helper_candidates <- c(
+  file.path(getwd(), "helpers_workflow.R"),
+  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
+  system.file("scripts", "helpers_workflow.R", package = "metpipe")
+)
+helper_candidates <- helper_candidates[file.exists(helper_candidates)]
+if (length(helper_candidates) == 0) {
+  stop("Cannot locate shared helper script helpers_workflow.R")
+}
+source(helper_candidates[[1]], local = TRUE)
+
+metpipe_runtime <- wf_load_metpipe_runtime()
+
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+  )
+
+require_path <- wf_require_path
+is_blank <- wf_is_blank
+```
+
+
+```{r}
+# Global input
+
+path_raw = params$path_raw
+path_result = params$path_result
+#path_workflow = params$path_workflow
+qc_types = params$qc_types
+batch_size = as.numeric(params$batch_size)
+
+path_raw <- require_path(path_raw, "path_raw")
+#path_workflow <- require_path(path_workflow, "path_workflow")
+
+if (is_blank(path_result)) stop("path_result is required")
+path_result <- normalizePath(path_result, winslash = "/", mustWork = FALSE)
+
+```
+
+```{r, include = FALSE, eval = FALSE}
+
+path_raw = "E:/Projects/MP_workshop/raw/PL_LIPS_PASEF"
+
+path_raw = "E:/Projects/MP0065/mzML/PL_LIPS_FPASEF"
+path_result = "E:/Projects/MP0065/peaktable/PL_LIPS_FPASEF"
+path_workflow = "H:/Documents/CBMR_workflow/packages/metpipe/workflow"
+path_mzmine = "mzmine"
+path_temp = "temp"
+author = "CBMR Metabolomics Platform"
+qc_types = c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix", "PB",
+             "SP0625", "SP1125", "SP25", "SP5", "SP10", "SP", "SP40", "POJ", "POK")
+
+```
+
+```{r}
+# Raw data files
+
+path_files_pos <- paste0(path_raw, "/pos/")
+path_files_neg <- paste0(path_raw, "/neg/")
+
+run.pos <- FALSE
+run.neg <- FALSE
+raw_files_pos <- NULL
+raw_files_neg <- NULL
+meta_pos <- NULL
+meta_neg <- NULL
+
+if (dir.exists(path_files_pos)){
+  raw_files_pos <- sort(list.files(path_files_pos, full.names = TRUE, pattern = "\\.(d|mzML|raw)$", ignore.case = TRUE))
+  run.pos <- length(raw_files_pos) > 0
+}
+
+if (run.pos) {
+  meta_pos <- 
+    map_name_to_meta(raw_files_pos,
+                      qc_types = qc_types,
+                      batch_size = batch_size) 
+}
+
+if (dir.exists(path_files_neg)){
+  raw_files_neg <- sort(list.files(path_files_neg, full.names = TRUE, pattern = "\\.(d|mzML|raw)$", ignore.case = TRUE))
+  run.neg <- length(raw_files_neg) > 0
+}
+
+if (run.neg) {
+  meta_neg <- 
+    map_name_to_meta(raw_files_neg,
+                      qc_types = qc_types,
+                      batch_size = batch_size) 
+}
+
+if (!run.pos && !run.neg) {
+  stop("No raw files found in pos/ or neg/ under path_raw: ", path_raw)
+}
+
+
+```
+
+```{r}
+
+wb <- createWorkbook()
+if (run.pos) {
+  addWorksheet(wb, "pos")
+  writeData(wb, "pos", meta_pos)
+}
+
+if (run.neg) {
+  addWorksheet(wb, "neg")
+  writeData(wb, "neg", meta_neg)
+}
+
+saveWorkbook(wb, paste0(path_result, "/metadata_raw.xlsx"), overwrite = TRUE)
+```
+
+```{r SessionInfo, include = FALSE, eval = FALSE}
+
+# Session info
+
+utils::sessionInfo()
+
+```
+

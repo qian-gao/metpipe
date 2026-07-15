@@ -81,13 +81,20 @@ resolve_yaml <- function(path_workflow, path_yaml = NULL) {
   wf_resolve_module_script(path_workflow, "prep_yaml.qmd")
 }
 
-standalone_module_keys <- c("split_batches", "merge_batches", "evaluate_merge")
+resolve_meta <- function(path_workflow, path_prep_meta = NULL) {
+  if (!is.null(path_prep_meta)) return(path_prep_meta)
+  wf_resolve_module_script(path_workflow, "prep_meta.qmd")
+}
+
+
+standalone_module_keys <- c("prep_meta", "split_batches", "merge_batches", "evaluate_merge",
+                            "merge_batches_datatable", "evaluate_merge_datatable")
 
 normalize_start_from <- function(x) {
   if (is_blank(x)) return(NULL)
   key <- tolower(trimws(as.character(x)[1]))
   aliases <- c(
-    "prep"                  = "prep_yaml",
+    "prep_meta"             = "prep_meta",
     "prep_yaml"             = "prep_yaml",
     "preprocess"            = "preprocessing_mzmine",
     "preprocessing"         = "preprocessing_mzmine",
@@ -111,7 +118,7 @@ normalize_start_from <- function(x) {
   resolved <- unname(aliases[key])
   if (is.na(resolved) || is_blank(resolved)) {
     stop("Invalid --start-from/--run-module value: ", x,
-         ". Allowed: prep_yaml, preprocessing_mzmine, convert_output, qc_istd, post_processing, evaluation, extra_processing_lip, split_batches, merge_batches, evaluate_merge")
+         ". Allowed: prep_meta, prep_yaml, preprocessing_mzmine, convert_output, qc_istd, post_processing, evaluation, extra_processing_lip, split_batches, merge_batches, evaluate_merge")
   }
   resolved
 }
@@ -132,7 +139,8 @@ if (!is.null(start_key) && start_key %in% standalone_module_keys) {
   stop("'", start_key, "' is a standalone module; use --run-module instead of --start-from")
 }
 target_key       <- if (!is.null(run_key)) run_key else start_key
-requires_prepare <- is.null(target_key) || identical(target_key, "prep_yaml")
+requires_prep_yaml <- is.null(target_key) || identical(target_key, "prep_yaml")
+requires_prep_meta <- is.null(target_key) || identical(target_key, "prep_meta")
 
 default_workflow <- if (dir.exists("/wd")) "/wd" else getwd()
 default_result   <- if (!is.null(path_raw)) gsub("raw|mzML", "peaktable", path_raw) else NULL
@@ -140,7 +148,9 @@ default_temp     <- if (dir.exists("/home/Temp")) "/home/Temp" else tempdir()
 
 path_workflow <- pick_first(get_arg("--workflow"), default_workflow)
 path_result   <- pick_first(get_arg("--result"),   default_result)
-path_yaml     <- get_arg("--yaml")
+path_meta <- pick_first(get_arg("--meta"), NULL)
+path_yaml     <- get_arg("--prep_yaml")
+path_prep_meta  <- get_arg("--prep_meta")
 batch_size    <- pick_first(get_arg("--batch-size"), 100)
 
 default_mzmine <- file.path(path_workflow, "mzmine_linux", "bin", "mzmine")
@@ -150,6 +160,8 @@ path_mzmine     <- pick_first(get_arg("--mzmine"), default_mzmine)
 path_temp       <- pick_first(get_arg("--temp"), default_temp)
 qc              <- pick_first(get_arg("--qc"), "BL,NIST,PO,sol,CP,PO1205,PO25,PO50,PO100,PO200,IQ,BPL,MMix,PB,SP0625,SP1125,SP25,SP5,SP10,SP,SP40,POJ,POK")
 author          <- pick_first(get_arg("--author"), "CBMR Metabolomics Platform")
+
+config_file <- file.path(path_result, "config.yml")
 config_override <- get_arg("--config")
 software        <- get_arg("--software")
 if (is.null(software) || is_blank(software)) {
@@ -173,7 +185,7 @@ if (!is_blank(config_override)) {
     stop("`--result` is required when --config is not provided")
   }
 
-  if (requires_prepare) {
+  if (requires_prep_yaml) {
     if (is_blank(path_raw)) {
       stop("Missing required argument: --raw <path> when running from preprocessing")
     }
@@ -182,7 +194,8 @@ if (!is_blank(config_override)) {
     path_yaml     <- normalizePath(path_yaml,     winslash = "/", mustWork = FALSE)
     path_temp     <- normalizePath(path_temp,     winslash = "/", mustWork = FALSE)
     path_workflow <- normalizePath(path_workflow, winslash = "/", mustWork = FALSE)
-
+    #path_meta <- normalizePath(path_meta, winslash = "/", mustWork = FALSE)
+    
     if (!dir.exists(path_result)) dir.create(path_result, recursive = TRUE, showWarnings = FALSE)
     if (!dir.exists(path_temp))   dir.create(path_temp,   recursive = TRUE, showWarnings = FALSE)
 
@@ -193,6 +206,7 @@ if (!is_blank(config_override)) {
       render_params = list(
         path_raw      = path_raw,
         path_result   = path_result,
+        path_meta     = path_meta,
         path_workflow = path_workflow,
         path_mzmine   = path_mzmine,
         path_temp     = path_temp,
@@ -204,6 +218,30 @@ if (!is_blank(config_override)) {
       intermediates_dir = path_temp,
       output_file = file.path(path_result, paste0("generate_yml_", Sys.Date(), ".html"))
     )
+  } else if (requires_prep_meta) {
+    if (is_blank(path_raw)) {
+      stop("Missing required argument: --raw <path> when running from preprocessing")
+    }
+    path_prep_meta     <- resolve_meta(path_workflow = path_workflow, path_prep_meta = path_prep_meta)
+    path_result   <- normalizePath(path_result,   winslash = "/", mustWork = FALSE)
+    path_prep_meta     <- normalizePath(path_prep_meta,     winslash = "/", mustWork = FALSE)
+    
+    if (!dir.exists(path_result)) dir.create(path_result, recursive = TRUE, showWarnings = FALSE)
+    
+    qc_types <- trimws(unlist(strsplit(qc, ",")))
+    
+    wf_render_qmd_document(
+      input = path_prep_meta,
+      render_params = list(
+        path_raw      = path_raw,
+        path_result   = path_result,
+        author        = author,
+        qc_types      = qc_types,
+        batch_size    = batch_size
+      ),
+      intermediates_dir = path_temp,
+      output_file = file.path(path_result, paste0("generate_meta_", Sys.Date(), ".html"))
+    )
   } else {
     config_candidate <- file.path(path_result, "config.yml")
     if (!file.exists(config_candidate)) {
@@ -213,7 +251,11 @@ if (!is_blank(config_override)) {
     }
   }
 
-  config_file <- file.path(path_result, "config.yml")
+}
+
+if (identical(target_key, "prep_meta")) {
+  message("Target module is prep_meta; skipping run_workflow.R")
+  quit(save = "no", status = 0)
 }
 
 if (identical(target_key, "prep_yaml")) {

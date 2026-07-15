@@ -16,7 +16,7 @@
 #' @export
 #'
 #' @examples
-run_merge_amd_map <- 
+run_merge_and_map <- 
   function(
     datalist = NULL,
     final.norm = NULL,
@@ -271,31 +271,6 @@ run_merge_amd_map <-
     return(datalist)
 
 }
-
-
-#' run_merge_and_map
-#'
-#' Backward-compatible alias for [run_merge_amd_map()].
-#'
-#' @inheritParams run_merge_amd_map
-#' @return Same as [run_merge_amd_map()].
-#' @export
-run_merge_and_map <- function(
-    datalist = NULL,
-    final.norm = NULL,
-    eval.sample.to.use = NULL,
-    sample.type.keep = NULL,
-    db_file = NULL
-) {
-  run_merge_amd_map(
-    datalist = datalist,
-    final.norm = final.norm,
-    eval.sample.to.use = eval.sample.to.use,
-    sample.type.keep = sample.type.keep,
-    db_file = db_file
-  )
-}
-
 
 
 
