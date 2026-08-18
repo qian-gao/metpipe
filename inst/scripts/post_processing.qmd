@@ -1,6 +1,5 @@
 ---
 title: "Data post processing"
-author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
           
 format:
@@ -166,7 +165,7 @@ datalist <-
     rt_col_nr = 3,
     mz_col_nr = 2,
     identity_col_nr = 5,
-    sample_col_nr = 28,
+    sample_col_nr = 45,
     
     meta_file_pos = meta_pos,
     meta_file_neg = meta_neg,

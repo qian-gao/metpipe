@@ -1,6 +1,5 @@
 ---
 title: "Preprocessing with mzmine"
-author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
           
 format:

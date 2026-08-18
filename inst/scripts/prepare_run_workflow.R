@@ -158,7 +158,7 @@ if (!file.exists(default_mzmine)) default_mzmine <- "/wd/mzmine_linux/bin/mzmine
 
 path_mzmine     <- pick_first(get_arg("--mzmine"), default_mzmine)
 path_temp       <- pick_first(get_arg("--temp"), default_temp)
-qc              <- pick_first(get_arg("--qc"), "BL,NIST,PO,sol,CP,PO1205,PO25,PO50,PO100,PO200,IQ,BPL,MMix,PB,SP0625,SP1125,SP25,SP5,SP10,SP,SP40,POJ,POK")
+qc              <- pick_first(get_arg("--qc"), "BL,NIST,PO,sol,CP,PO1205,PO25,PO50,PO100,PO200,IQ,BPL,MMix,PB,SP0625,SP1125,SP25,SP5,SP10,SP,SP40,SP50,SP100,SP200,POJ,POK")
 author          <- pick_first(get_arg("--author"), "CBMR Metabolomics Platform")
 
 config_file <- file.path(path_result, "config.yml")

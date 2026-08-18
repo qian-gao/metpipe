@@ -80,14 +80,15 @@ run_merge_and_map <-
         feature.info.temp %>%
         group_by(Identity_raw) %>%
         arrange(Identity_raw, desc(get(paste0("mean.", eval.sample.to.use)))) %>%
-        mutate(first_rt = first(rt),
-               second_rt = nth(rt, 2),
-               diff_to_first_rt = abs(rt - first_rt) > 0.2,
-               diff_to_second_rt = abs(rt - second_rt) > 0.2) %>% 
-        filter(row_number() == 1 | (row_number() == 2 & diff_to_first_rt == TRUE) | 
-                 (row_number() == 3 & diff_to_first_rt == TRUE & diff_to_second_rt == TRUE)) %>% 
+        # mutate(first_rt = first(rt),
+        #        second_rt = nth(rt, 2),
+        #        diff_to_first_rt = abs(rt - first_rt) > 0.2,
+        #        diff_to_second_rt = abs(rt - second_rt) > 0.2) %>% 
+        # filter(row_number() == 1 | (row_number() == 2 & diff_to_first_rt == TRUE) | 
+        #          (row_number() == 3 & diff_to_first_rt == TRUE & diff_to_second_rt == TRUE)) %>% 
+        filter(row_number() == 1) %>% 
         ungroup() %>% 
-        dplyr::select(-c(first_rt, diff_to_first_rt, second_rt, diff_to_second_rt)) %>% 
+        # dplyr::select(-c(first_rt, diff_to_first_rt, second_rt, diff_to_second_rt)) %>% 
         group_by(Identity_raw) %>%
         mutate(n = n(),
                Identity = ifelse(n > 1,
@@ -144,14 +145,15 @@ run_merge_and_map <-
         feature.info.temp %>%
         group_by(Identity_raw) %>%
         arrange(Identity_raw, desc(get(paste0("mean.", eval.sample.to.use)))) %>%
-        mutate(first_rt = first(rt),
-               second_rt = nth(rt, 2),
-               diff_to_first_rt = abs(rt - first_rt) > 0.2,
-               diff_to_second_rt = abs(rt - second_rt) > 0.2) %>% 
-        filter(row_number() == 1 | (row_number() == 2 & diff_to_first_rt == TRUE) | 
-                 (row_number() == 3 & diff_to_first_rt == TRUE & diff_to_second_rt == TRUE)) %>% 
+        # mutate(first_rt = first(rt),
+        #        second_rt = nth(rt, 2),
+        #        diff_to_first_rt = abs(rt - first_rt) > 0.2,
+        #        diff_to_second_rt = abs(rt - second_rt) > 0.2) %>% 
+        # filter(row_number() == 1 | (row_number() == 2 & diff_to_first_rt == TRUE) | 
+        #          (row_number() == 3 & diff_to_first_rt == TRUE & diff_to_second_rt == TRUE)) %>% 
+        filter(row_number() == 1) %>% 
         ungroup() %>% 
-        dplyr::select(-c(first_rt, diff_to_first_rt, second_rt, diff_to_second_rt)) %>% 
+        #dplyr::select(-c(first_rt, diff_to_first_rt, second_rt, diff_to_second_rt)) %>% 
         group_by(Identity_raw) %>%
         mutate(n = n(),
                Identity = ifelse(n > 1,
@@ -199,13 +201,15 @@ run_merge_and_map <-
         feature.info.temp %>%
         group_by(Identity_raw) %>%
         arrange(Identity_raw, desc(get(paste0("mean.", eval.sample.to.use)))) %>%
-        mutate(first_rt = first(rt),
-               second_rt = nth(rt, 2),
-               diff_to_first_rt = abs(rt - first_rt) > 0.2,
-               diff_to_second_rt = abs(rt - second_rt) > 0.2) %>% 
-        filter(row_number() == 1 | (row_number() == 2 & diff_to_first_rt == TRUE) | 
-                 (row_number() == 3 & diff_to_first_rt == TRUE & diff_to_second_rt == TRUE)) %>% 
-        dplyr::select(-c(first_rt, diff_to_first_rt, second_rt, diff_to_second_rt)) %>% 
+        # mutate(first_rt = first(rt),
+        #        second_rt = nth(rt, 2),
+        #        diff_to_first_rt = abs(rt - first_rt) > 0.2,
+        #        diff_to_second_rt = abs(rt - second_rt) > 0.2) %>% 
+        # filter(row_number() == 1 | (row_number() == 2 & diff_to_first_rt == TRUE) | 
+        #          (row_number() == 3 & diff_to_first_rt == TRUE & diff_to_second_rt == TRUE)) %>% 
+        filter(row_number() == 1) %>% 
+        ungroup() %>% 
+        #dplyr::select(-c(first_rt, diff_to_first_rt, second_rt, diff_to_second_rt)) %>% 
         group_by(Identity_raw) %>%
         mutate(n = n(),
                Identity = ifelse(n > 1,

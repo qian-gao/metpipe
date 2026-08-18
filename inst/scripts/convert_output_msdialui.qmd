@@ -1,6 +1,5 @@
 ---
 title: "Convert MSDIAL-UI output"
-author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
 
 format:

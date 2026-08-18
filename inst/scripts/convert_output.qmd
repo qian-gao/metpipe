@@ -1,6 +1,5 @@
 ---
 title: "Convert output"
-author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
           
 format:
@@ -79,16 +78,27 @@ convert_mode_output <- function(path_peaktable, path_peaktable_out, path_peaktab
   features <-
     raw_features %>%
     mutate(
-      identity = coalesce(compound_db_identity.compound_name, lipid_annotations.lipid_annotations, spectral_db_matches.compound_name),
-      ion = coalesce(compound_db_identity.adduct, lipid_annotations.ion_adduct, spectral_db_matches.ion_adduct, ion_identities),
-      formula = coalesce(compound_db_identity.mol_formula, lipid_annotations.mol_formula, spectral_db_matches.mol_formula, ion_identities.simple_formulas),
-      mz_diff_ppm = coalesce(compound_db_identity.mz_diff_ppm, lipid_annotations.mz_diff_ppm, spectral_db_matches.mz_diff_ppm),
-      rt_diff = compound_db_identity.rt_absolute_error,
-      identity_source = ifelse(
-        !is.na(compound_db_identity.compound_name), "In house library",
-        ifelse(!is.na(lipid_annotations.lipid_annotations), "Lipid annotations",
-               ifelse(!is.na(spectral_db_matches.compound_name), "Spectral library", NA))
-      )
+      # identity = coalesce(compound_db_identity.compound_name, lipid_annotations.lipid_annotations, spectral_db_matches.compound_name),
+      # ion = coalesce(compound_db_identity.adduct, lipid_annotations.ion_adduct, spectral_db_matches.ion_adduct, ion_identities),
+      # formula = coalesce(compound_db_identity.mol_formula, lipid_annotations.mol_formula, spectral_db_matches.mol_formula, ion_identities.simple_formulas),
+      # mz_diff_ppm = coalesce(compound_db_identity.mz_diff_ppm, lipid_annotations.mz_diff_ppm, spectral_db_matches.mz_diff_ppm),
+      # rt_diff = compound_db_identity.rt_absolute_error,
+      # identity_source = ifelse(
+      #   !is.na(compound_db_identity.compound_name), "In house library",
+      #   ifelse(!is.na(lipid_annotations.lipid_annotations), "Lipid annotations",
+      #          ifelse(!is.na(spectral_db_matches.compound_name), "Spectral library", NA))
+      # )
+      
+      identity = preferred_annotation.compound_name,
+      ion = preferred_annotation.adduct,
+      formula = preferred_annotation.mol_formula,
+      mz_diff_ppm = preferred_annotation.mz_diff_ppm,
+      rt_diff = preferred_annotation.rt_absolute_error,
+      identity_source = case_when(preferred_annotation.annotation_method == "Compound DB" ~ "In house library",
+                                  preferred_annotation.annotation_method == "Spectral match" ~ "Spectral library",
+                                  preferred_annotation.annotation_method == "Lipid Annotation" ~ "Lipid annotation",
+                                  TRUE ~ NA)
+
     ) %>%
     relocate(c(id, mz, rt, ccs, identity, ion, formula, mz_diff_ppm, rt_diff, identity_source, spectral_similarity, iin_id, ion_identities), .before = 0)
 
@@ -160,10 +170,34 @@ path_peaktable_istd_neg <- config$path_peaktable_istd_neg
 
 cols_to_save <- 
   c("id", "mz", "rt", "ccs", 
-         "compound_db_identity.compound_name", "compound_db_identity.mz_diff_ppm", "compound_db_identity.rt_absolute_error", "compound_db_identity.adduct", "compound_db_identity.mol_formula", 
-         "spectral_db_matches.compound_name", "spectral_db_matches.mz_diff_ppm", "spectral_db_matches.similarity_score", "spectral_db_matches.ion_adduct", "spectral_db_matches.mol_formula",
-         "lipid_annotations.lipid_annotations", "lipid_annotations.mz_diff_ppm", "lipid_annotations.ion_adduct", "lipid_annotations.mol_formula", 
-         "ion_identities.iin_id", "ion_identities.ion_identities", "ion_identities.simple_formulas")
+    "preferred_annotation.compound_name", "preferred_annotation.mol_formula", "preferred_annotation.adduct", 
+    "preferred_annotation.score",
+    "preferred_annotation.annotation_method",
+    "preferred_annotation.n_matching_signals",
+    "preferred_annotation.explained_intensity_percent",
+    "preferred_annotation.mz_diff_ppm",
+    "preferred_annotation.rt_absolute_error",
+    "preferred_annotation.compound_annotation_score",
+    "preferred_annotation.database_name", 
+    
+    "compound_db_identity.compound_name", "compound_db_identity.mol_formula", "compound_db_identity.adduct", 
+    "compound_db_identity.compound_annotation_score",
+    "compound_db_identity.mz_diff_ppm", 
+    "compound_db_identity.rt_absolute_error",
+    "compound_db_identity.database_name",
+    
+    "spectral_db_matches.compound_name", "spectral_db_matches.mol_formula", "spectral_db_matches.ion_adduct",
+    "spectral_db_matches.similarity_score", 
+    "spectral_db_matches.n_matching_signals", 
+    "spectral_db_matches:explained_intensity_percent",
+    "spectral_db_matches.mz_diff_ppm", 
+    "spectral_db_matches.comment", 
+    
+    "lipid_annotations.lipid_annotations", "lipid_annotations.mol_formula", "lipid_annotations.ion_adduct", 
+    "lipid_annotations.explained_intensity_percent",
+    "lipid_annotations.mz_diff_ppm", 
+    
+    "ion_identities.iin_id", "ion_identities.ion_identities", "ion_identities.simple_formulas")
 
 df_temp <- data.frame(matrix(ncol = length(cols_to_save), nrow = 0))
 colnames(df_temp) <- cols_to_save

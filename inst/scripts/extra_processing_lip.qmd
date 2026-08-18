@@ -1,6 +1,5 @@
 ---
 title: "Remove theoretical annotation"
-author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
           
 format:

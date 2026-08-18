@@ -1,6 +1,5 @@
 ---
 title: "Merge batch evaluation (post-processing)"
-author: "CBMR Metabolomics Platform"
 date: "`r base::Sys.Date()`"
 format:
   html:
