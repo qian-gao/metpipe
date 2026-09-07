@@ -117,7 +117,7 @@ convert_mode_output <- function(path_peaktable, path_peaktable_out, path_peaktab
   peaktable <- cbind(features, peaks)
   openxlsx::write.xlsx(peaktable, file = path_peaktable_out)
 
-  row_index <- !is.na(features$formula) & grepl("'", features$formula, fixed = TRUE)
+  row_index <- !is.na(features$compound_db_identity.mol_formula) & grepl("'", features$compound_db_identity.mol_formula, fixed = TRUE)
   rt_index <- grepl("\\.rt$", colnames(raw))
   mz_index <- grepl("\\.mz$", colnames(raw))
 
