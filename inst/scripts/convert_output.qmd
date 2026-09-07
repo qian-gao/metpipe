@@ -89,12 +89,18 @@ convert_mode_output <- function(path_peaktable, path_peaktable_out, path_peaktab
       #          ifelse(!is.na(spectral_db_matches.compound_name), "Spectral library", NA))
       # )
       
-      identity = preferred_annotation.compound_name,
-      ion = preferred_annotation.adduct,
-      formula = preferred_annotation.mol_formula,
-      mz_diff_ppm = preferred_annotation.mz_diff_ppm,
-      rt_diff = preferred_annotation.rt_absolute_error,
-      identity_source = case_when(preferred_annotation.annotation_method == "Compound DB" ~ "In house library",
+      identity = case_when(grepl("'", compound_db_identity.mol_formula) ~ compound_db_identity.compound_name,
+                           TRUE ~ preferred_annotation.compound_name),
+      ion = case_when(grepl("'", compound_db_identity.mol_formula) ~ compound_db_identity.adduct,
+                      TRUE ~ preferred_annotation.adduct),
+      formula = case_when(grepl("'", compound_db_identity.mol_formula) ~ compound_db_identity.mol_formula,
+                          TRUE ~ preferred_annotation.mol_formula),
+      mz_diff_ppm = case_when(grepl("'", compound_db_identity.mol_formula) ~ compound_db_identity.mz_diff_ppm,
+                              TRUE ~ preferred_annotation.mz_diff_ppm),
+      rt_diff = case_when(grepl("'", compound_db_identity.mol_formula) ~ compound_db_identity.rt_absolute_error,
+                          TRUE ~ preferred_annotation.rt_absolute_error),
+      identity_source = case_when(grepl("'", compound_db_identity.mol_formula) ~ "In house library",
+                                  preferred_annotation.annotation_method == "Compound DB" ~ "In house library",
                                   preferred_annotation.annotation_method == "Spectral match" ~ "Spectral library",
                                   preferred_annotation.annotation_method == "Lipid Annotation" ~ "Lipid annotation",
                                   TRUE ~ NA)
