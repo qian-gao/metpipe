@@ -1,18 +1,9 @@
 ##### Prepare and run workflow (QMD)
 
-args <- commandArgs(trailingOnly = TRUE)
-
-script_args <- commandArgs(trailingOnly = FALSE)
-file_arg <- grep("^--file=", script_args, value = TRUE)
-script_dir <- if (length(file_arg) > 0) {
-  dirname(normalizePath(sub("^--file=", "", file_arg[1]), winslash = "/", mustWork = FALSE))
-} else {
-  normalizePath(getwd(), winslash = "/", mustWork = FALSE)
-}
-
+##### ----- Load helper functions ---------------------------------------- #####
 helper_candidates <- c(
-  file.path(script_dir, "helpers_workflow.R"),
-  file.path(getwd(), "helpers_workflow.R"),
+  ###? file.path(script_dir, "helpers_workflow.R"),
+  ###? file.path(getwd(), "helpers_workflow.R"),
   file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
   system.file("scripts", "helpers_workflow.R", package = "metpipe")
 )
@@ -29,44 +20,6 @@ get_arg <- function(name) {
 }
 
 is_blank <- wf_is_blank
-
-package_mode <- tolower(trimws(ifelse(
-  is_blank(get_arg("--package-mode")),
-  ifelse(
-    is_blank(Sys.getenv("METPIPE_PACKAGE_MODE", unset = "")),
-    ifelse(dir.exists("/wd"), "installed", "local"),
-    Sys.getenv("METPIPE_PACKAGE_MODE", unset = "")
-  ),
-  get_arg("--package-mode")
-)))
-
-if (!package_mode %in% c("local", "installed")) {
-  stop("--package-mode must be one of: local, installed")
-}
-
-Sys.setenv(METPIPE_PACKAGE_MODE = package_mode)
-
-local_pkg_root <- ifelse(
-  is_blank(get_arg("--local-pkg-root")),
-  "H:/Documents/CBMR_workflow/packages/metpipe",
-  get_arg("--local-pkg-root")
-)
-
-if (identical(package_mode, "local")) {
-  if (!requireNamespace("pkgload", quietly = TRUE)) {
-    stop("pkgload is required for local source loading. Install with install.packages('pkgload').")
-  }
-  if (!dir.exists(local_pkg_root)) {
-    stop("Local metpipe package root not found: ", local_pkg_root)
-  }
-  Sys.setenv(METPIPE_LOCAL_ROOT = local_pkg_root)
-  pkgload::load_all(path = local_pkg_root, export_all = FALSE, quiet = TRUE)
-} else {
-  Sys.unsetenv("METPIPE_LOCAL_ROOT")
-  if (!requireNamespace("metpipe", quietly = TRUE)) {
-    stop("METPIPE_PACKAGE_MODE='installed' but package 'metpipe' is not installed")
-  }
-}
 
 pick_first <- function(...) {
   vals <- list(...)
@@ -86,6 +39,99 @@ resolve_meta <- function(path_workflow, path_prep_meta = NULL) {
   wf_resolve_module_script(path_workflow, "prep_meta.qmd")
 }
 
+##### ----- Resolve all the arguments ------------------------------------ #####
+args <- commandArgs(trailingOnly = TRUE)
+
+path_raw          <- get_arg("--raw")
+start_from        <- get_arg("--start-from")
+run_module        <- get_arg("--run-module")
+# overlap_by_name   <- get_arg("--overlap-by-name")
+# overlap_sample_types <- get_arg("--overlap-sample-types")
+# batch_assignments <- get_arg("--batch-assignments")
+# n_batches         <- get_arg("--n-batches")
+
+default_workflow <- if (dir.exists("/wd")) "/wd" else getwd()
+default_result   <- if (!is.null(path_raw)) gsub("raw|mzML", "peaktable", path_raw) else NULL
+default_temp     <- if (dir.exists("/home/Temp")) "/home/Temp" else tempdir()
+
+path_workflow <- pick_first(get_arg("--workflow"), default_workflow)
+path_result   <- pick_first(get_arg("--result"),   default_result)
+path_meta <- pick_first(get_arg("--meta"), NULL)
+path_yaml     <- get_arg("--prep_yaml")
+path_prep_meta  <- get_arg("--prep_meta")
+batch_size    <- pick_first(get_arg("--batch-size"), 100)
+
+default_mzmine <- file.path(path_workflow, "mzmine_linux", "bin", "mzmine")
+if (!file.exists(default_mzmine)) default_mzmine <- "/wd/mzmine_linux/bin/mzmine"
+
+path_mzmine     <- pick_first(get_arg("--mzmine"), default_mzmine)
+path_temp       <- pick_first(get_arg("--temp"), default_temp)
+qc              <- pick_first(get_arg("--qc"), "BL,NIST,PO,sol,CP,PO1205,PO25,PO50,PO100,PO200,IQ,BPL,MMix,PB,SP0625,SP1125,SP25,SP5,SP10,SP,SP40,SP50,SP100,SP200,POJ,POK")
+author          <- pick_first(get_arg("--author"), "CBMR Metabolomics Platform")
+
+config_file <- file.path(path_result, "config.yml")
+config_override <- get_arg("--config")
+software        <- get_arg("--software")
+if (is.null(software) || is_blank(software)) {
+  software <- "mzmine"
+} else {
+  software <- tolower(software)
+}
+if (!software %in% c("mzmine", "msdialui")) {
+  stop("--software must be one of: mzmine, msdialui")
+}
+
+###?
+# file_arg <- grep("^--file=", args, value = TRUE)
+# script_dir <- if (length(file_arg) > 0) {
+#   dirname(normalizePath(sub("^--file=", "", file_arg[1]), winslash = "/", mustWork = FALSE))
+# } else {
+#   normalizePath(getwd(), winslash = "/", mustWork = FALSE)
+# }
+
+##### ----- Check if testing the package locally
+package_mode <- tolower(trimws(ifelse(
+  is_blank(get_arg("--package-mode")),
+  ifelse(
+    is_blank(Sys.getenv("METPIPE_PACKAGE_MODE", unset = "")),
+    ifelse(dir.exists("/wd"), "installed", "local"),
+    Sys.getenv("METPIPE_PACKAGE_MODE", unset = "")
+  ),
+  get_arg("--package-mode")
+)))
+
+if (!package_mode %in% c("local", "installed")) {
+  stop("--package-mode must be one of: local, installed")
+}
+
+Sys.setenv(METPIPE_PACKAGE_MODE = package_mode)
+
+local_pkg_root <- ifelse(
+  is_blank(get_arg("--local-pkg-root")),
+  ###? "H:/Documents/CBMR_workflow/packages/metpipe",
+  stop("package-mode='local', please provide the directory of local metpipe package."),
+  get_arg("--local-pkg-root")
+)
+
+if (identical(package_mode, "local")) {
+  if (!requireNamespace("pkgload", quietly = TRUE)) {
+    stop("pkgload is required for local source loading. Install with install.packages('pkgload').")
+  }
+  if (!dir.exists(local_pkg_root)) {
+    stop("Local metpipe package root not found: ", local_pkg_root)
+  }
+  Sys.setenv(METPIPE_LOCAL_ROOT = local_pkg_root)
+  pkgload::load_all(path = local_pkg_root, export_all = FALSE, quiet = TRUE)
+} else {
+  Sys.unsetenv("METPIPE_LOCAL_ROOT")
+  if (!requireNamespace("metpipe", quietly = TRUE)) {
+    ###? stop("METPIPE_PACKAGE_MODE='installed' but package 'metpipe' is not installed")
+    stop("package-mode='installed' but package 'metpipe' is not installed")
+  }
+}
+
+
+##### ----- Prepare the modules ------------------------------------------ #####
 
 standalone_module_keys <- c("prep_meta", "split_batches", "merge_batches", "evaluate_merge",
                             "merge_batches_datatable", "evaluate_merge_datatable")
@@ -118,18 +164,11 @@ normalize_start_from <- function(x) {
   resolved <- unname(aliases[key])
   if (is.na(resolved) || is_blank(resolved)) {
     stop("Invalid --start-from/--run-module value: ", x,
-         ". Allowed: prep_meta, prep_yaml, preprocessing_mzmine, convert_output, qc_istd, post_processing, evaluation, extra_processing_lip, split_batches, merge_batches, evaluate_merge")
+         ". Allowed: prep_yaml, preprocessing_mzmine, convert_output, qc_istd, post_processing, evaluation, extra_processing_lip")
   }
   resolved
 }
 
-path_raw          <- get_arg("--raw")
-start_from        <- get_arg("--start-from")
-run_module        <- get_arg("--run-module")
-# overlap_by_name   <- get_arg("--overlap-by-name")
-# overlap_sample_types <- get_arg("--overlap-sample-types")
-# batch_assignments <- get_arg("--batch-assignments")
-# n_batches         <- get_arg("--n-batches")
 start_key         <- normalize_start_from(start_from)
 run_key           <- normalize_start_from(run_module)
 if (!is_blank(start_from) && !is_blank(run_module)) {
@@ -139,39 +178,11 @@ if (!is.null(start_key) && start_key %in% standalone_module_keys) {
   stop("'", start_key, "' is a standalone module; use --run-module instead of --start-from")
 }
 target_key       <- if (!is.null(run_key)) run_key else start_key
+
+
+##### ----- Run module prep_yaml or prep_meta ---------------------------- #####
 requires_prep_yaml <- is.null(target_key) || identical(target_key, "prep_yaml")
 requires_prep_meta <- is.null(target_key) || identical(target_key, "prep_meta")
-
-default_workflow <- if (dir.exists("/wd")) "/wd" else getwd()
-default_result   <- if (!is.null(path_raw)) gsub("raw|mzML", "peaktable", path_raw) else NULL
-default_temp     <- if (dir.exists("/home/Temp")) "/home/Temp" else tempdir()
-
-path_workflow <- pick_first(get_arg("--workflow"), default_workflow)
-path_result   <- pick_first(get_arg("--result"),   default_result)
-path_meta <- pick_first(get_arg("--meta"), NULL)
-path_yaml     <- get_arg("--prep_yaml")
-path_prep_meta  <- get_arg("--prep_meta")
-batch_size    <- pick_first(get_arg("--batch-size"), 100)
-
-default_mzmine <- file.path(path_workflow, "mzmine_linux", "bin", "mzmine")
-if (!file.exists(default_mzmine)) default_mzmine <- "/wd/mzmine_linux/bin/mzmine"
-
-path_mzmine     <- pick_first(get_arg("--mzmine"), default_mzmine)
-path_temp       <- pick_first(get_arg("--temp"), default_temp)
-qc              <- pick_first(get_arg("--qc"), "BL,NIST,PO,sol,CP,PO1205,PO25,PO50,PO100,PO200,IQ,BPL,MMix,PB,SP0625,SP1125,SP25,SP5,SP10,SP,SP40,SP50,SP100,SP200,POJ,POK")
-author          <- pick_first(get_arg("--author"), "CBMR Metabolomics Platform")
-
-config_file <- file.path(path_result, "config.yml")
-config_override <- get_arg("--config")
-software        <- get_arg("--software")
-if (is.null(software) || is_blank(software)) {
-  software <- "mzmine"
-} else {
-  software <- tolower(software)
-}
-if (!software %in% c("mzmine", "msdialui")) {
-  stop("--software must be one of: mzmine, msdialui")
-}
 
 run_workflow <- wf_resolve_module_script(path_workflow, "run_workflow.R")
 
@@ -262,6 +273,8 @@ if (identical(target_key, "prep_yaml")) {
   message("Target module is prep_yaml; skipping run_workflow.R")
   quit(save = "no", status = 0)
 }
+
+##### ----- Run other modules -------------------------------------------- #####
 
 run_args <- c(shQuote(run_workflow), shQuote(config_file))
 if (!is_blank(start_from) && normalize_start_from(start_from) != "prep_yaml") {
