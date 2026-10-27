@@ -3,8 +3,8 @@
 ##### ----- Load helper functions ---------------------------------------- #####
 helper_candidates <- c(
   ###? file.path(script_dir, "helpers_workflow.R"),
-  ###? file.path(getwd(), "helpers_workflow.R"),
-  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
+  file.path(getwd(), "helpers_workflow.R"),
+  ###? file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
   system.file("scripts", "helpers_workflow.R", package = "metpipe")
 )
 helper_candidates <- helper_candidates[file.exists(helper_candidates)]
