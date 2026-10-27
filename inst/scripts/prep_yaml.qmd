@@ -36,7 +36,6 @@ library(openxlsx)
 
 helper_candidates <- c(
   file.path(getwd(), "helpers_workflow.R"),
-  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
   system.file("scripts", "helpers_workflow.R", package = "metpipe")
 )
 helper_candidates <- helper_candidates[file.exists(helper_candidates)]
@@ -54,15 +53,14 @@ knitr::opts_chunk$set(
   include = TRUE
   )
 
-  is_blank <- wf_is_blank
-  require_path <- wf_require_path
-  join_path <- wf_join_path
+is_blank <- wf_is_blank
+require_path <- wf_require_path
+join_path <- wf_join_path
 
 ```
 
 
-```{r}
-# Global input
+```{r global input}
 
 path_raw = params$path_raw
 path_result = params$path_result
@@ -74,10 +72,6 @@ author = params$author
 qc_types = params$qc_types
 software = tolower(ifelse(is_blank(params$software), "mzmine", params$software))
 batch_size = as.numeric(params$batch_size)
-
-if (!software %in% c("mzmine", "msdialui")) {
-  stop("Unsupported software value: ", params$software)
-}
 
 path_raw <- require_path(path_raw, "path_raw")
 path_workflow <- require_path(path_workflow, "path_workflow")
@@ -108,21 +102,7 @@ if (is_blank(author)) {
 
 ```
 
-```{r, include = FALSE, eval = FALSE}
-
-path_raw = "E:/Projects/MP0065/mzML/PL_LIPS_FPASEF"
-path_result = "E:/Projects/MP0065/peaktable/PL_LIPS_FPASEF"
-path_workflow = "H:/Documents/CBMR_workflow/packages/metpipe_all/workflow"
-path_mzmine = "mzmine"
-path_temp = "temp"
-author = "CBMR Metabolomics Platform"
-qc_types = c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix", "PB",
-             "SP0625", "SP1125", "SP25", "SP5", "SP10", "SP", "SP40", "POJ", "POK")
-
-```
-
-```{r}
-# Workflow selection
+```{r workflow selection}
 
 path_method_cfg <- file.path(path_workflow, "parameters", "method_configuration.rds")
 if (!file.exists(path_method_cfg)) {
@@ -152,7 +132,7 @@ if (nrow(method) > 1) {
 ```
 
 
-```{r}
+```{r map raw data files to meta}
 # Raw data files
 
 if (grepl("OPSFDDA", analysis_i)){
@@ -227,8 +207,7 @@ if (!run.pos && !run.neg) {
 
 ```
 
-```{r}
-# mzmine input
+```{r mzmine input}
 
 mzmine_params <- join_path(path_workflow, method$mzmine_params)
 if (is.na(mzmine_params) || !file.exists(mzmine_params)) {
@@ -237,8 +216,6 @@ if (is.na(mzmine_params) || !file.exists(mzmine_params)) {
 
 path_lib_istd_pos <- join_path(path_workflow, method$path_lib_istd_pos)
 path_lib_istd_neg <- join_path(path_workflow, method$path_lib_istd_neg)
-# path_lib_pos <- ifelse(!is.na(method$path_lib_pos), paste0(path_workflow, method$path_lib_pos), NA)
-# path_lib_neg <- ifelse(!is.na(method$path_lib_neg), paste0(path_workflow, method$path_lib_neg), NA)
 spectral_lib <- strsplit(method$path_spectral, "|", fixed = TRUE)[[1]]
 path_spectral_lib <- vapply(spectral_lib, function(s) join_path(path_workflow, s), character(1))
 mzmine_user <- file.path(path_workflow, "parameters", "qiangao.mzuser")
@@ -246,9 +223,7 @@ mzmine_memory <- "-memory none"
 mzmine_threads <- "-threads 10"
 ```
 
-
-```{r}
-# QC
+```{r QC}
 
 figure_height = 500
 figure_width = 1000
@@ -256,9 +231,7 @@ figure_width = 1000
 ```
 
 
-```{r}
-# Post processing
-## Clean peaktable
+```{r post processing - clean peaktable}
 
 mean.filter <- list(c( 2, "BL", "<", "PO"),
                    c( 1, "Sample", ">", 500))
@@ -289,8 +262,7 @@ clean.po.sample.to.use <- "PO"
 ```
 
 
-```{r}
-## Normalization
+```{r post processing - normalization}
 
 impute.method.sample <- "HF"
 impute.method.is <- "HF"
@@ -301,8 +273,7 @@ sample.type.keep <- c("Sample", "PO", "NIST")
 ```
 
 
-```{r}
-## Merge and map info
+```{r post processing - merge and map info}
 
 final.norm <- "bestis"
 final.eval.sample.to.use <- "PO"
@@ -310,8 +281,7 @@ final.sample.type.keep <- c("PO", "NIST")
 ```
 
 
-```{r}
-## Remove theoretical lipids
+```{r remove theoretical lipids}
 
 if (assay_i %in% c("LIPS", "LIPL")){
   extra_processing_lip <- "Y"
@@ -321,8 +291,7 @@ if (assay_i %in% c("LIPS", "LIPL")){
 
 ```
 
-```{r}
-## Others
+```{r path to folders}
 
 mzmine_peaktable_pos <- paste0(path_result, "/pos/pos_full_feature_table.csv")
 mzmine_peaktable_neg <- paste0(path_result, "/neg/neg_full_feature_table.csv")
@@ -337,8 +306,8 @@ rds_datalist <- paste0(path_result, "/datalist.rds")
 path_datatable <- paste0(path_result, "/datatable.xlsx")
 ```
 
-```{r}
-## Split and merge batches for preprocessing of long sequence
+```{r split and merge batches for preprocessing of long sequence}
+
 overlap_by_name <- ""
 overlap_sample_types <- "NIST,PO,PO1205,PO25,PO50,PO100,PO200,BL,CP,PO"
 n_batches <- 
@@ -396,9 +365,7 @@ config <- list(
   method_name = method_name,
   run.pos = run.pos,
   run.neg = run.neg,  
-  # path_lib_pos = path_lib_pos,
-  # path_lib_neg = path_lib_neg,
-  # spectral_lib = spectral_lib,
+ 
   mzmine_user = mzmine_user,
   mzmine_memory = mzmine_memory,
   mzmine_peaktable_pos = mzmine_peaktable_pos,
@@ -432,8 +399,6 @@ writeLines(yaml_str, file.path(path_result, "config.yml"))
 ```
 
 ```{r SessionInfo, include = FALSE, eval = FALSE}
-
-# Session info
 
 utils::sessionInfo()
 

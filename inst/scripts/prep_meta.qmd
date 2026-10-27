@@ -18,12 +18,8 @@ self-contained: true
 params:
   path_raw: ""
   path_result: ""
-  #path_workflow: ""
-  # path_mzmine: ""
-  # path_temp: ""
   author: ""
   qc_types: ""
-  # software: ""
   batch_size: ""
 ---
 
@@ -34,7 +30,6 @@ library(openxlsx)
 
 helper_candidates <- c(
   file.path(getwd(), "helpers_workflow.R"),
-  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
   system.file("scripts", "helpers_workflow.R", package = "metpipe")
 )
 helper_candidates <- helper_candidates[file.exists(helper_candidates)]
@@ -57,40 +52,21 @@ is_blank <- wf_is_blank
 ```
 
 
-```{r}
-# Global input
+```{r global input}
 
 path_raw = params$path_raw
 path_result = params$path_result
-#path_workflow = params$path_workflow
 qc_types = params$qc_types
 batch_size = as.numeric(params$batch_size)
 
 path_raw <- require_path(path_raw, "path_raw")
-#path_workflow <- require_path(path_workflow, "path_workflow")
 
 if (is_blank(path_result)) stop("path_result is required")
 path_result <- normalizePath(path_result, winslash = "/", mustWork = FALSE)
 
 ```
 
-```{r, include = FALSE, eval = FALSE}
-
-path_raw = "E:/Projects/MP_workshop/raw/PL_LIPS_PASEF"
-
-path_raw = "E:/Projects/MP0065/mzML/PL_LIPS_FPASEF"
-path_result = "E:/Projects/MP0065/peaktable/PL_LIPS_FPASEF"
-path_workflow = "H:/Documents/CBMR_workflow/packages/metpipe/workflow"
-path_mzmine = "mzmine"
-path_temp = "temp"
-author = "CBMR Metabolomics Platform"
-qc_types = c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix", "PB",
-             "SP0625", "SP1125", "SP25", "SP5", "SP10", "SP", "SP40", "POJ", "POK")
-
-```
-
-```{r}
-# Raw data files
+```{r map raw data files to meta}
 
 path_files_pos <- paste0(path_raw, "/pos/")
 path_files_neg <- paste0(path_raw, "/neg/")
@@ -130,10 +106,9 @@ if (!run.pos && !run.neg) {
   stop("No raw files found in pos/ or neg/ under path_raw: ", path_raw)
 }
 
-
 ```
 
-```{r}
+```{r write metadata output excel}
 
 wb <- createWorkbook()
 if (run.pos) {
@@ -150,8 +125,6 @@ saveWorkbook(wb, paste0(path_result, "/metadata_raw.xlsx"), overwrite = TRUE)
 ```
 
 ```{r SessionInfo, include = FALSE, eval = FALSE}
-
-# Session info
 
 utils::sessionInfo()
 
