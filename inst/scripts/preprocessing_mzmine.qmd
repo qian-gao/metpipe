@@ -31,16 +31,15 @@ knitr::opts_chunk$set(
   include = TRUE
 )
 
-is_blank <- function(x) {
-  is.null(x) || length(x) == 0 || all(is.na(x)) || !nzchar(trimws(as.character(x[1])))
+helper_candidates <- c(
+  file.path(getwd(), "helpers_workflow.R"),
+  system.file("scripts", "helpers_workflow.R", package = "metpipe")
+)
+helper_candidates <- helper_candidates[file.exists(helper_candidates)]
+if (length(helper_candidates) == 0) {
+  stop("Cannot locate shared helper script helpers_workflow.R")
 }
-
-as_flag <- function(x) {
-  if (is.logical(x)) return(isTRUE(x))
-  if (is.numeric(x)) return(!is.na(x[1]) && x[1] != 0)
-  if (is.character(x)) return(tolower(trimws(x[1])) %in% c("true", "t", "1", "y", "yes"))
-  FALSE
-}
+source(helper_candidates[[1]], local = TRUE)
 
 normalize_vec <- function(x) {
   if (is.null(x)) return(character(0))
@@ -90,7 +89,7 @@ run_mzmine <- function(path_mzmine, mzmine_user, param_file, path_output, mzmine
 
 ```{r pipeline input}
 
-if (is_blank(params$config)) {
+if (wf_is_blank(params$config)) {
   stop("params$config is required")
 }
 if (!file.exists(params$config)) {
@@ -110,13 +109,11 @@ path_temp = config$path_temp
 
 method_name = config$method_name
 analysis <- stringr::str_split_i(method_name, "_", 3)
-run.pos = as_flag(config$run.pos)
+run.pos = wf_as_flag(config$run.pos)
 raw_files_pos = normalize_vec(config$raw_files_pos)
-run.neg = as_flag(config$run.neg)
+run.neg = wf_as_flag(config$run.neg)
 raw_files_neg = normalize_vec(config$raw_files_neg)
 mzmine_params = config$mzmine_params 
-# path_lib_pos = config$path_lib_pos
-# path_lib_neg = config$path_lib_neg
 path_lib_istd_pos = config$path_lib_istd_pos
 path_lib_istd_neg = config$path_lib_istd_neg
 path_spectral_lib = config$path_spectral_lib
@@ -131,11 +128,11 @@ mzmine_threads <- config$mzmine_threads
 mzmine_peaktable_pos <- config$mzmine_peaktable_pos
 mzmine_peaktable_neg <- config$mzmine_peaktable_neg
 
-if (is_blank(path_result)) stop_missing("path_result")
-if (is_blank(path_temp)) stop_missing("path_temp")
-if (is_blank(mzmine_params)) stop_missing("mzmine_params")
-if (is_blank(path_mzmine)) stop_missing("path_mzmine")
-if (is_blank(mzmine_user)) stop_missing("mzmine_user")
+if (wf_is_blank(path_result)) stop_missing("path_result")
+if (wf_is_blank(path_temp)) stop_missing("path_temp")
+if (wf_is_blank(mzmine_params)) stop_missing("mzmine_params")
+if (wf_is_blank(path_mzmine)) stop_missing("path_mzmine")
+if (wf_is_blank(mzmine_user)) stop_missing("mzmine_user")
 
 path_result <- normalizePath(path_result, winslash = "/", mustWork = FALSE)
 path_temp <- normalizePath(path_temp, winslash = "/", mustWork = FALSE)
@@ -190,8 +187,6 @@ cat(path_output, "\n")
 
 raw_files <- raw_files_pos
 if (length(raw_files) == 0) stop("run.pos=TRUE but no positive raw files are defined")
-# path_lib <- list(path_lib_istd_pos, path_lib_pos)
-# path_lib <- path_lib[!is.na(path_lib)]
 path_lib <- path_lib_istd_pos
 
 if (grepl("OPS", analysis)){
@@ -211,7 +206,7 @@ if (!file.exists(param_file)){
   
   file_names_node <- ensure_xml_param(parameters, "Database file")
   
-  if (!is_blank(path_lib) && !is.na(path_lib) && file.exists(path_lib)) {
+  if (!wf_is_blank(path_lib) && !is.na(path_lib) && file.exists(path_lib)) {
     xml_add_child(file_names_node, "current_file", path_lib)
   }
   
@@ -242,8 +237,6 @@ cat(path_output, "\n")
 
 raw_files <- raw_files_neg
 if (length(raw_files) == 0) stop("run.neg=TRUE but no negative raw files are defined")
-# path_lib <- list(path_lib_istd_neg, path_lib_neg)
-# path_lib <- path_lib[!is.na(path_lib)]
 path_lib <- path_lib_istd_neg
 
 if (grepl("OPS", analysis)){
@@ -264,7 +257,7 @@ if (!file.exists(param_file)){
   
   file_names_node <- ensure_xml_param(parameters, "Database file")
   
-  if (!is_blank(path_lib) && !is.na(path_lib) && file.exists(path_lib)) {
+  if (!wf_is_blank(path_lib) && !is.na(path_lib) && file.exists(path_lib)) {
     xml_add_child(file_names_node, "current_file", path_lib)
   }
   
@@ -286,8 +279,6 @@ if (!file.exists(mzmine_peaktable_neg)){
 ```
 
 ```{r SessionInfo, include = FALSE, eval = FALSE}
-
-# Session info
 
 utils::sessionInfo()
 

@@ -1,4 +1,4 @@
-##### Prepare and run workflow (QMD)
+##### Prepare and run workflow
 
 ##### ----- Load helper functions ---------------------------------------- #####
 helper_candidates <- c(
@@ -18,8 +18,6 @@ get_arg <- function(name) {
   if (length(i) == 0) return(NULL)
   args[i + 1]
 }
-
-is_blank <- wf_is_blank
 
 pick_first <- function(...) {
   vals <- list(...)
@@ -72,7 +70,7 @@ author          <- pick_first(get_arg("--author"), "CBMR Metabolomics Platform")
 config_file <- file.path(path_result, "config.yml")
 config_override <- get_arg("--config")
 software        <- get_arg("--software")
-if (is.null(software) || is_blank(software)) {
+if (is.null(software) || wf_is_blank(software)) {
   software <- "mzmine"
 } else {
   software <- tolower(software)
@@ -91,9 +89,9 @@ if (!software %in% c("mzmine", "msdialui")) {
 
 ##### ----- Check if testing the package locally
 package_mode <- tolower(trimws(ifelse(
-  is_blank(get_arg("--package-mode")),
+  wf_is_blank(get_arg("--package-mode")),
   ifelse(
-    is_blank(Sys.getenv("METPIPE_PACKAGE_MODE", unset = "")),
+    wf_is_blank(Sys.getenv("METPIPE_PACKAGE_MODE", unset = "")),
     ifelse(dir.exists("/wd"), "installed", "local"),
     Sys.getenv("METPIPE_PACKAGE_MODE", unset = "")
   ),
@@ -107,7 +105,7 @@ if (!package_mode %in% c("local", "installed")) {
 Sys.setenv(METPIPE_PACKAGE_MODE = package_mode)
 
 local_pkg_root <- ifelse(
-  is_blank(get_arg("--local-pkg-root")),
+  wf_is_blank(get_arg("--local-pkg-root")),
   ###? "H:/Documents/CBMR_workflow/packages/metpipe",
   stop("package-mode='local', please provide the directory of local metpipe package."),
   get_arg("--local-pkg-root")
@@ -137,7 +135,7 @@ standalone_module_keys <- c("prep_meta", "split_batches", "merge_batches", "eval
                             "merge_batches_datatable", "evaluate_merge_datatable")
 
 normalize_start_from <- function(x) {
-  if (is_blank(x)) return(NULL)
+  if (wf_is_blank(x)) return(NULL)
   key <- tolower(trimws(as.character(x)[1]))
   aliases <- c(
     "prep_meta"             = "prep_meta",
@@ -162,7 +160,7 @@ normalize_start_from <- function(x) {
     "evaluate_merge_datatable" = "evaluate_merge_datatable"
   )
   resolved <- unname(aliases[key])
-  if (is.na(resolved) || is_blank(resolved)) {
+  if (is.na(resolved) || wf_is_blank(resolved)) {
     stop("Invalid --start-from/--run-module value: ", x,
          ". Allowed: prep_yaml, preprocessing_mzmine, convert_output, qc_istd, post_processing, evaluation, extra_processing_lip")
   }
@@ -171,7 +169,7 @@ normalize_start_from <- function(x) {
 
 start_key         <- normalize_start_from(start_from)
 run_key           <- normalize_start_from(run_module)
-if (!is_blank(start_from) && !is_blank(run_module)) {
+if (!wf_is_blank(start_from) && !wf_is_blank(run_module)) {
   stop("Use either --start-from or --run-module, not both")
 }
 if (!is.null(start_key) && start_key %in% standalone_module_keys) {
@@ -186,18 +184,18 @@ requires_prep_meta <- is.null(target_key) || identical(target_key, "prep_meta")
 
 run_workflow <- wf_resolve_module_script(path_workflow, "run_workflow.R")
 
-if (!is_blank(config_override)) {
+if (!wf_is_blank(config_override)) {
   config_file <- config_override
   if (!file.exists(config_file)) {
     stop("--config file does not exist: ", config_file)
   }
 } else {
-  if (is_blank(path_result)) {
+  if (wf_is_blank(path_result)) {
     stop("`--result` is required when --config is not provided")
   }
 
   if (requires_prep_yaml) {
-    if (is_blank(path_raw)) {
+    if (wf_is_blank(path_raw)) {
       stop("Missing required argument: --raw <path> when running from preprocessing")
     }
     path_yaml     <- resolve_yaml(path_workflow = path_workflow, path_yaml = path_yaml)
@@ -230,7 +228,7 @@ if (!is_blank(config_override)) {
       output_file = file.path(path_result, paste0("generate_yml_", Sys.Date(), ".html"))
     )
   } else if (requires_prep_meta) {
-    if (is_blank(path_raw)) {
+    if (wf_is_blank(path_raw)) {
       stop("Missing required argument: --raw <path> when running from preprocessing")
     }
     path_prep_meta     <- resolve_meta(path_workflow = path_workflow, path_prep_meta = path_prep_meta)
@@ -277,16 +275,16 @@ if (identical(target_key, "prep_yaml")) {
 ##### ----- Run other modules -------------------------------------------- #####
 
 run_args <- c(shQuote(run_workflow), shQuote(config_file))
-if (!is_blank(start_from) && normalize_start_from(start_from) != "prep_yaml") {
-  run_args <- c(run_args, "--start-from", shQuote(start_from))
+if (!wf_is_blank(start_key) && start_key != "prep_yaml") {
+  run_args <- c(run_args, "--start-from", shQuote(start_key))
 }
-if (!is_blank(run_module) && normalize_start_from(run_module) != "prep_yaml") {
-  run_args <- c(run_args, "--run-module", shQuote(run_module))
+if (!wf_is_blank(run_key) && run_key != "prep_yaml") {
+  run_args <- c(run_args, "--run-module", shQuote(run_key))
 }
-# if (!is_blank(overlap_by_name))   run_args <- c(run_args, "--overlap-by-name",   shQuote(overlap_by_name))
-# if (!is_blank(overlap_sample_types))   run_args <- c(run_args, "--overlap-sample-types",   shQuote(overlap_sample_types))
-# if (!is_blank(batch_assignments)) run_args <- c(run_args, "--batch-assignments", shQuote(batch_assignments))
-# if (!is_blank(n_batches))         run_args <- c(run_args, "--n-batches",         shQuote(n_batches))
+# if (!wf_is_blank(overlap_by_name))   run_args <- c(run_args, "--overlap-by-name",   shQuote(overlap_by_name))
+# if (!wf_is_blank(overlap_sample_types))   run_args <- c(run_args, "--overlap-sample-types",   shQuote(overlap_sample_types))
+# if (!wf_is_blank(batch_assignments)) run_args <- c(run_args, "--batch-assignments", shQuote(batch_assignments))
+# if (!wf_is_blank(n_batches))         run_args <- c(run_args, "--n-batches",         shQuote(n_batches))
 
 status_run <- system2("Rscript", args = run_args)
 

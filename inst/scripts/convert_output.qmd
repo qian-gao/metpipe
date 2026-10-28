@@ -24,8 +24,6 @@ params:
 library(yaml)
 library(dplyr)
 library(openxlsx)
-# params <- list()
-# params$config <- "E:/Projects/MP_workshop/peaktable/PL_LIPS_PASEF/config.yml"
 
 knitr::opts_chunk$set(
   message = FALSE,
@@ -36,7 +34,6 @@ knitr::opts_chunk$set(
 
 helper_candidates <- c(
   file.path(getwd(), "helpers_workflow.R"),
-  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
   system.file("scripts", "helpers_workflow.R", package = "metpipe")
 )
 helper_candidates <- helper_candidates[file.exists(helper_candidates)]
@@ -44,10 +41,6 @@ if (length(helper_candidates) == 0) {
   stop("Cannot locate shared helper script helpers_workflow.R")
 }
 source(helper_candidates[[1]], local = TRUE)
-
-is_blank <- wf_is_blank
-as_flag <- wf_as_flag
-require_cfg <- wf_cfg_required
 
 add_missing_cols <- function(df, cols) {
   missing <- setdiff(cols, names(df))
@@ -78,16 +71,6 @@ convert_mode_output <- function(path_peaktable, path_peaktable_out, path_peaktab
   features <-
     raw_features %>%
     mutate(
-      # identity = coalesce(compound_db_identity.compound_name, lipid_annotations.lipid_annotations, spectral_db_matches.compound_name),
-      # ion = coalesce(compound_db_identity.adduct, lipid_annotations.ion_adduct, spectral_db_matches.ion_adduct, ion_identities),
-      # formula = coalesce(compound_db_identity.mol_formula, lipid_annotations.mol_formula, spectral_db_matches.mol_formula, ion_identities.simple_formulas),
-      # mz_diff_ppm = coalesce(compound_db_identity.mz_diff_ppm, lipid_annotations.mz_diff_ppm, spectral_db_matches.mz_diff_ppm),
-      # rt_diff = compound_db_identity.rt_absolute_error,
-      # identity_source = ifelse(
-      #   !is.na(compound_db_identity.compound_name), "In house library",
-      #   ifelse(!is.na(lipid_annotations.lipid_annotations), "Lipid annotations",
-      #          ifelse(!is.na(spectral_db_matches.compound_name), "Spectral library", NA))
-      # )
       
       identity = case_when(grepl("'", compound_db_identity.mol_formula) ~ compound_db_identity.compound_name,
                            TRUE ~ preferred_annotation.compound_name),
@@ -141,16 +124,16 @@ convert_mode_output <- function(path_peaktable, path_peaktable_out, path_peaktab
 
 config <- wf_read_yaml_config(params$config, label = "params$config")
 
-run.pos = as_flag(config$run.pos)
-run.neg = as_flag(config$run.neg)
-mzmine_peaktable_pos <- require_cfg(config, "mzmine_peaktable_pos")
-mzmine_peaktable_neg <- require_cfg(config, "mzmine_peaktable_neg")
+run.pos = wf_as_flag(config$run.pos)
+run.neg = wf_as_flag(config$run.neg)
+mzmine_peaktable_pos <- wf_cfg_required(config, "mzmine_peaktable_pos")
+mzmine_peaktable_neg <- wf_cfg_required(config, "mzmine_peaktable_neg")
 
 # output
-path_peaktable_pos <- require_cfg(config, "path_peaktable_pos")
-path_peaktable_neg <- require_cfg(config, "path_peaktable_neg")
-path_peaktable_istd_pos <- require_cfg(config, "path_peaktable_istd_pos")
-path_peaktable_istd_neg <- require_cfg(config, "path_peaktable_istd_neg")
+path_peaktable_pos <- wf_cfg_required(config, "path_peaktable_pos")
+path_peaktable_neg <- wf_cfg_required(config, "path_peaktable_neg")
+path_peaktable_istd_pos <- wf_cfg_required(config, "path_peaktable_istd_pos")
+path_peaktable_istd_neg <- wf_cfg_required(config, "path_peaktable_istd_neg")
 
 wf_ensure_parent_dirs(c(path_peaktable_pos, path_peaktable_neg, path_peaktable_istd_pos, path_peaktable_istd_neg))
   
@@ -272,8 +255,6 @@ cat("Number of ISTD rows: ", result_neg$n_istd, "\n")
 
 
 ```{r session info, include = FALSE, eval = FALSE}
-
-# Session info
 
 utils::sessionInfo()
 

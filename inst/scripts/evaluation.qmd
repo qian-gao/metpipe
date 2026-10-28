@@ -28,9 +28,15 @@ library(plotly)
 library(ggsci)
 library(yaml)
 
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
 helper_candidates <- c(
   file.path(getwd(), "helpers_workflow.R"),
-  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
   system.file("scripts", "helpers_workflow.R", package = "metpipe")
 )
 helper_candidates <- helper_candidates[file.exists(helper_candidates)]
@@ -40,15 +46,6 @@ if (length(helper_candidates) == 0) {
 source(helper_candidates[[1]], local = TRUE)
 
 metpipe_runtime <- wf_load_metpipe_runtime()
-
-knitr::opts_chunk$set(
-  message = FALSE,
-  warning = FALSE,
-  echo = FALSE,
-  include = TRUE
-)
-
-is_blank <- wf_is_blank
 
 has_cols <- function(df, cols) {
   !is.null(df) && is.data.frame(df) && all(cols %in% names(df))
@@ -828,8 +825,6 @@ plot_ly(data.plot, labels = ~Source, values = ~Freq, type = 'pie',
 :::
 
 ```{r session info, include = FALSE, eval = FALSE}
-
-# Session info
 
 utils::sessionInfo()
 

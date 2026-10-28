@@ -27,9 +27,15 @@ library(stringr)
 library(tidyr)
 library(yaml)
 
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
 helper_candidates <- c(
   file.path(getwd(), "helpers_workflow.R"),
-  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
   system.file("scripts", "helpers_workflow.R", package = "metpipe")
 )
 helper_candidates <- helper_candidates[file.exists(helper_candidates)]
@@ -40,28 +46,17 @@ source(helper_candidates[[1]], local = TRUE)
 
 metpipe_runtime <- wf_load_metpipe_runtime()
 
-knitr::opts_chunk$set(
-  message = FALSE,
-  warning = FALSE,
-  echo = FALSE,
-  include = TRUE
-)
-
-is_blank <- wf_is_blank
-as_flag <- wf_as_flag
-cfg_required <- wf_cfg_required
-as_meta_df <- wf_as_meta_df
 ```
 
 ```{r pipeline input}
 
 config <- wf_read_yaml_config(params$config, label = "params$config")
 
-path_workflow = cfg_required(config, "path_workflow")
-run.pos = as_flag(config$run.pos)
-run.neg = as_flag(config$run.neg)
-meta_pos = as_meta_df(config$meta_pos)
-meta_neg = as_meta_df(config$meta_neg)
+path_workflow = wf_cfg_required(config, "path_workflow")
+run.pos = wf_as_flag(config$run.pos)
+run.neg = wf_as_flag(config$run.neg)
+meta_pos = wf_as_meta_df(config$meta_pos)
+meta_neg = wf_as_meta_df(config$meta_neg)
 mean.filter = config$mean.filter
 rsd.filter = config$rsd.filter
 dilution.filter = config$dilution.filter
@@ -74,7 +69,7 @@ impute.method.sample = config$impute.method.sample
 impute.method.is = config$impute.method.is
 norm.po.sample.to.use = config$norm.po.sample.to.use
 norm.method = config$norm.method
-norm.batch.wise = as_flag(config$norm.batch.wise)
+norm.batch.wise = wf_as_flag(config$norm.batch.wise)
 sample.type.keep = config$sample.type.keep
 final.norm = config$final.norm
 final.eval.sample.to.use = config$final.eval.sample.to.use
@@ -83,8 +78,8 @@ final.sample.type.keep = config$final.sample.type.keep
 peaktable_pos = config$path_peaktable_pos
 peaktable_neg = config$path_peaktable_neg
 
-if (run.pos && is_blank(peaktable_pos)) stop("run.pos=TRUE but path_peaktable_pos is missing")
-if (run.neg && is_blank(peaktable_neg)) stop("run.neg=TRUE but path_peaktable_neg is missing")
+if (run.pos && wf_is_blank(peaktable_pos)) stop("run.pos=TRUE but path_peaktable_pos is missing")
+if (run.neg && wf_is_blank(peaktable_neg)) stop("run.neg=TRUE but path_peaktable_neg is missing")
 if (!run.pos) {
   peaktable_pos <- NULL
   meta_pos <- NULL
@@ -102,8 +97,8 @@ if (!is.null(peaktable_neg) && !file.exists(peaktable_neg)) {
 }
 
 # output
-rds_datalist <- cfg_required(config, "rds_datalist")
-path_datatable <- cfg_required(config, "path_datatable")
+rds_datalist <- wf_cfg_required(config, "rds_datalist")
+path_datatable <- wf_cfg_required(config, "path_datatable")
 
 wf_ensure_parent_dirs(c(rds_datalist, path_datatable))
 
@@ -115,43 +110,6 @@ if (!file.exists(db_file)) {
 if (!run.pos && !run.neg) {
   stop("Both run.pos and run.neg are FALSE. Nothing to post-process.")
 }
-```
-
-```{r, include = FALSE, eval = FALSE}
-
-config <- read_yaml("E:/Projects/MP0065/peaktable/PL_LIPS_PASEF/config.yml")
-
-path_workflow = config$path_workflow
-run.pos = config$run.pos
-run.neg = config$run.neg
-meta_pos = config$meta_pos
-meta_neg = config$meta_neg
-mean.filter = config$mean.filter
-rsd.filter = config$rsd.filter
-dilution.filter = config$dilution.filter
-rt.range = config$rt.range
-filter_by_missing_feature_pct = config$filter_by_missing_feature_pct
-filter_by_missing_sample_type = config$filter_by_missing_sample_type
-outliers.sample = config$outliers.sample
-clean.po.sample.to.use = config$clean.po.sample.to.use
-impute.method.sample = config$impute.method.sample
-impute.method.is = config$impute.method.is
-norm.po.sample.to.use = config$norm.po.sample.to.use
-norm.method = config$norm.method
-norm.batch.wise = config$norm.batch.wise
-sample.type.keep = config$sample.type.keep
-final.norm = config$final.norm
-final.eval.sample.to.use = config$final.eval.sample.to.use
-final.sample.type.keep = config$final.sample.type.keep
-
-peaktable_pos = gsub("/mnt/e", "E:", config$path_peaktable_pos)
-peaktable_neg = gsub("/mnt/e", "E:", config$path_peaktable_neg)
-meta_pos = data.frame(config$meta_pos)
-meta_neg = data.frame(config$meta_neg)
-
-# output
-rds_datalist <- config$rds_datalist
-path_datatable <- config$path_datatable
 ```
 
 ## Import peak table
@@ -250,8 +208,6 @@ saveWorkbook(wb, path_datatable, overwrite = TRUE)
 ```
 
 ```{r session info, include = FALSE, eval = FALSE}
-
-# Session info
 
 utils::sessionInfo()
 

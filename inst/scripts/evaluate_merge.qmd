@@ -27,22 +27,24 @@ library(plotly)
 library(DT)
 library(openxlsx)
 
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
 helper_candidates <- c(
   file.path(getwd(), "helpers_workflow.R"),
-  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
   system.file("scripts", "helpers_workflow.R", package = "metpipe")
 )
 helper_candidates <- helper_candidates[file.exists(helper_candidates)]
 if (length(helper_candidates) == 0) stop("Cannot locate helpers_workflow.R")
 source(helper_candidates[[1]], local = TRUE)
 
-knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE, include = TRUE)
-
 ```
 
 ```{r functions, include=FALSE}
-
-# ── Feature subset helpers ────────────────────────────────────────────────────
 
 make_feature_subsets <- function(diag_df) {
   list(
@@ -76,7 +78,7 @@ make_l2r_subsets <- function(l2r_df) {
   )
 }
 
-# ── Alignment quality plots ───────────────────────────────────────────────────
+
 
 plot_mz_hist <- function(df) {
   if (nrow(df) == 0) { cat("No data for this subset.\n"); return(invisible(NULL)) }
@@ -111,7 +113,6 @@ plot_ccs_hist <- function(df) {
   ggplotly(p)
 }
 
-# ── Overlap consistency plots ─────────────────────────────────────────────────
 
 plot_cor_hist <- function(df) {
   d <- df[!is.na(df$overlap_cor), , drop = FALSE]
@@ -181,7 +182,7 @@ plot_l2r_density <- function(l2r_df) {
   #print(p)
 }
 
-# ── Flagged features ──────────────────────────────────────────────────────────
+
 
 show_flagged <- function(df) {
   flagged <- df[
@@ -222,7 +223,6 @@ show_flagged <- function(df) {
 }
 
 
-# ── PCA ───────────────────────────────────────────────────────────────────────
 
 plot_pca <- function(tbl, sample_batch_map, title) {
   if (is.null(tbl) || nrow(tbl) == 0) { cat("No data available.\n"); return(invisible(NULL)) }
@@ -304,7 +304,7 @@ merged_tables <- lapply(tbl_paths, function(p) {
   openxlsx::read.xlsx(p)
 })
 
-# Sample → batch map: saved by merge_batches into the diagnostics RDS.
+# Sample to batch map
 sample_batch_map <- if (!is.null(diag$sample_batch_map) && length(diag$sample_batch_map) > 0) {
   diag$sample_batch_map
 } else {

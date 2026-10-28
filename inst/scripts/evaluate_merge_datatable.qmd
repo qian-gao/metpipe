@@ -27,22 +27,24 @@ library(plotly)
 library(DT)
 library(openxlsx)
 
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
 helper_candidates <- c(
   file.path(getwd(), "helpers_workflow.R"),
-  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
   system.file("scripts", "helpers_workflow.R", package = "metpipe")
 )
 helper_candidates <- helper_candidates[file.exists(helper_candidates)]
 if (length(helper_candidates) == 0) stop("Cannot locate helpers_workflow.R")
 source(helper_candidates[[1]], local = TRUE)
 
-knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE, include = TRUE)
-
 ```
 
 ```{r functions, include=FALSE}
-
-# ── Feature subset helpers ────────────────────────────────────────────────────
 
 make_feature_subsets <- function(diag_df) {
   # "Known" features (feature_type == "Known") take the role of IS in this workflow
@@ -74,7 +76,7 @@ make_l2r_subsets <- function(l2r_df) {
   )
 }
 
-# ── Alignment quality plots ───────────────────────────────────────────────────
+
 
 plot_mz_hist <- function(df) {
   if (nrow(df) == 0) { cat("No data for this subset.\n"); return(invisible(NULL)) }
@@ -106,7 +108,7 @@ plot_ccs_hist <- function(df) {
   ggplotly(p)
 }
 
-# ── Overlap consistency plots ─────────────────────────────────────────────────
+
 
 plot_cor_hist <- function(df) {
   d <- df[!is.na(df$overlap_cor), , drop = FALSE]
@@ -165,7 +167,7 @@ plot_l2r_density <- function(l2r_df) {
   ggplotly(p)
 }
 
-# ── Flagged features ──────────────────────────────────────────────────────────
+
 
 show_flagged <- function(df) {
   flagged <- df[
@@ -197,15 +199,7 @@ show_flagged <- function(df) {
   }
 }
 
-# ── PCA ───────────────────────────────────────────────────────────────────────
 
-# PCA for datatable format (samples as rows, features as columns).
-# dt:              merged datatable data.frame (sample rows)
-# fi:              feature.info data.frame
-# polarity:        "pos", "neg", or NULL (use both)
-# identity_filter: "known" (Feature_type == "Known"), "with_id" (!is.na(Identity)),
-#                  "without_id" (is.na(Identity)), or NULL (all)
-# sample_batch_map: named integer vector, sample name -> batch number
 plot_pca_datatable <- function(dt, fi, polarity = NULL, identity_filter = NULL,
                                 sample_batch_map, title) {
   if (is.null(dt) || nrow(dt) == 0) { cat("No data available.\n"); return(invisible(NULL)) }
@@ -269,7 +263,7 @@ plot_pca_datatable <- function(dt, fi, polarity = NULL, identity_filter = NULL,
 ## Inputs
 
 ```{r inputs}
-#params <- list(config = "E:/Projects/MP208_FLINC/peaktable/PL_LIPS_PASEF/config_win.yml")
+
 cfg          <- wf_read_yaml_config(params$config, label = "params$config")
 path_result  <- wf_cfg_required(cfg, "path_result")
 path_datatable <- wf_cfg_required(cfg, "path_datatable")

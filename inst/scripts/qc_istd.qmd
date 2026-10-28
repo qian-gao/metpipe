@@ -33,9 +33,15 @@ library(htmltools)
 library(ggsci)
 library(yaml)
 
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
 helper_candidates <- c(
   file.path(getwd(), "helpers_workflow.R"),
-  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
   system.file("scripts", "helpers_workflow.R", package = "metpipe")
 )
 helper_candidates <- helper_candidates[file.exists(helper_candidates)]
@@ -46,31 +52,19 @@ source(helper_candidates[[1]], local = TRUE)
 
 metpipe_runtime <- wf_load_metpipe_runtime()
 
-is_blank <- wf_is_blank
-as_flag <- wf_as_flag
-cfg_required <- wf_cfg_required
-as_meta_df <- wf_as_meta_df
-
-knitr::opts_chunk$set(
-  message = FALSE,
-  warning = FALSE,
-  echo = FALSE,
-  include = TRUE
-)
-
 ```
 
 ```{r pipeline input}
 
 config <- wf_read_yaml_config(params$config, label = "params$config")
 
-method_name <- cfg_required(config, "method_name")
+method_name <- wf_cfg_required(config, "method_name")
 path_lib_istd_pos <- config$path_lib_istd_pos
 path_lib_istd_neg <- config$path_lib_istd_neg
-run.pos <- as_flag(config$run.pos)
-run.neg <- as_flag(config$run.neg)
-meta_pos <- as_meta_df(config$meta_pos)
-meta_neg <- as_meta_df(config$meta_neg)
+run.pos <- wf_as_flag(config$run.pos)
+run.neg <- wf_as_flag(config$run.neg)
+meta_pos <- wf_as_meta_df(config$meta_pos)
+meta_neg <- wf_as_meta_df(config$meta_neg)
 figure_height = config$figure_height
 figure_width = config$figure_width
 path_peaktable_istd_pos <- config$path_peaktable_istd_pos
@@ -85,18 +79,18 @@ if (!run.pos && !run.neg) {
 }
 
 if (run.pos) {
-  path_lib_istd_pos <- cfg_required(config, "path_lib_istd_pos")
-  path_peaktable_istd_pos <- cfg_required(config, "path_peaktable_istd_pos")
-  rds_qc_is_pos <- cfg_required(config, "rds_qc_is_pos")
+  path_lib_istd_pos <- wf_cfg_required(config, "path_lib_istd_pos")
+  path_peaktable_istd_pos <- wf_cfg_required(config, "path_peaktable_istd_pos")
+  rds_qc_is_pos <- wf_cfg_required(config, "rds_qc_is_pos")
   if (is.null(meta_pos)) stop("run.pos=TRUE but meta_pos is missing")
   if (!file.exists(path_lib_istd_pos)) stop("Positive ISTD library file not found: ", path_lib_istd_pos)
   if (!file.exists(path_peaktable_istd_pos)) stop("Positive ISTD peaktable file not found: ", path_peaktable_istd_pos)
 }
 
 if (run.neg) {
-  path_lib_istd_neg <- cfg_required(config, "path_lib_istd_neg")
-  path_peaktable_istd_neg <- cfg_required(config, "path_peaktable_istd_neg")
-  rds_qc_is_neg <- cfg_required(config, "rds_qc_is_neg")
+  path_lib_istd_neg <- wf_cfg_required(config, "path_lib_istd_neg")
+  path_peaktable_istd_neg <- wf_cfg_required(config, "path_peaktable_istd_neg")
+  rds_qc_is_neg <- wf_cfg_required(config, "rds_qc_is_neg")
   if (is.null(meta_neg)) stop("run.neg=TRUE but meta_neg is missing")
   if (!file.exists(path_lib_istd_neg)) stop("Negative ISTD library file not found: ", path_lib_istd_neg)
   if (!file.exists(path_peaktable_istd_neg)) stop("Negative ISTD peaktable file not found: ", path_peaktable_istd_neg)
@@ -746,8 +740,6 @@ subplot(p1, p2, nrows = 1, margin = 0.04, titleX = TRUE, titleY = TRUE, shareY =
 :::
 
 ```{r session info, include = FALSE, eval = FALSE}
-
-# Session info
 
 utils::sessionInfo()
 

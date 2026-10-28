@@ -53,10 +53,6 @@ knitr::opts_chunk$set(
   include = TRUE
   )
 
-is_blank <- wf_is_blank
-require_path <- wf_require_path
-join_path <- wf_join_path
-
 ```
 
 
@@ -70,17 +66,17 @@ path_temp = params$path_temp
 path_meta = params$path_meta
 author = params$author
 qc_types = params$qc_types
-software = tolower(ifelse(is_blank(params$software), "mzmine", params$software))
+software = tolower(ifelse(wf_is_blank(params$software), "mzmine", params$software))
 batch_size = as.numeric(params$batch_size)
 
-path_raw <- require_path(path_raw, "path_raw")
-path_workflow <- require_path(path_workflow, "path_workflow")
+path_raw <- wf_require_path(path_raw, "path_raw")
+path_workflow <- wf_require_path(path_workflow, "path_workflow")
 
-if (is_blank(path_result)) stop("path_result is required")
+if (wf_is_blank(path_result)) stop("path_result is required")
 path_result <- normalizePath(path_result, winslash = "/", mustWork = FALSE)
 if (!dir.exists(path_result)) dir.create(path_result, recursive = TRUE)
 
-if (is_blank(path_temp)) {
+if (wf_is_blank(path_temp)) {
   path_temp <- tempdir()
 } else {
   path_temp <- normalizePath(path_temp, winslash = "/", mustWork = FALSE)
@@ -90,13 +86,8 @@ if (is_blank(path_temp)) {
 if (length(qc_types) == 1 && grepl(",", qc_types, fixed = TRUE)) {
   qc_types <- trimws(unlist(strsplit(qc_types, ",", fixed = TRUE)))
 }
-if (length(qc_types) == 1 && !nzchar(qc_types)) {
-  qc_types <- c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix", "PB",
-                "SP0625", "SP1125", "SP25", "SP5", "SP10", "SP", "SP40", "SP50", "SP100", "SP200", "POJ", "POK",
-                "PO1205", "PO25", "PO50", "PO100", "PO200")
-}
 
-if (is_blank(author)) {
+if (wf_is_blank(author)) {
   author <- "CBMR Metabolomics Platform"
 }
 
@@ -209,15 +200,15 @@ if (!run.pos && !run.neg) {
 
 ```{r mzmine input}
 
-mzmine_params <- join_path(path_workflow, method$mzmine_params)
+mzmine_params <- wf_join_path(path_workflow, method$mzmine_params)
 if (is.na(mzmine_params) || !file.exists(mzmine_params)) {
   stop("Cannot find MZmine parameter file: ", mzmine_params)
 }
 
-path_lib_istd_pos <- join_path(path_workflow, method$path_lib_istd_pos)
-path_lib_istd_neg <- join_path(path_workflow, method$path_lib_istd_neg)
+path_lib_istd_pos <- wf_join_path(path_workflow, method$path_lib_istd_pos)
+path_lib_istd_neg <- wf_join_path(path_workflow, method$path_lib_istd_neg)
 spectral_lib <- strsplit(method$path_spectral, "|", fixed = TRUE)[[1]]
-path_spectral_lib <- vapply(spectral_lib, function(s) join_path(path_workflow, s), character(1))
+path_spectral_lib <- vapply(spectral_lib, function(s) wf_join_path(path_workflow, s), character(1))
 mzmine_user <- file.path(path_workflow, "parameters", "qiangao.mzuser")
 mzmine_memory <- "-memory none"
 mzmine_threads <- "-threads 10"

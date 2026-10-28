@@ -24,16 +24,20 @@ params:
 library(yaml)
 library(dplyr)
 
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  include = TRUE
+)
+
 helper_candidates <- c(
   file.path(getwd(), "helpers_workflow.R"),
-  file.path(getwd(), "inst", "scripts", "helpers_workflow.R"),
   system.file("scripts", "helpers_workflow.R", package = "metpipe")
 )
 helper_candidates <- helper_candidates[file.exists(helper_candidates)]
 if (length(helper_candidates) == 0) stop("Cannot locate helpers_workflow.R")
 source(helper_candidates[[1]], local = TRUE)
-
-knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE, include = TRUE)
 
 ```
 
@@ -48,14 +52,14 @@ run.pos     <- wf_as_flag(cfg$run.pos)
 run.neg     <- wf_as_flag(cfg$run.neg)
 path_result <- wf_cfg_required(cfg, "path_result")
   
-# Parse overlap sample names (comma-separated)
+# Overlap sample based on names
 overlap_names <- if (!wf_is_blank(cfg$overlap_by_name)) {
   trimws(unlist(strsplit(as.character(cfg$overlap_by_name), ",", fixed = TRUE)))
 } else {
   character(0)
 }
 
-# Parse overlap sample types and resolve to sample names via Sample.type column
+# Overlap sample based on sample types
 overlap_type_names <- if (!wf_is_blank(cfg$overlap_sample_types)) {
   types <- trimws(unlist(strsplit(as.character(cfg$overlap_sample_types), ",", fixed = TRUE)))
   pos_by_type <- if (!is.null(meta_pos) && "Sample.type" %in% colnames(meta_pos))
@@ -69,8 +73,7 @@ overlap_type_names <- if (!wf_is_blank(cfg$overlap_sample_types)) {
 
 overlap_names <- unique(c(overlap_names, overlap_type_names))
 
-# Parse batch_assignments: R expression that evaluates to a list of index vectors
-# e.g. "list(1:30, 31:50)"
+# Batch assignments
 if (wf_is_blank(cfg$batch_assignments)) stop("batch_assignments is required")
 batch_assignments <- tryCatch(
   eval(parse(text = as.character(cfg$batch_assignments))),
@@ -96,7 +99,7 @@ cat("Batches:             ", n_batches, "\n")
 pos_samples <- if (run.pos && !is.null(meta_pos)) meta_pos$Sample else character(0)
 neg_samples <- if (run.neg && !is.null(meta_neg)) meta_neg$Sample else character(0)
 
-# Warn about overlap names not found in either mode
+# Overlap names not found in either mode
 missing_ov <- overlap_names[!overlap_names %in% union(pos_samples, neg_samples)]
 if (length(missing_ov) > 0)
   warning("overlap_by_name: not found in pos or neg — ",
@@ -105,7 +108,7 @@ if (length(missing_ov) > 0)
 pos_non_ov <- pos_samples[!pos_samples %in% overlap_names]
 neg_non_ov <- neg_samples[!neg_samples %in% overlap_names]
 
-# Shared non-overlap samples (pos order preserved)
+# Shared non-overlap samples 
 shared   <- pos_non_ov[pos_non_ov %in% neg_non_ov]
 pos_only <- pos_non_ov[!pos_non_ov %in% neg_non_ov]
 neg_only <- neg_non_ov[!neg_non_ov %in% pos_non_ov]
@@ -130,15 +133,14 @@ cat("Neg-only (extra batch):    ", length(neg_only), "\n")
 
 ```
 
-```{r helpers, include=FALSE}
+```{r functions, include=FALSE}
 
-# Convert a filtered data.frame back to the column-list format used in YAML
 df_to_yaml_cols <- function(df) {
   if (is.null(df) || nrow(df) == 0) return(NULL)
   as.list(df)
 }
 
-# Return rows for overlap samples first (original order), then batch-specific samples
+# Return rows for overlap samples first in original order, then batch-specific samples
 filter_meta_ordered <- function(meta, ov_names, specific_names) {
   if (is.null(meta)) return(NULL)
   ov_rows <- meta[meta$Sample %in% ov_names,       , drop = FALSE]
@@ -147,7 +149,7 @@ filter_meta_ordered <- function(meta, ov_names, specific_names) {
   if (nrow(res) == 0) NULL else res
 }
 
-# Select raw file paths matching a filtered meta data.frame (preserves meta row order)
+# Select raw file paths matching a meta data.frame
 raw_files_for_meta <- function(all_raw, meta) {
   if (is.null(meta) || nrow(meta) == 0 || is.null(all_raw)) return(NULL)
   lut     <- setNames(unlist(all_raw), basename(unlist(all_raw)))

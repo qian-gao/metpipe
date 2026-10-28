@@ -29,48 +29,6 @@ library(ggsci)
 library(yaml)
 library(openxlsx)
 
-load_metpipe_runtime <- function() {
-  package_mode <- tolower(trimws(Sys.getenv("METPIPE_PACKAGE_MODE", unset = "local")))
-  if (!package_mode %in% c("local", "installed")) package_mode <- "local"
-
-  if (identical(package_mode, "installed")) {
-    if (!requireNamespace("metpipe", quietly = TRUE)) {
-      stop("METPIPE_PACKAGE_MODE='installed' but package 'metpipe' is not installed")
-    }
-    library(metpipe)
-    return("installed")
-  }
-
-  candidates <- unique(Filter(nzchar, c(
-    Sys.getenv("METPIPE_LOCAL_ROOT", ""),
-    "H:/Documents/CBMR_workflow/packages/metpipe",
-    normalizePath(getwd(), winslash = "/", mustWork = FALSE),
-    normalizePath(file.path(getwd(), ".."), winslash = "/", mustWork = FALSE),
-    normalizePath(file.path(getwd(), "..", ".."), winslash = "/", mustWork = FALSE)
-  )))
-
-  is_pkg_root <- function(path) {
-    dir.exists(path) &&
-      file.exists(file.path(path, "DESCRIPTION")) &&
-      dir.exists(file.path(path, "R"))
-  }
-
-  roots <- candidates[vapply(candidates, is_pkg_root, logical(1))]
-  if (length(roots) == 0) {
-    stop("Cannot locate local metpipe package root. Set METPIPE_LOCAL_ROOT to your metpipe folder.")
-  }
-
-  if (!requireNamespace("pkgload", quietly = TRUE)) {
-    stop("pkgload is required for local source loading. Install with install.packages('pkgload').")
-  }
-
-  Sys.setenv(METPIPE_LOCAL_ROOT = roots[[1]])
-  pkgload::load_all(path = roots[[1]], export_all = FALSE, quiet = TRUE)
-  "local"
-}
-
-metpipe_runtime <- load_metpipe_runtime()
-
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
@@ -78,20 +36,23 @@ knitr::opts_chunk$set(
   include = TRUE
 )
 
-is_blank <- function(x) {
-  is.null(x) || length(x) == 0 || all(is.na(x)) || !nzchar(trimws(as.character(x[1])))
+helper_candidates <- c(
+  file.path(getwd(), "helpers_workflow.R"),
+  system.file("scripts", "helpers_workflow.R", package = "metpipe")
+)
+helper_candidates <- helper_candidates[file.exists(helper_candidates)]
+if (length(helper_candidates) == 0) {
+  stop("Cannot locate shared helper script helpers_workflow.R")
 }
+source(helper_candidates[[1]], local = TRUE)
 
-cfg_required <- function(cfg, name) {
-  val <- cfg[[name]]
-  if (is_blank(val)) stop("Missing required config field: ", name)
-  val
-}
+metpipe_runtime <- wf_load_metpipe_runtime()
+
 ```
 
 ```{r pipeline input}
 
-if (is_blank(params$config)) {
+if (wf_is_blank(params$config)) {
   stop("params$config is required")
 }
 if (!file.exists(params$config)) {
@@ -103,10 +64,10 @@ if (is.null(config) || !is.list(config)) {
   stop("Invalid YAML config: expected a named list")
 }
 
-rds_datalist <- cfg_required(config, "rds_datalist")
-path_datatable <- cfg_required(config, "path_datatable")
-path_workflow = cfg_required(config, "path_workflow")
-final.eval.sample.to.use = cfg_required(config, "final.eval.sample.to.use")
+rds_datalist <- wf_cfg_required(config, "rds_datalist")
+path_datatable <- wf_cfg_required(config, "path_datatable")
+path_workflow = wf_cfg_required(config, "path_workflow")
+final.eval.sample.to.use = wf_cfg_required(config, "final.eval.sample.to.use")
 
 if (!file.exists(rds_datalist)) {
   stop("datalist file not found: ", rds_datalist)
@@ -119,11 +80,6 @@ if (!file.exists(db_file)) {
 
 out_dir <- dirname(path_datatable)
 if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-
-```
-
-```{r, eval = FALSE, include = FALSE}
-rds_datalist <- "D:/Projects/MP197/peaktable/_BL_LIPS_FPASEF/datalist.rds"
 
 ```
 
@@ -248,8 +204,6 @@ saveWorkbook(wb, path_datatable, overwrite = TRUE)
 
 
 ```{r session info, include = FALSE}
-
-# Session info
 
 utils::sessionInfo()
 

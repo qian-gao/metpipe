@@ -47,8 +47,6 @@ knitr::opts_chunk$set(
   include = TRUE
   )
 
-require_path <- wf_require_path
-is_blank <- wf_is_blank
 ```
 
 
@@ -59,9 +57,9 @@ path_result = params$path_result
 qc_types = params$qc_types
 batch_size = as.numeric(params$batch_size)
 
-path_raw <- require_path(path_raw, "path_raw")
+path_raw <- wf_require_path(path_raw, "path_raw")
 
-if (is_blank(path_result)) stop("path_result is required")
+if (wf_is_blank(path_result)) stop("path_result is required")
 path_result <- normalizePath(path_result, winslash = "/", mustWork = FALSE)
 
 ```
