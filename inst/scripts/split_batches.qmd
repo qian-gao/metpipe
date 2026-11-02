@@ -108,10 +108,16 @@ if (length(missing_ov) > 0)
 pos_non_ov <- pos_samples[!pos_samples %in% overlap_names]
 neg_non_ov <- neg_samples[!neg_samples %in% overlap_names]
 
-# Shared non-overlap samples 
-shared   <- pos_non_ov[pos_non_ov %in% neg_non_ov]
-pos_only <- pos_non_ov[!pos_non_ov %in% neg_non_ov]
-neg_only <- neg_non_ov[!neg_non_ov %in% pos_non_ov]
+# Shared non-overlap samples (single mode: all non-overlap samples of that mode)
+if (length(pos_samples) > 0 && length(neg_samples) > 0) {
+  shared   <- pos_non_ov[pos_non_ov %in% neg_non_ov]
+  pos_only <- pos_non_ov[!pos_non_ov %in% neg_non_ov]
+  neg_only <- neg_non_ov[!neg_non_ov %in% pos_non_ov]
+} else {
+  shared   <- c(pos_non_ov, neg_non_ov)
+  pos_only <- character(0)
+  neg_only <- character(0)
+}
 
 if (length(pos_only) > 0)
   message(length(pos_only), " pos-only samples will be placed in a separate batch.")
@@ -127,7 +133,7 @@ if (length(all_idx) > 0) {
 }
 
 cat("Overlap samples:           ", length(overlap_names), "\n")
-cat("Shared non-overlap (pos):  ", length(shared), "\n")
+cat("Shared non-overlap:        ", length(shared), "\n")
 cat("Pos-only (extra batch):    ", length(pos_only), "\n")
 cat("Neg-only (extra batch):    ", length(neg_only), "\n")
 
