@@ -106,7 +106,7 @@ Sys.setenv(METPIPE_PACKAGE_MODE = package_mode)
 
 local_pkg_root <- ifelse(
   wf_is_blank(get_arg("--local-pkg-root")),
-  ###? "H:/Documents/CBMR_workflow/packages/metpipe",
+  "H:/Documents/CBMR_workflow/packages/metpipe",
   stop("package-mode='local', please provide the directory of local metpipe package."),
   get_arg("--local-pkg-root")
 )
