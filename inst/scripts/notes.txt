@@ -1,0 +1,89 @@
+args
+
+--package-mode local, installed
+--local-pkg-root directory of the local metpipe package
+--path_yaml
+--path_prep_meta
+
+
+
+
+
+
+prep_meta.qmd
+
+```{r, include = FALSE, eval = FALSE}
+
+path_raw = "E:/Projects/MP_workshop/raw/PL_LIPS_PASEF"
+
+path_raw = "E:/Projects/MP0065/mzML/PL_LIPS_FPASEF"
+path_result = "E:/Projects/MP0065/peaktable/PL_LIPS_FPASEF"
+path_workflow = "H:/Documents/CBMR_workflow/packages/metpipe/workflow"
+path_mzmine = "mzmine"
+path_temp = "temp"
+author = "CBMR Metabolomics Platform"
+qc_types = c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix", "PB",
+             "SP0625", "SP1125", "SP25", "SP5", "SP10", "SP", "SP40", "POJ", "POK")
+
+```
+
+prep_yaml.qmd
+
+```{r, include = FALSE, eval = FALSE}
+
+path_raw = "E:/Projects/MP0065/mzML/PL_LIPS_FPASEF"
+path_result = "E:/Projects/MP0065/peaktable/PL_LIPS_FPASEF"
+path_workflow = "H:/Documents/CBMR_workflow/packages/metpipe_all/workflow"
+path_mzmine = "mzmine"
+path_temp = "temp"
+author = "CBMR Metabolomics Platform"
+qc_types = c("BL", "NIST", "PO", "sol", "CP", "IQ", "BPL", "MMix", "PB",
+             "SP0625", "SP1125", "SP25", "SP5", "SP10", "SP", "SP40", "POJ", "POK")
+
+```
+
+post_processing.qmd
+
+```{r, include = FALSE, eval = FALSE}
+
+config <- read_yaml("E:/Projects/MP_workshop/peaktable/PL_LIPS_PASEF/config.yml")
+
+path_workflow = config$path_workflow
+run.pos = config$run.pos
+run.neg = config$run.neg
+meta_pos = config$meta_pos
+meta_neg = config$meta_neg
+mean.filter = config$mean.filter
+rsd.filter = config$rsd.filter
+dilution.filter = config$dilution.filter
+rt.range = config$rt.range
+filter_by_missing_feature_pct = config$filter_by_missing_feature_pct
+filter_by_missing_sample_type = config$filter_by_missing_sample_type
+outliers.sample = config$outliers.sample
+clean.po.sample.to.use = config$clean.po.sample.to.use
+impute.method.sample = config$impute.method.sample
+impute.method.is = config$impute.method.is
+norm.po.sample.to.use = config$norm.po.sample.to.use
+norm.method = config$norm.method
+norm.batch.wise = config$norm.batch.wise
+sample.type.keep = config$sample.type.keep
+final.norm = config$final.norm
+final.eval.sample.to.use = config$final.eval.sample.to.use
+final.sample.type.keep = config$final.sample.type.keep
+
+peaktable_pos = gsub("/mnt/e", "E:", config$path_peaktable_pos)
+peaktable_neg = gsub("/mnt/e", "E:", config$path_peaktable_neg)
+meta_pos = data.frame(config$meta_pos)
+meta_neg = data.frame(config$meta_neg)
+
+# output
+rds_datalist <- config$rds_datalist
+path_datatable <- config$path_datatable
+```
+
+extra_processing_lip.qmd
+
+```{r, eval = FALSE, include = FALSE}
+rds_datalist <- "D:/Projects/MP197/peaktable/_BL_LIPS_FPASEF/datalist.rds"
+
+```
