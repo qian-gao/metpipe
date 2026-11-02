@@ -80,7 +80,7 @@ impute_missing <-
       x_imputed <- apply(x, 2, fill_missing, fill_fun = mean, scale = 1)
       
     } else if (method == "knn") {
-      # if missing < 20% for each group, apply knn, otherwise LoD
+      # if missing < 20% for each group, apply knn, otherwise HF
 
       if (is.null(group.info)) {
         group.info <- rep("Group 0", nrow(x))
@@ -100,14 +100,14 @@ impute_missing <-
         
         col.index <- apply(data.i, 2, function(x) {sum(is.na(x) | x <= 0) <= missing_thres * nrow})
         
-        x_imputed[row.index, col.index] <-
+        x_imputed <-
           kNN(x_imputed[row.index, col.index, drop = FALSE],
               variable = colnames(x_imputed[row.index, col.index, drop = FALSE]),
               k = k, numFun = weightedMean, weightDist=TRUE, imp_var = FALSE)
         
       }
       
-      x_imputed <- apply(x_imputed, 2, fill_missing, fill_fun = min, scale = 0.2)
+      x_imputed <- apply(x_imputed, 2, fill_missing, fill_fun = min, scale = 0.5)
     }
     
     x_imputed <- data.frame(x_imputed)
