@@ -170,7 +170,10 @@ if (run.pos) {
   } else {
     meta_pos <- read.xlsx(path_meta, "pos")
   }
+} else {
+  meta_pos <- NULL
 }
+
 
 if (dir.exists(path_files_neg)){
   raw_files_neg <- sort(list.files(path_files_neg, full.names = TRUE, pattern = "\\.(d|mzML|raw)$", ignore.case = TRUE))
@@ -189,6 +192,8 @@ if (run.neg) {
   } else {
     meta_neg <- read.xlsx(path_meta, "neg")
   }
+} else {
+  meta_neg <- NULL
 }
 
 if (!run.pos && !run.neg) {

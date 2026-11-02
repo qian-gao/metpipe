@@ -121,7 +121,7 @@ if (length(neg_only) > 0)
 # Validate indices against the shared sample pool
 all_idx <- unlist(batch_assignments)
 if (length(all_idx) > 0) {
-  if (length(shared) == 0) stop("No shared (pos+neg) non-overlap samples available to assign")
+  if (length(shared) == 0) warning("No shared (pos+neg) non-overlap samples available to assign")
   if (any(all_idx < 1) || any(all_idx > length(shared)))
     stop("batch_assignments index out of range [1, ", length(shared), "]")
 }
