@@ -136,7 +136,8 @@ run_merge_and_map <-
       
       features.pos <- 
         pos_data$features_norm %>% 
-        mutate(Polarity = "pos")
+        mutate(Polarity = "pos",
+               identifier = Identity)
       
       feature.info.temp <- features.pos
       
@@ -178,11 +179,15 @@ run_merge_and_map <-
           arrange(identity_source, Identity_raw)        
       }
       
-      datatable.keep <- peaks.pos[, c("Sample", feature.info$Identity)]
+      datatable.keep <- peaks.pos[, c("Sample", feature.info$identifier)]
       
       sample.info <-
         meta.pos[match(datatable.keep$Sample, meta.pos$Sample), ] %>%
         dplyr::select(-c("File.name")) 
+      
+      feature.info <- 
+        feature.info %>% 
+        dplyr::select(-identifier)
       
     } else if (!has_pos && has_neg) {
       neg_data <- get_mode(datalist, "neg")
@@ -192,7 +197,8 @@ run_merge_and_map <-
       
       features.neg <- 
         neg_data$features_norm %>% 
-        mutate(Polarity = "neg")
+        mutate(Polarity = "neg",
+               identifier = Identity)
       
       feature.info.temp <- features.neg
     
@@ -234,11 +240,15 @@ run_merge_and_map <-
           arrange(identity_source, Identity_raw)        
       }
       
-      datatable.keep <- peaks.neg[, c("Sample", feature.info$Identity)]
+      datatable.keep <- peaks.neg[, c("Sample", feature.info$identifier)]
       
       sample.info <-
         meta.neg[match(datatable.keep$Sample, meta.neg$Sample), ] %>%
-        dplyr::select(-c("File.name"))   
+        dplyr::select(-c("File.name"))  
+      
+      feature.info <- 
+        feature.info %>% 
+        dplyr::select(-identifier)
     }
     
     feature.info.seq <- 
