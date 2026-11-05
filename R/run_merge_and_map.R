@@ -180,6 +180,7 @@ run_merge_and_map <-
       }
       
       datatable.keep <- peaks.pos[, c("Sample", feature.info$identifier)]
+      colnames(datatable.keep) <- c("Sample", feature.info$Identity)
       
       sample.info <-
         meta.pos[match(datatable.keep$Sample, meta.pos$Sample), ] %>%
@@ -241,6 +242,7 @@ run_merge_and_map <-
       }
       
       datatable.keep <- peaks.neg[, c("Sample", feature.info$identifier)]
+      colnames(datatable.keep) <- c("Sample", feature.info$Identity)
       
       sample.info <-
         meta.neg[match(datatable.keep$Sample, meta.neg$Sample), ] %>%
