@@ -68,6 +68,7 @@ overlap_type_names <- if (!wf_is_blank(cfg$overlap_sample_types)) {
     meta_neg$Sample[meta_neg$Sample.type %in% types] else character(0)
   unique_samples <- unique(c(pos_by_type, neg_by_type))
   if (length(unique_samples) > 100) {
+    set.seed(46)
     output <- sample(unique_samples, size = 100)
   } else {
     output <- unique_samples
