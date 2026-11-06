@@ -416,7 +416,8 @@ merge_table_list <- function(tables, label,
                              thres_mz_ppm = 3, thres_rt_min = 0.1, best_match = TRUE,
                              thres_cor = 0.7, thres_log2ratio = 0.3,
                              shift_correction = TRUE, overlap_col_assignment = NULL,
-                             shifts = NULL) {
+                             shifts = NULL,
+                             thres_dup_mz_ppm = thres_mz_ppm, thres_dup_rt_min = thres_rt_min) {
   tables <- Filter(Negate(is.null), tables)
   # Precomputed per-batch shifts (e.g. from the main table, for ISTD tables) are
   # only used when they line up with the available batches
@@ -443,7 +444,8 @@ merge_table_list <- function(tables, label,
   shift_list  <- c(list(list(ppm = 0, rt = 0, n = NA_integer_, applied = FALSE)),
                    vector("list", length(tables) - 1))
 
-  current <- remove_dup(tables[[1]], thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min)
+  # Within-batch duplicate removal uses its own (typically tighter) tolerances
+  current <- remove_dup(tables[[1]], thres_mz_ppm = thres_dup_mz_ppm, thres_rt_min = thres_dup_rt_min)
 
   for (k in seq(2, length(tables))) {
     n_before <- nrow(current)
@@ -458,7 +460,7 @@ merge_table_list <- function(tables, label,
                    else names(overlap_col_assignment)[overlap_col_assignment == k]
 
     res <- align_features(current,
-                          remove_dup(tables[[k]], thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min),
+                          remove_dup(tables[[k]], thres_mz_ppm = thres_dup_mz_ppm, thres_rt_min = thres_dup_rt_min),
                           thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min,
                           best_match = best_match,
                           thres_cor = thres_cor, thres_log2ratio = thres_log2ratio,
@@ -540,6 +542,12 @@ shift_correction <- if (wf_is_blank(cfg$shift_correction)) TRUE else wf_as_flag(
 
 if (is.na(thres_mz_ppm) || is.na(thres_rt_min))
   stop("thres_mz_ppm and thres_rt_min must be numeric")
+
+# Within-batch duplicate removal tolerances (default: same as batch matching)
+thres_dup_mz_ppm <- cfg_threshold(cfg$thres_dup_mz_ppm, thres_mz_ppm)
+thres_dup_rt_min <- cfg_threshold(cfg$thres_dup_rt_min, thres_rt_min)
+if (is.na(thres_dup_mz_ppm) || is.na(thres_dup_rt_min))
+  stop("thres_dup_mz_ppm and thres_dup_rt_min must be numeric")
 if (is.na(n_batches) || n_batches < 2)
   stop("n_batches must be an integer >= 2, got: ", cfg$n_batches)
 
@@ -558,6 +566,8 @@ cat("run.pos:         ", run.pos, "\n")
 cat("run.neg:         ", run.neg, "\n")
 cat("thres_mz_ppm:    ", thres_mz_ppm, "\n")
 cat("thres_rt_min:    ", thres_rt_min, "\n")
+cat("thres_dup_mz_ppm:", thres_dup_mz_ppm, "(within-batch duplicate removal)\n")
+cat("thres_dup_rt_min:", thres_dup_rt_min, "(within-batch duplicate removal)\n")
 cat("thres_cor:       ", if (is.na(thres_cor)) "disabled" else thres_cor, "\n")
 cat("thres_log2ratio: ", if (is.na(thres_log2ratio)) "disabled" else thres_log2ratio,
     "(after per-sample centering)\n")
@@ -630,7 +640,8 @@ tnames_to_run <- Filter(function(n) table_specs[[n]]$run, names(table_specs))
 
 process_one_table <- function(tname, thres_mz_ppm = 3, thres_rt_min = 0.1, best_match = TRUE,
                               thres_cor = 0.7, thres_log2ratio = 0.3, shift_correction = TRUE,
-                              shifts = NULL) {
+                              shifts = NULL,
+                              thres_dup_mz_ppm = thres_mz_ppm, thres_dup_rt_min = thres_rt_min) {
   ts <- table_specs[[tname]]
 
   tables_full <- lapply(seq_along(batch_dirs), function(bi) {
@@ -654,7 +665,8 @@ process_one_table <- function(tname, thres_mz_ppm = 3, thres_rt_min = 0.1, best_
                           thres_cor = thres_cor, thres_log2ratio = thres_log2ratio,
                           shift_correction = shift_correction,
                           overlap_col_assignment = overlap_col_assignment,
-                          shifts = shifts)
+                          shifts = shifts,
+                          thres_dup_mz_ppm = thres_dup_mz_ppm, thres_dup_rt_min = thres_dup_rt_min)
   if (is.null(res)) return(NULL)
 
   list(
@@ -672,7 +684,8 @@ process_one_table <- function(tname, thres_mz_ppm = 3, thres_rt_min = 0.1, best_
 
 merge_args <- list(thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min,
                    best_match = best_match, thres_cor = thres_cor,
-                   thres_log2ratio = thres_log2ratio, shift_correction = shift_correction)
+                   thres_log2ratio = thres_log2ratio, shift_correction = shift_correction,
+                   thres_dup_mz_ppm = thres_dup_mz_ppm, thres_dup_rt_min = thres_dup_rt_min)
 
 # Main tables first; ISTD tables reuse the batch shifts estimated on the main table
 # (ISTD tables have too few uniquely annotated features to estimate them)
