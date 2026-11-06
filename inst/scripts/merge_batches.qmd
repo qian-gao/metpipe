@@ -48,10 +48,24 @@ ppm_diff <- function(mz1, mz2) {
   abs(mz1 - mz2) / mz1 * 1e6
 }
 
+# CCS difference in percent; NA when either CCS is missing or 0 (not measured)
 ccs_diff <- function(ccs1, ccs2) {
-  abs(ccs1 - ccs2) / ccs1 * 100
-} 
-  
+  out <- abs(ccs1 - ccs2) / ccs1 * 100
+  out[is.na(ccs1) | is.na(ccs2) | ccs1 <= 0 | ccs2 <= 0 | !is.finite(out)] <- NA_real_
+  out
+}
+
+# Sample key of a column name: strips the "datafile." prefix and the
+# ".d" / ".mzML" suffix including anything after it (".area", ".height", ...)
+sample_key <- function(cn) {
+  sub("\\.(d|mzML)(\\..*)?$", "", sub("^datafile\\.", "", cn))
+}
+
+# NA-aware equality: TRUE when both are NA or both are equal
+same_val <- function(a, b) {
+  (is.na(a) & is.na(b)) | (!is.na(a) & !is.na(b) & a == b)
+}
+
 # Clean up peaktable by removing near-duplicate features
 # Identified features: grouped by identity string
 # Unknown features: grouped by mz, rt
@@ -60,11 +74,7 @@ remove_dup <- function(df, thres_mz_ppm = 3, thres_rt_min = 0.1) {
   n <- nrow(df)
   if (n == 0L) return(df)
 
-  int_cols <- if (any(grepl("\\.d\\.area$", colnames(df)))) {
-    grep("\\.d\\.area$", colnames(df), value = TRUE)
-  } else {
-    grep("(?<!\\.rt|\\.mz)\\.d$", colnames(df), value = TRUE, perl = TRUE)
-  }
+  int_cols <- get_sample_cols(df)
   mean_int <- if (length(int_cols) > 0L)
     rowMeans(as.matrix(df[, int_cols, drop = FALSE]), na.rm = TRUE)
   else
@@ -78,7 +88,6 @@ remove_dup <- function(df, thres_mz_ppm = 3, thres_rt_min = 0.1) {
     idx_id  <- which(has_id)
     keep_id <- unlist(
       tapply(idx_id, df$identity[idx_id],
-             #function(rows) rows[which.max(mean_int[rows])]),
              function(rows) rows[order(mean_int[rows], decreasing = TRUE)[seq_len(min(2L, length(rows)))]]),
       use.names = FALSE
     )
@@ -107,8 +116,8 @@ remove_dup <- function(df, thres_mz_ppm = 3, thres_rt_min = 0.1) {
     for (i in seq_len(m - 1L)) {
       lo <- findInterval(mz_s[i] * (1 - thres_mz_ppm * 1e-6), mz_s) + 1L
       hi <- findInterval(mz_s[i] * (1 + thres_mz_ppm * 1e-6), mz_s)
+      if (hi < max(lo, i + 1L)) next
       js <- seq.int(max(lo, i + 1L), hi)
-      if (length(js) == 0L) next
       js <- js[abs(rt_s[js] - rt_s[i]) < thres_rt_min]
       for (j in js) union_nodes(i, j)
     }
@@ -175,159 +184,193 @@ build_overlap_assignment <- function(master_meta, batch_metas) {
   setNames(assignment, overlap_samps)
 }
 
-# Remove overlap samples not assigned to this batch
-filter_overlap_cols <- function(df, overlap_assignment, batch_num) {
-  if (is.null(overlap_assignment) || length(overlap_assignment) == 0L) return(df)
-  remove_samps <- names(overlap_assignment)[overlap_assignment != batch_num]
-  if (length(remove_samps) == 0L) return(df)
-  esc  <- gsub("([.\\^$*+?{}|()\\[\\]])", "\\\\\\1", remove_samps)
-  pat  <- paste0("^(", paste(esc, collapse = "|"), ")\\.d")
-  df[, !grepl(pat, colnames(df), perl = TRUE), drop = FALSE]
+# Translate a Sample -> batch assignment into a sample key -> batch assignment
+# (sample key = make.names(File.name) without ".d"/".mzML", matching sample_key())
+assignment_to_keys <- function(assignment, meta) {
+  if (is.null(assignment) || is.null(meta) ||
+      !all(c("Sample", "File.name") %in% colnames(meta))) return(NULL)
+  fn   <- meta$File.name[match(names(assignment), meta$Sample)]
+  ok   <- !is.na(fn)
+  keys <- sub("\\.(d|mzML)$", "", make.names(fn[ok]))
+  setNames(assignment[ok], keys)
+}
+
+# Estimate the systematic m/z (ppm) and RT (min) offset of df relative to ref,
+# using features annotated exactly once in each table (same identity/ion/formula)
+estimate_batch_shift <- function(ref, df, min_anchors = 20L, rt_win = 0.3) {
+  key  <- function(x) paste(x$identity, x$ion, x$formula, sep = "|")
+  uniq <- function(x) {
+    x <- x[!is.na(x$identity), c("mz", "rt", "identity", "ion", "formula"), drop = FALSE]
+    k <- key(x)
+    x[!(duplicated(k) | duplicated(k, fromLast = TRUE)), , drop = FALSE]
+  }
+  a  <- uniq(ref)
+  b  <- uniq(df)
+  m  <- match(key(a), key(b))
+  ok <- !is.na(m)
+  a  <- a[ok, , drop = FALSE]
+  b  <- b[m[ok], , drop = FALSE]
+  keep <- abs(a$rt - b$rt) < rt_win
+  a  <- a[keep, , drop = FALSE]
+  b  <- b[keep, , drop = FALSE]
+  n  <- nrow(a)
+  if (n < min_anchors) return(list(ppm = 0, rt = 0, n = n, applied = FALSE))
+  list(
+    ppm     = stats::median((b$mz - a$mz) / a$mz * 1e6),
+    rt      = stats::median(b$rt - a$rt),
+    n       = n,
+    applied = TRUE
+  )
 }
 
 # Align features from two peaktables
-# best_match = TRUE: keeps the best-scoring match
-# collect_diag = TRUE: returns diagnostics
-align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_match = FALSE,
+# shift_ppm / shift_rt: systematic offset of df2 relative to df1, removed before matching
+# best_match = TRUE: keeps the best-scoring match per df1 feature
+# thres_cor / thres_log2ratio: NA disables the filter
+# prefer_df2_keys: sample keys whose columns are taken from df2 when both tables have them
+align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_match = TRUE,
                            thres_cor = 0.7, thres_log2ratio = 0.3,
-                           collect_diag = FALSE, step_label = "") {
-  
-  if ("ccs" %in% colnames(df1)) {
-    ccs_flag <- TRUE
-  } else {
-    ccs_flag <- FALSE
-  }
-  
-  if (ccs_flag){
-    meta_cols <- c("mz", "rt", "identity", "ion", "formula", "ccs")
-  } else {
-    meta_cols <- c("mz", "rt", "identity", "ion", "formula")
-  }
-  
+                           shift_ppm = 0, shift_rt = 0,
+                           prefer_df2_keys = character(0),
+                           step_label = "") {
+
+  funnel <- c(ref_features = nrow(df1), batch_features = nrow(df2),
+              mz_rt_match = 0L, id_ok = 0L, cor_ok = 0L, log2ratio_ok = 0L, merged = 0L)
+  empty  <- function() list(merged = NULL, diag = NULL, l2r_long = NULL, funnel = funnel)
+  n_feat <- function(p) length(unique(p$.i))
+
+  ccs_flag  <- "ccs" %in% colnames(df1) && "ccs" %in% colnames(df2)
+  meta_cols <- c("mz", "rt", "identity", "ion", "formula", if (ccs_flag) "ccs")
+
   m1 <- cbind(.i = seq_len(nrow(df1)), df1[, meta_cols, drop = FALSE])
   m2 <- cbind(.j = seq_len(nrow(df2)), df2[, meta_cols, drop = FALSE])
 
-  # Sort m2 by mz
+  # Remove the systematic batch offset from df2 (matching coordinates only)
+  m2$mz <- m2$mz / (1 + shift_ppm * 1e-6)
+  m2$rt <- m2$rt - shift_rt
+
+  # Candidate pairs within the m/z and RT windows (m2 sorted by mz)
   m2s      <- m2[order(m2$mz), , drop = FALSE]
   pair_idx <- lapply(seq_len(nrow(m1)), function(i) {
     mz1 <- m1$mz[i]
-    lo  <- findInterval(mz1 * (1 - 3e-6), m2s$mz) + 1L
-    hi  <- findInterval(mz1 * (1 + 3e-6), m2s$mz)
+    lo  <- findInterval(mz1 * (1 - thres_mz_ppm * 1e-6), m2s$mz) + 1L
+    hi  <- findInterval(mz1 * (1 + thres_mz_ppm * 1e-6), m2s$mz)
     if (lo > hi) return(NULL)
     rt_ok <- which(abs(m2s$rt[lo:hi] - m1$rt[i]) < thres_rt_min) + (lo - 1L)
     if (length(rt_ok) == 0) return(NULL)
     list(i = rep(i, length(rt_ok)), j = rt_ok)
   })
   pair_idx <- Filter(Negate(is.null), pair_idx)
-
-  if (length(pair_idx) == 0) {
-    if (collect_diag) return(list(merged = NULL, diag = NULL, l2r_long = NULL))
-    return(NULL)
-  }
+  if (length(pair_idx) == 0) return(empty())
 
   all_i <- unlist(lapply(pair_idx, `[[`, "i"))
   all_j <- m2s$.j[unlist(lapply(pair_idx, `[[`, "j"))]
 
-  if (ccs_flag){
-    pairs <- data.frame(
-      .i = all_i, .j = all_j,
-      mz.1 = m1$mz[all_i], rt.1 = m1$rt[all_i], ccs.1 = m1$ccs[all_i],
-      identity.1 = m1$identity[all_i], ion.1 = m1$ion[all_i], formula.1 = m1$formula[all_i],
-      mz.2 = m2$mz[all_j], rt.2 = m2$rt[all_j], ccs.2 = m2$ccs[all_j],
-      identity.2 = m2$identity[all_j], ion.2 = m2$ion[all_j], formula.2 = m2$formula[all_j],
-      stringsAsFactors = FALSE
-    )    
-  } else {
-    pairs <- data.frame(
-      .i = all_i, .j = all_j,
-      mz.1 = m1$mz[all_i], rt.1 = m1$rt[all_i],
-      identity.1 = m1$identity[all_i], ion.1 = m1$ion[all_i], formula.1 = m1$formula[all_i],
-      mz.2 = m2$mz[all_j], rt.2 = m2$rt[all_j],
-      identity.2 = m2$identity[all_j], ion.2 = m2$ion[all_j], formula.2 = m2$formula[all_j],
-      stringsAsFactors = FALSE
-    )
-  }
-  
+  pairs <- data.frame(
+    .i = all_i, .j = all_j,
+    mz.1 = m1$mz[all_i], rt.1 = m1$rt[all_i],
+    identity.1 = m1$identity[all_i], ion.1 = m1$ion[all_i], formula.1 = m1$formula[all_i],
+    mz.2 = m2$mz[all_j], rt.2 = m2$rt[all_j],
+    identity.2 = m2$identity[all_j], ion.2 = m2$ion[all_j], formula.2 = m2$formula[all_j],
+    stringsAsFactors = FALSE
+  )
   pairs$mz_ppm  <- ppm_diff(pairs$mz.1, pairs$mz.2)
   pairs$rt_diff <- abs(pairs$rt.1 - pairs$rt.2)
-  pairs$ccs_percent <- ccs_diff(pairs$ccs.1, pairs$ccs.2)
-  
-  pairs <- pairs[pairs$mz_ppm < thres_mz_ppm & pairs$rt_diff < thres_rt_min, , drop = FALSE]
-
-  if (nrow(pairs) == 0) {
-    if (collect_diag) return(list(merged = NULL, diag = NULL, l2r_long = NULL))
-    return(NULL)
+  if (ccs_flag) {
+    pairs$ccs.1       <- m1$ccs[all_i]
+    pairs$ccs.2       <- m2$ccs[all_j]
+    pairs$ccs_percent <- ccs_diff(pairs$ccs.1, pairs$ccs.2)
   }
 
+  pairs <- pairs[pairs$mz_ppm < thres_mz_ppm & pairs$rt_diff < thres_rt_min, , drop = FALSE]
+  funnel["mz_rt_match"] <- n_feat(pairs)
+  if (nrow(pairs) == 0) return(empty())
+
+  # Identified df1 features must match an identical annotation in df2
   has_id <- !is.na(pairs$identity.1)
   id_ok  <- !is.na(pairs$identity.2) &
-    pairs$identity.1 == pairs$identity.2 &
-    pairs$ion.1      == pairs$ion.2 &
-    pairs$formula.1  == pairs$formula.2
+    same_val(pairs$identity.1, pairs$identity.2) &
+    same_val(pairs$ion.1,      pairs$ion.2) &
+    same_val(pairs$formula.1,  pairs$formula.2)
   pairs <- pairs[!has_id | id_ok, , drop = FALSE]
+  funnel["id_ok"] <- n_feat(pairs)
+  if (nrow(pairs) == 0) return(empty())
 
-  if (nrow(pairs) == 0) {
-    if (collect_diag) return(list(merged = NULL, diag = NULL, l2r_long = NULL))
-    return(NULL)
-  }
+  sample_cols <- intersect(get_sample_cols(df1), get_sample_cols(df2))
+  use_quality <- length(sample_cols) > 2
 
-  sample_cols <- character(0)
+  if (use_quality) {
+    L1 <- log2(pmax(as.matrix(df1[pairs$.i, sample_cols, drop = FALSE]), 1))
+    L2 <- log2(pmax(as.matrix(df2[pairs$.j, sample_cols, drop = FALSE]), 1))
+    l2r_raw <- L1 - L2
 
-  if (best_match) {
-    sample_cols <- intersect(get_sample_cols(df1), get_sample_cols(df2))
-    if (length(sample_cols) > 1) {
-      mat1 <- as.matrix(df1[pairs$.i, sample_cols, drop = FALSE])
-      mat2 <- as.matrix(df2[pairs$.j, sample_cols, drop = FALSE])
-      pair_stats <- vapply(seq_len(nrow(pairs)), function(k) {
-        x   <- log2(pmax(mat1[k, ], 1))
-        y   <- log2(pmax(mat2[k, ], 1))
-        l2r <- x - y
-        r   <- suppressWarnings(cor(x, y, method = "spearman", use = "pairwise.complete.obs"))
-        if (is.na(r)) r <- 0
-        c(median(l2r, na.rm = TRUE), r, mean(c(x, y), na.rm = TRUE))
-      }, numeric(3))
-      pairs$score    <- pair_stats[1, ]
-      pairs$r_spear  <- pair_stats[2, ]
-      pairs$mean_int <- pair_stats[3, ]
-      pairs <- pairs[!is.na(pairs$score) & pairs$r_spear > thres_cor & abs(pairs$score) < thres_log2ratio, , drop = FALSE]
-      pairs <- do.call(rbind, lapply(split(pairs, pairs$.i), function(g) {
-        g[which.max(g$mean_int), , drop = FALSE]
-      }))
-    } else {
-      pairs$score <- NA_real_
-      pairs <- pairs[order(pairs$.i), , drop = FALSE]
+    # Per-sample intensity offset between the batches, estimated from pairs where
+    # both sides are detected, and removed before scoring
+    det <- L1 > 0 & L2 > 0
+    det[is.na(det)] <- FALSE
+    l2r_det <- l2r_raw
+    l2r_det[!det] <- NA_real_
+    offset <- apply(l2r_det, 2, stats::median, na.rm = TRUE)
+    offset[!is.finite(offset)] <- 0
+    l2r_c <- sweep(l2r_raw, 2, offset)
+    L2c   <- sweep(L2,      2, offset, FUN = "+")
+
+    pairs$score     <- apply(l2r_c,   1, stats::median, na.rm = TRUE)
+    pairs$score_raw <- apply(l2r_raw, 1, stats::median, na.rm = TRUE)
+    pairs$r_spear   <- vapply(seq_len(nrow(pairs)), function(k) {
+      r <- suppressWarnings(stats::cor(L1[k, ], L2c[k, ], method = "spearman",
+                                       use = "pairwise.complete.obs"))
+      if (is.na(r)) 0 else r
+    }, numeric(1))
+    pairs$mean_int <- rowMeans(cbind(L1, L2), na.rm = TRUE)
+
+    if (!is.na(thres_cor)) pairs <- pairs[pairs$r_spear > thres_cor, , drop = FALSE]
+    funnel["cor_ok"] <- n_feat(pairs)
+    if (!is.na(thres_log2ratio))
+      pairs <- pairs[!is.na(pairs$score) & abs(pairs$score) < thres_log2ratio, , drop = FALSE]
+    funnel["log2ratio_ok"] <- n_feat(pairs)
+    if (nrow(pairs) == 0) return(empty())
+
+    if (best_match) {
+      pairs <- pairs[order(pairs$.i, -pairs$mean_int), , drop = FALSE]
+      pairs <- pairs[!duplicated(pairs$.i), , drop = FALSE]
+    }
+  } else {
+    funnel["cor_ok"]       <- n_feat(pairs)
+    funnel["log2ratio_ok"] <- n_feat(pairs)
+    if (best_match) {
+      # No shared samples: keep the closest candidate in m/z + RT
+      dist  <- pairs$mz_ppm / thres_mz_ppm + pairs$rt_diff / thres_rt_min
+      pairs <- pairs[order(pairs$.i, dist), , drop = FALSE]
       pairs <- pairs[!duplicated(pairs$.i), , drop = FALSE]
     }
   }
 
-  if (nrow(pairs) == 0) {
-    if (collect_diag) return(list(merged = NULL, diag = NULL, l2r_long = NULL))
-    return(NULL)
-  }
-
-  out1 <- df1[pairs$.i, , drop = FALSE]
-  out2 <- df2[pairs$.j, , drop = FALSE]
-  merged_wide <- cbind(out1, out2,
-    mz_batch_diff = out1$mz - out2$mz,
-    rt_batch_diff = out1$rt - out2$rt,
-    row.names = NULL
-  )
-
-  if (!collect_diag) return(merged_wide)
+  # Build merged table: feature metadata from df1, sample columns from both.
+  # Columns present in both tables are kept once (from df1), except samples
+  # assigned to df2's batch, which are taken from df2.
+  out1   <- df1[pairs$.i, , drop = FALSE]
+  out2   <- df2[pairs$.j, , drop = FALSE]
+  shared <- intersect(colnames(out1), colnames(out2))
+  take2  <- shared[sample_key(shared) %in% prefer_df2_keys]
+  if (length(take2) > 0) out1[take2] <- out2[take2]
+  out2   <- out2[, setdiff(colnames(out2), colnames(out1)), drop = FALSE]
+  merged_wide <- cbind(out1, out2)
+  rownames(merged_wide) <- NULL
+  funnel["merged"] <- nrow(merged_wide)
 
   # Diagnostics
-  if (length(sample_cols) > 1 && !is.null(pairs$score)) {
-
+  if (use_quality) {
     mat1_fin <- as.matrix(df1[pairs$.i, sample_cols, drop = FALSE])
     mat2_fin <- as.matrix(df2[pairs$.j, sample_cols, drop = FALSE])
     ovlp_cor <- pairs$r_spear
     ratio    <- mat1_fin / mat2_fin
     ratio[ratio <= 0] <- NA_real_
     l2r_mat  <- log2(ratio)
-    med_l2r  <- apply(l2r_mat, 1, median, na.rm = TRUE)
-    id_vec   <- if (!is.null(out1$identity)) out1$identity else rep(NA_character_, nrow(l2r_mat))
-    samp_vec <- sub("^datafile\\.", "", colnames(l2r_mat))
-    samp_vec <- sub("\\.d\\.area$|\\.d$|\\.mzML$", "", samp_vec)
+    med_l2r  <- apply(l2r_mat, 1, stats::median, na.rm = TRUE)
+    med_l2r_c <- pairs$score
+    id_vec   <- if (!is.null(df1$identity)) df1$identity[pairs$.i] else rep(NA_character_, nrow(l2r_mat))
+    samp_vec <- sample_key(colnames(l2r_mat))
     l2r_long <- data.frame(
       step      = rep(step_label, nrow(l2r_mat) * ncol(l2r_mat)),
       identity  = rep(id_vec,     ncol(l2r_mat)),
@@ -337,70 +380,48 @@ align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_
     )
     l2r_long <- l2r_long[is.finite(l2r_long$log2ratio), , drop = FALSE]
   } else {
-    ovlp_cor <- rep(NA_real_, nrow(pairs))
-    med_l2r  <- rep(NA_real_, nrow(pairs))
-    l2r_long <- NULL
+    ovlp_cor  <- rep(NA_real_, nrow(pairs))
+    med_l2r   <- rep(NA_real_, nrow(pairs))
+    med_l2r_c <- rep(NA_real_, nrow(pairs))
+    l2r_long  <- NULL
   }
 
-  if (ccs_flag){
-    diag <- data.frame(
-      step             = step_label,
-      mz               = out1$mz,
-      rt               = out1$rt,
-      ccs              = out1$ccs,
-      identity         = if (!is.null(out1$identity)) out1$identity else NA_character_,
-      mz_ppm           = pairs$mz_ppm,
-      rt_diff          = pairs$rt_diff,
-      ccs_percent      = pairs$ccs_percent,
-      overlap_cor      = ovlp_cor,
-      median_log2ratio = med_l2r,
-      stringsAsFactors = FALSE
-    )     
-  } else {
-    diag <- data.frame(
-      step             = step_label,
-      mz               = out1$mz,
-      rt               = out1$rt,
-      identity         = if (!is.null(out1$identity)) out1$identity else NA_character_,
-      mz_ppm           = pairs$mz_ppm,
-      rt_diff          = pairs$rt_diff,
-      overlap_cor      = ovlp_cor,
-      median_log2ratio = med_l2r,
-      stringsAsFactors = FALSE
-    )    
+  diag <- data.frame(
+    step             = step_label,
+    mz               = df1$mz[pairs$.i],
+    rt               = df1$rt[pairs$.i],
+    identity         = if (!is.null(df1$identity)) df1$identity[pairs$.i] else NA_character_,
+    mz_ppm           = pairs$mz_ppm,
+    rt_diff          = pairs$rt_diff,
+    overlap_cor      = ovlp_cor,
+    median_log2ratio = med_l2r,
+    median_log2ratio_centered = med_l2r_c,
+    stringsAsFactors = FALSE
+  )
+  if (ccs_flag) {
+    diag$ccs         <- df1$ccs[pairs$.i]
+    diag$ccs_percent <- pairs$ccs_percent
   }
 
-  list(merged = merged_wide, diag = diag, l2r_long = l2r_long)
+  list(merged = merged_wide, diag = diag, l2r_long = l2r_long, funnel = funnel)
 }
 
 # Cleanup
 clean_merged <- function(df) {
-  df <- df[, !grepl("\\.1$", colnames(df)),            drop = FALSE]
-  df <- df[, !colnames(df) %in% c("mz_batch_diff", "rt_batch_diff"), drop = FALSE]
-  df
+  df[, !colnames(df) %in% c("mz_batch_diff", "rt_batch_diff"), drop = FALSE]
 }
 
-# Iteratively align a list of peaktables
-merge_table_list <- function(tables, label, collect_diag = FALSE,
+# Iteratively align a list of peaktables (all batches matched in b1 coordinates)
+merge_table_list <- function(tables, label,
                              thres_mz_ppm = 3, thres_rt_min = 0.1, best_match = TRUE,
-                             thres_cor = 0.7, thres_log2ratio = 0.3) {
+                             thres_cor = 0.7, thres_log2ratio = 0.3,
+                             shift_correction = TRUE, overlap_col_assignment = NULL,
+                             shifts = NULL) {
   tables <- Filter(Negate(is.null), tables)
+  # Precomputed per-batch shifts (e.g. from the main table, for ISTD tables) are
+  # only used when they line up with the available batches
+  if (!is.null(shifts) && length(shifts) != length(tables)) shifts <- NULL
   if (length(tables) == 0) return(NULL)
-  if (length(tables) == 1) {
-    if (collect_diag) {
-      return(list(
-        merged       = tables[[1]],
-        diag         = NULL,
-        counts       = NULL,
-        l2r_long     = NULL,
-        input_counts = data.frame(table = label, label = "b1 (input)",
-                                  features = nrow(tables[[1]]),
-                                  stringsAsFactors = FALSE),
-        n_final      = nrow(tables[[1]])
-      ))
-    }
-    return(tables[[1]])
-  }
 
   input_counts <- data.frame(
     table    = label,
@@ -409,60 +430,79 @@ merge_table_list <- function(tables, label, collect_diag = FALSE,
     stringsAsFactors = FALSE
   )
 
-  diag_list  <- vector("list", length(tables) - 1)
-  count_list <- vector("list", length(tables) - 1)
-  l2r_list   <- vector("list", length(tables) - 1)
-  current    <- tables[[1]]
+  if (length(tables) == 1) {
+    return(list(merged = tables[[1]], diag = NULL, counts = NULL, l2r_long = NULL,
+                funnel = NULL, shifts = NULL, input_counts = input_counts,
+                n_final = nrow(tables[[1]])))
+  }
+
+  diag_list   <- vector("list", length(tables) - 1)
+  count_list  <- vector("list", length(tables) - 1)
+  l2r_list    <- vector("list", length(tables) - 1)
+  funnel_list <- vector("list", length(tables) - 1)
+  shift_list  <- c(list(list(ppm = 0, rt = 0, n = NA_integer_, applied = FALSE)),
+                   vector("list", length(tables) - 1))
+
+  current <- remove_dup(tables[[1]], thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min)
 
   for (k in seq(2, length(tables))) {
     n_before <- nrow(current)
     step_lbl <- paste0("b", k - 1, "→b", k)
 
-    if (collect_diag) {
-      res <- align_features(remove_dup(current, thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min), 
-                            remove_dup(tables[[k]], thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min), 
-                            thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min, best_match = TRUE,
-                            thres_cor = thres_cor, thres_log2ratio = thres_log2ratio,
-                            collect_diag = TRUE, step_label = step_lbl)
-      if (is.null(res) || is.null(res$merged) || nrow(res$merged) == 0)
-        stop("Feature alignment returned 0 rows for ", label, " at batch ", k)
-      aligned <- res$merged
-    } else {
-      res     <- NULL
-      aligned <- align_features(remove_dup(current, thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min), 
-                                remove_dup(tables[[k]], thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min), 
-                                thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min, best_match = TRUE,
-                                thres_cor = thres_cor, thres_log2ratio = thres_log2ratio)
-      if (is.null(aligned) || nrow(aligned) == 0)
-        stop("Feature alignment returned 0 rows for ", label, " at batch ", k)
-    }
+    shift <- if (!shift_correction) list(ppm = 0, rt = 0, n = NA_integer_, applied = FALSE)
+             else if (!is.null(shifts) && isTRUE(shifts[[k]]$applied)) shifts[[k]]
+             else estimate_batch_shift(tables[[1]], tables[[k]])
+    shift_list[[k]] <- shift
 
-    current <- clean_merged(aligned)
+    prefer_keys <- if (is.null(overlap_col_assignment)) character(0)
+                   else names(overlap_col_assignment)[overlap_col_assignment == k]
+
+    res <- align_features(current,
+                          remove_dup(tables[[k]], thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min),
+                          thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min,
+                          best_match = best_match,
+                          thres_cor = thres_cor, thres_log2ratio = thres_log2ratio,
+                          shift_ppm = shift$ppm, shift_rt = shift$rt,
+                          prefer_df2_keys = prefer_keys,
+                          step_label = step_lbl)
+    if (is.null(res$merged) || nrow(res$merged) == 0)
+      stop("Feature alignment returned 0 rows for ", label, " at batch ", k)
+
+    current <- clean_merged(res$merged)
     message(label, ": +b", k, "  ", n_before, " + ", nrow(tables[[k]]),
-            " -> ", nrow(current), " features")
+            " -> ", nrow(current), " features",
+            sprintf("  (shift vs b1: %+.2f ppm, %+.3f min, %s anchors%s)",
+                    shift$ppm, shift$rt, shift$n, if (shift$applied) "" else ", not applied"))
 
-    if (collect_diag) {
-      if (!is.null(res$diag))
-        diag_list[[k - 1]] <- cbind(table = label, res$diag, stringsAsFactors = FALSE)
-      count_list[[k - 1]] <- data.frame(
-        table    = label,
-        step     = step_lbl,
-        n_before = n_before,
-        n_batch  = nrow(tables[[k]]),
-        n_merged = nrow(current),
-        stringsAsFactors = FALSE
-      )
-      if (!is.null(res$l2r_long) && nrow(res$l2r_long) > 0)
-        l2r_list[[k - 1]] <- cbind(table = label, res$l2r_long, stringsAsFactors = FALSE)
-    }
+    if (!is.null(res$diag))
+      diag_list[[k - 1]] <- cbind(table = label, res$diag, stringsAsFactors = FALSE)
+    count_list[[k - 1]] <- data.frame(
+      table    = label,
+      step     = step_lbl,
+      n_before = n_before,
+      n_batch  = nrow(tables[[k]]),
+      n_merged = nrow(current),
+      stringsAsFactors = FALSE
+    )
+    funnel_list[[k - 1]] <- data.frame(
+      table     = label,
+      step      = step_lbl,
+      shift_ppm = round(shift$ppm, 2),
+      shift_rt  = round(shift$rt, 3),
+      anchors   = shift$n,
+      t(res$funnel),
+      stringsAsFactors = FALSE
+    )
+    if (!is.null(res$l2r_long) && nrow(res$l2r_long) > 0)
+      l2r_list[[k - 1]] <- cbind(table = label, res$l2r_long, stringsAsFactors = FALSE)
   }
-
-  if (!collect_diag) return(current)
 
   list(
     merged       = current,
     diag         = do.call(rbind, Filter(Negate(is.null), diag_list)),
     counts       = do.call(rbind, count_list),
+    funnel       = do.call(rbind, funnel_list),
+    shifts       = shift_list,
     l2r_long     = {
       non_null <- Filter(function(x) !is.null(x) && nrow(x) > 0, l2r_list)
       if (length(non_null) > 0) do.call(rbind, non_null) else NULL
@@ -470,6 +510,14 @@ merge_table_list <- function(tables, label, collect_diag = FALSE,
     input_counts = input_counts,
     n_final      = nrow(current)
   )
+}
+
+# Numeric threshold from config: blank -> default; "none"/"off"/no -> NA (filter disabled)
+cfg_threshold <- function(x, default) {
+  if (wf_is_blank(x)) return(default)
+  if (is.logical(x)) return(if (isTRUE(x)) default else NA_real_)
+  v <- suppressWarnings(as.numeric(x[1]))
+  if (is.na(v)) NA_real_ else v
 }
 
 ```
@@ -482,14 +530,18 @@ cfg     <- wf_read_yaml_config(params$config, label = "params$config")
 run.pos <- wf_as_flag(cfg$run.pos)
 run.neg <- wf_as_flag(cfg$run.neg)
 n_batches <- suppressWarnings(as.integer(cfg$n_batches))
-thres_mz_ppm <- cfg$thres_mz_ppm
-thres_rt_min <- cfg$thres_rt_min
-thres_cor <- cfg$thres_cor
-thres_log2ratio <- cfg$thres_log2ratio
 
+thres_mz_ppm     <- cfg_threshold(cfg$thres_mz_ppm, 3)
+thres_rt_min     <- cfg_threshold(cfg$thres_rt_min, 0.1)
+thres_cor        <- cfg_threshold(cfg$thres_cor, 0.7)
+thres_log2ratio  <- cfg_threshold(cfg$thres_log2ratio, 0.3)
+best_match       <- if (wf_is_blank(cfg$best_match)) TRUE else wf_as_flag(cfg$best_match)
+shift_correction <- if (wf_is_blank(cfg$shift_correction)) TRUE else wf_as_flag(cfg$shift_correction)
 
+if (is.na(thres_mz_ppm) || is.na(thres_rt_min))
+  stop("thres_mz_ppm and thres_rt_min must be numeric")
 if (is.na(n_batches) || n_batches < 2)
-  stop("n_batches must be an integer >= 2, got: ", params$n_batches)
+  stop("n_batches must be an integer >= 2, got: ", cfg$n_batches)
 
 path_result <- wf_cfg_required(cfg, "path_result")
 base_name   <- basename(path_result)
@@ -499,11 +551,18 @@ missing_dirs <- batch_dirs[!dir.exists(batch_dirs)]
 if (length(missing_dirs) > 0)
   stop("Batch directories not found:\n", paste(missing_dirs, collapse = "\n"))
 
-cat("Config:      ", params$config, "\n")
-cat("path_result: ", path_result, "\n")
-cat("n_batches:   ", n_batches, "\n")
-cat("run.pos:     ", run.pos, "\n")
-cat("run.neg:     ", run.neg, "\n")
+cat("Config:          ", params$config, "\n")
+cat("path_result:     ", path_result, "\n")
+cat("n_batches:       ", n_batches, "\n")
+cat("run.pos:         ", run.pos, "\n")
+cat("run.neg:         ", run.neg, "\n")
+cat("thres_mz_ppm:    ", thres_mz_ppm, "\n")
+cat("thres_rt_min:    ", thres_rt_min, "\n")
+cat("thres_cor:       ", if (is.na(thres_cor)) "disabled" else thres_cor, "\n")
+cat("thres_log2ratio: ", if (is.na(thres_log2ratio)) "disabled" else thres_log2ratio,
+    "(after per-sample centering)\n")
+cat("best_match:      ", best_match, "\n")
+cat("shift_correction:", shift_correction, "\n")
 
 # Load each batch config and assign overlap samples to the original batch
 batch_cfgs  <- lapply(seq_len(n_batches), function(i) {
@@ -516,19 +575,18 @@ batch_metas <- lapply(batch_cfgs, function(bcfg) {
   m <- wf_as_meta_df(bcfg$meta_pos)
   if (is.null(m)) wf_as_meta_df(bcfg$meta_neg) else m
 })
-master_meta_for_overlap <- {
-  m <- wf_as_meta_df(cfg$meta_pos)
-  if (is.null(m)) wf_as_meta_df(cfg$meta_neg) else m
-}
+master_meta_pos <- wf_as_meta_df(cfg$meta_pos)
+master_meta_neg <- wf_as_meta_df(cfg$meta_neg)
+master_meta_for_overlap <- if (is.null(master_meta_pos)) master_meta_neg else master_meta_pos
 overlap_assignment <- build_overlap_assignment(master_meta_for_overlap, batch_metas)
 
-overlap_assignment_pos <- overlap_assignment
-overlap_assignment_neg <- overlap_assignment
+# Overlap assignment keyed by sample key (as found in peaktable column names)
+overlap_assignment_pos <- assignment_to_keys(overlap_assignment, master_meta_pos)
+overlap_assignment_neg <- assignment_to_keys(overlap_assignment, master_meta_neg)
+overlap_col_assignment <- c(overlap_assignment_pos, overlap_assignment_neg)
+if (length(overlap_col_assignment) > 0)
+  overlap_col_assignment <- overlap_col_assignment[!duplicated(names(overlap_col_assignment))]
 
-names(overlap_assignment_pos) <- make.names(gsub(".d", "", cfg$meta_pos$File.name[match(names(overlap_assignment_pos), cfg$meta_pos$Sample)]))
-names(overlap_assignment_neg) <- make.names(gsub(".d", "", cfg$meta_neg$File.name[match(names(overlap_assignment_neg), cfg$meta_pos$Sample)]))
-    
-  
 # Build sample to batch map
 sbm_samps <- lapply(seq_along(batch_cfgs), function(i) {
   bcfg <- batch_cfgs[[i]]
@@ -549,7 +607,7 @@ sbm_samps <- lapply(seq_along(batch_cfgs), function(i) {
 sample_batch_map <- unlist(lapply(seq_along(sbm_samps), function(i) {
   setNames(rep(i, length(sbm_samps[[i]])), sbm_samps[[i]])
 }))
-sample_batch_map <- c(overlap_assignment_pos, overlap_assignment_neg, sample_batch_map)
+sample_batch_map <- c(overlap_col_assignment, sample_batch_map)
 sample_batch_map <- sample_batch_map[!duplicated(names(sample_batch_map))]
 
 cat("Overlap samples assigned to batches:", length(overlap_assignment), "\n")
@@ -571,7 +629,8 @@ table_specs <- list(
 tnames_to_run <- Filter(function(n) table_specs[[n]]$run, names(table_specs))
 
 process_one_table <- function(tname, thres_mz_ppm = 3, thres_rt_min = 0.1, best_match = TRUE,
-                              thres_cor = 0.7, thres_log2ratio = 0.3) {
+                              thres_cor = 0.7, thres_log2ratio = 0.3, shift_correction = TRUE,
+                              shifts = NULL) {
   ts <- table_specs[[tname]]
 
   tables_full <- lapply(seq_along(batch_dirs), function(bi) {
@@ -587,41 +646,38 @@ process_one_table <- function(tname, thres_mz_ppm = 3, thres_rt_min = 0.1, best_
     return(NULL)
   }
 
-  # Each batch keeps only its assigned overlap samples
-  tables_filtered <- lapply(seq_along(batch_dirs), function(bi) {
-    if (is.null(tables_full[[bi]])) return(NULL)
-    filter_overlap_cols(tables_full[[bi]], overlap_assignment, bi)
-  })
-
-  res_diag <- merge_table_list(tables_full, tname, collect_diag = TRUE,
-                               thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min, best_match = best_match,
-                               thres_cor = thres_cor, thres_log2ratio = thres_log2ratio)
-  if (is.null(res_diag)) return(NULL)
-
-  merged_out <- merge_table_list(tables_filtered, tname, collect_diag = FALSE,
-                                 thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min, best_match = best_match,
-                                 thres_cor = thres_cor, thres_log2ratio = thres_log2ratio)
-  if (is.null(merged_out)) return(NULL)
+  # Single pass on the full tables: overlap samples drive the quality filters, and
+  # each overlap sample's values are taken from the batch it is assigned to
+  res <- merge_table_list(tables_full, tname,
+                          thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min,
+                          best_match = best_match,
+                          thres_cor = thres_cor, thres_log2ratio = thres_log2ratio,
+                          shift_correction = shift_correction,
+                          overlap_col_assignment = overlap_col_assignment,
+                          shifts = shifts)
+  if (is.null(res)) return(NULL)
 
   list(
-    res = list(
-      merged       = merged_out,
-      diag         = res_diag$diag,
-      counts       = res_diag$counts,
-      l2r_long     = res_diag$l2r_long,
-      input_counts = res_diag$input_counts,
-      n_final      = nrow(merged_out)
-    ),
+    res       = res,
     available = available,
     stats = data.frame(
       Table          = tname,
       Batches_found  = available,
-      Features_final = nrow(merged_out),
-      Samples_final  = sum(grepl("area$", colnames(merged_out))),
+      Features_final = nrow(res$merged),
+      Samples_final  = length(get_sample_cols(res$merged)),
       stringsAsFactors = FALSE
     )
   )
 }
+
+merge_args <- list(thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min,
+                   best_match = best_match, thres_cor = thres_cor,
+                   thres_log2ratio = thres_log2ratio, shift_correction = shift_correction)
+
+# Main tables first; ISTD tables reuse the batch shifts estimated on the main table
+# (ISTD tables have too few uniquely annotated features to estimate them)
+main_names <- intersect(c("pos", "neg"), tnames_to_run)
+istd_names <- intersect(c("istd_pos", "istd_neg"), tnames_to_run)
 
 n_workers    <- min(max(1L, parallel::detectCores(logical = FALSE) - 1L), length(tnames_to_run))
 use_parallel <- n_workers > 1L && length(tnames_to_run) > 1L
@@ -630,20 +686,35 @@ if (use_parallel) {
   cl <- parallel::makeCluster(n_workers)
   on.exit(parallel::stopCluster(cl), add = TRUE)
   parallel::clusterExport(cl,
-    c("ppm_diff", "ccs_diff", "align_features", "clean_merged", "merge_table_list",
+    c("ppm_diff", "ccs_diff", "sample_key", "same_val", "estimate_batch_shift",
+      "align_features", "clean_merged", "merge_table_list",
       "table_specs", "batch_dirs", "remove_dup", "get_sample_cols",
-      "filter_overlap_cols", "overlap_assignment"),
+      "overlap_col_assignment", "process_one_table"),
     envir = environment()
   )
   parallel::clusterEvalQ(cl, library(openxlsx))
-  all_res_list <- parallel::parLapply(cl, tnames_to_run, process_one_table,
-                                 thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min, best_match = TRUE,
-                                 thres_cor = thres_cor, thres_log2ratio = thres_log2ratio)
-} else {
-  all_res_list <- lapply(tnames_to_run, process_one_table,
-                                 thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min, best_match = TRUE,
-                                 thres_cor = thres_cor, thres_log2ratio = thres_log2ratio)
 }
+
+run_tables <- function(tnames, shifts_by_table = NULL) {
+  if (length(tnames) == 0) return(list())
+  if (use_parallel && length(tnames) > 1L) {
+    out <- parallel::clusterMap(cl, function(tn, sh, args) do.call(process_one_table, c(list(tn, shifts = sh), args)),
+                                tnames, if (is.null(shifts_by_table)) list(NULL) else shifts_by_table,
+                                MoreArgs = list(args = merge_args), SIMPLIFY = FALSE)
+  } else {
+    out <- lapply(seq_along(tnames), function(i) {
+      do.call(process_one_table, c(list(tnames[i], shifts = shifts_by_table[[i]]), merge_args))
+    })
+  }
+  setNames(out, tnames)
+}
+
+main_res <- run_tables(main_names)
+istd_shifts <- lapply(istd_names, function(n) {
+  r <- main_res[[sub("^istd_", "", n)]]
+  if (is.null(r)) NULL else r$res$shifts
+})
+all_res_list <- c(main_res, run_tables(istd_names, istd_shifts))[tnames_to_run]
 names(all_res_list) <- tnames_to_run
 
 results    <- list()
@@ -655,6 +726,22 @@ for (tname in tnames_to_run) {
   results[[tname]]    <- r$res$merged
   diag_data[[tname]]  <- r$res
   stats_rows[[tname]] <- r$stats
+}
+
+```
+
+### Matching funnel
+
+Number of reference features retained at each filter, per merge step. `shift_ppm` / `shift_rt`
+are the estimated systematic offsets of the batch relative to b1 (from `anchors` uniquely
+annotated features), removed before matching.
+
+```{r funnel}
+
+funnel_df <- do.call(rbind, Filter(Negate(is.null), lapply(diag_data, `[[`, "funnel")))
+if (!is.null(funnel_df) && nrow(funnel_df) > 0) {
+  rownames(funnel_df) <- NULL
+  knitr::kable(funnel_df, caption = "Features retained per filter step")
 }
 
 ```
@@ -680,13 +767,21 @@ for (tname in names(results)) {
 if (length(diag_data) > 0) {
   all_diag_list   <- Filter(Negate(is.null), lapply(diag_data, `[[`, "diag"))
   all_counts_list <- Filter(Negate(is.null), lapply(diag_data, `[[`, "counts"))
+  all_funnel_list <- Filter(Negate(is.null), lapply(diag_data, `[[`, "funnel"))
   all_l2r_list    <- Filter(function(x) !is.null(x) && nrow(x) > 0,
                             lapply(diag_data, `[[`, "l2r_long"))
   all_ic_list     <- Filter(Negate(is.null), lapply(diag_data, `[[`, "input_counts"))
 
+  bind_fill <- function(lst) {
+    if (length(lst) == 0) return(NULL)
+    cols <- unique(unlist(lapply(lst, colnames)))
+    do.call(rbind, lapply(lst, function(d) { d[setdiff(cols, colnames(d))] <- NA; d[cols] }))
+  }
+
   merge_diag <- list(
-    all_diag         = if (length(all_diag_list)   > 0) do.call(rbind, all_diag_list)   else NULL,
+    all_diag         = bind_fill(all_diag_list),
     all_counts       = if (length(all_counts_list) > 0) do.call(rbind, all_counts_list) else NULL,
+    all_funnel       = if (length(all_funnel_list) > 0) do.call(rbind, all_funnel_list) else NULL,
     all_l2r          = if (length(all_l2r_list)    > 0) do.call(rbind, all_l2r_list)    else NULL,
     all_input_counts = if (length(all_ic_list)     > 0) do.call(rbind, all_ic_list)     else NULL,
     n_final          = vapply(diag_data, function(x) x$n_final, integer(1)),
