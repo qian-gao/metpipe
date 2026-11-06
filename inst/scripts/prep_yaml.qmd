@@ -310,8 +310,12 @@ n_batches <-
 batch_assignments <- "" # list(c(1:10), c(11:20))
 thres_mz_ppm <- 3
 thres_rt_min <- 0.1
+thres_dup_mz_ppm <- 3
+thres_dup_rt_min <- 0.1
 thres_cor <- 0.7
 thres_log2ratio <- 0.3
+flag_cor <- 0.8
+flag_log2ratio <- 0.1
 
 ```
 
@@ -385,8 +389,12 @@ config <- list(
   batch_assignments = batch_assignments,
   thres_mz_ppm = thres_mz_ppm,
   thres_rt_min = thres_rt_min,
+  thres_dup_mz_ppm = thres_dup_mz_ppm,
+  thres_dup_rt_min = thres_dup_rt_min,
   thres_cor = thres_cor,
-  thres_log2ratio = thres_log2ratio
+  thres_log2ratio = thres_log2ratio,
+  flag_cor = flag_cor,
+  flag_log2ratio = flag_log2ratio
 )
 
 yaml_str <- as.yaml(config)
