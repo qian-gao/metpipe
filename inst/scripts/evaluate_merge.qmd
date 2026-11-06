@@ -46,6 +46,28 @@ source(helper_candidates[[1]], local = TRUE)
 
 ```{r functions, include=FALSE}
 
+# Numeric threshold from config: blank -> default; "none"/"off"/no -> NA (disabled)
+# (same rule as merge_batches.qmd)
+cfg_threshold <- function(x, default) {
+  if (wf_is_blank(x)) return(default)
+  if (is.logical(x)) return(if (isTRUE(x)) default else NA_real_)
+  v <- suppressWarnings(as.numeric(x[1]))
+  if (is.na(v)) NA_real_ else v
+}
+
+# Dashed reference lines; nothing is drawn for a disabled (NA) threshold
+threshold_lines <- function(x) {
+  x <- x[is.finite(x)]
+  if (length(x) == 0) return(NULL)
+  geom_vline(xintercept = x, linetype = "dashed", color = "firebrick")
+}
+
+# Per-feature median log2 ratio used by the merge filter (centred per overlap
+# sample); falls back to the raw ratio for diagnostics from older merge runs
+l2r_col <- function(df) {
+  if ("median_log2ratio_centered" %in% colnames(df)) "median_log2ratio_centered" else "median_log2ratio"
+}
+
 make_feature_subsets <- function(diag_df) {
   list(
     `Internal standard` = diag_df[grepl("istd", diag_df$table), , drop = FALSE],
@@ -84,10 +106,13 @@ plot_mz_hist <- function(df) {
   if (nrow(df) == 0) { cat("No data for this subset.\n"); return(invisible(NULL)) }
   p <- ggplot(df, aes(x = mz_ppm)) +
     geom_histogram(bins = 60, fill = "steelblue", color = "white", linewidth = 0.2) +
+    threshold_lines(thr_mz_ppm) +
     facet_grid(table ~ step, scales = "free_y") +
     theme_minimal(base_size = 11) +
     labs(#title = "m/z difference for matched feature pairs",
-         x = "m/z difference (ppm)", y = "Nr. features")
+         x = if (shift_corrected) "|m/z difference| after batch shift correction (ppm)"
+             else "|m/z difference| (ppm)",
+         y = "Nr. features")
   ggplotly(p)
 }
 
@@ -95,6 +120,7 @@ plot_rt_hist <- function(df) {
   if (nrow(df) == 0) { cat("No data for this subset.\n"); return(invisible(NULL)) }
   p <- ggplot(df, aes(x = rt_diff)) +
     geom_histogram(bins = 60, fill = "darkorange", color = "white", linewidth = 0.2) +
+    threshold_lines(thr_rt_min) +
     facet_grid(table ~ step, scales = "free_y") +
     theme_minimal(base_size = 11) +
     labs(#title = "RT difference for matched feature pairs",
@@ -119,11 +145,12 @@ plot_cor_hist <- function(df) {
   if (nrow(d) == 0) { cat("No overlap correlation data for this subset.\n"); return(invisible(NULL)) }
   p <- ggplot(d, aes(x = overlap_cor)) +
     geom_histogram(bins = 60, fill = "seagreen", color = "white", linewidth = 0.2) +
-    geom_vline(xintercept = 0.8, linetype = "dashed", color = "firebrick") +
+    threshold_lines(thr_cor) +
     facet_grid(table ~ step, scales = "free_y") +
     theme_minimal(base_size = 11) +
     labs(#title = "Overlap sample Spearman correlation per feature (batch A vs batch B)",
-         subtitle = "Red dashed line: 0.8 quality threshold",
+         subtitle = if (is.na(thr_cor)) "Correlation filter disabled"
+                    else paste0("Red dashed line: merge filter thres_cor = ", thr_cor),
          x = "Spearman r", y = "Nr. features")
   ggplotly(p)
 }
@@ -137,27 +164,33 @@ print_cor_summary <- function(df) {
       n_features     = n(),
       median_cor     = round(median(overlap_cor, na.rm = TRUE), 3),
       pct_cor_gte_09 = round(100 * mean(overlap_cor >= 0.9, na.rm = TRUE), 1),
-      pct_cor_lt_08  = round(100 * mean(overlap_cor <  0.8, na.rm = TRUE), 1),
+      pct_cor_lt_flag = round(100 * mean(overlap_cor < flag_cor, na.rm = TRUE), 1),
       .groups = "drop"
     )
   knitr::kable(
     summ,
     #caption = "Overlap sample Spearman correlation summary",
-    col.names = c("Table", "Step", "Features", "Median cor", "% cor ≥ 0.9", "% cor < 0.8")
+    col.names = c("Table", "Step", "Features", "Median cor", "% cor ≥ 0.9",
+                  paste0("% cor < ", flag_cor, " (flag)"))
   )
 }
 
 plot_l2r_hist <- function(df) {
-  d <- df[!is.na(df$median_log2ratio), , drop = FALSE]
+  col <- l2r_col(df)
+  d <- df[!is.na(df[[col]]), , drop = FALSE]
   if (nrow(d) == 0) { cat("No log2 ratio data for this subset.\n"); return(invisible(NULL)) }
-  p <- ggplot(d, aes(x = median_log2ratio)) +
+  p <- ggplot(d, aes(x = .data[[col]])) +
     geom_histogram(bins = 60, fill = "mediumpurple", color = "white", linewidth = 0.2) +
-    geom_vline(xintercept = c(-0.3, 0.3), linetype = "dashed", color = "firebrick") +
+    threshold_lines(c(-thr_log2ratio, thr_log2ratio)) +
     facet_grid(table ~ step, scales = "free_y") +
     theme_minimal(base_size = 11) +
     labs(#title = "Median log2 ratio of overlap sample intensities (batch A / batch B)",
-         #subtitle = "Red dashed lines: ±0.5 threshold (≈1.4× fold change)",
-         x = "Median log2(batch A / batch B)", y = "Nr. features")
+         subtitle = if (is.na(thr_log2ratio)) "log2 ratio filter disabled"
+                    else paste0("Red dashed lines: merge filter thres_log2ratio = ±", thr_log2ratio),
+         x = if (col == "median_log2ratio_centered")
+               "Median log2(batch A / batch B), centred per overlap sample"
+             else "Median log2(batch A / batch B)",
+         y = "Nr. features")
   ggplotly(p)
 }
 
@@ -171,12 +204,12 @@ plot_l2r_density <- function(l2r_df) {
     #geom_density(fill = NA, color = "steelblue4", alpha = 0.6, linewidth = 0.4) +
     geom_histogram(bins = 60, fill = "steelblue4", color = "white", linewidth = 0.2) +
     #geom_vline(xintercept = 0, linetype = "solid") +
-    geom_vline(xintercept = c(-0.3, 0.3), linetype = "dashed", color = "firebrick") +
+    threshold_lines(c(-thr_log2ratio, thr_log2ratio)) +
     facet_grid(table ~ step, scales = "free_y") +
     #coord_cartesian(xlim = c(-3, 3)) +
     theme_minimal(base_size = 11) +
     labs(#title = "Log2 ratio of overlap sample intensities (batch A / batch B)",
-         #subtitle = "Clipped to +-3; ideal distribution is narrow and centred at 0",
+         subtitle = "Per sample and feature, not centred; dashed lines: ±thres_log2ratio for reference",
          x = "log2(batch A / batch B)", y = "Nr. samples")
   ggplotly(p)
   #print(p)
@@ -185,19 +218,20 @@ plot_l2r_density <- function(l2r_df) {
 
 
 show_flagged <- function(df) {
+  col <- l2r_col(df)
   flagged <- df[
-    (!is.na(df$overlap_cor)      & df$overlap_cor < 0.8) |
-    #(!is.na(df$median_log2ratio) & abs(df$median_log2ratio) > 0.5),
-    (!is.na(df$median_log2ratio) & abs(df$median_log2ratio) > 0.1),
+    (!is.na(df$overlap_cor) & df$overlap_cor < flag_cor) |
+    (!is.na(df[[col]])      & abs(df[[col]]) > flag_log2ratio),
     , drop = FALSE
   ]
   if (nrow(flagged) == 0) {
-    cat("No features flagged: all matched features pass quality thresholds.\n")
+    cat("No features flagged: all matched features pass the review levels.\n")
   } else {
-    cat(nrow(flagged), "features flagged (low overlap correlation or high intensity ratio).\n\n")
+    cat(nrow(flagged), "features flagged (overlap correlation <", flag_cor,
+        "or |median log2 ratio| >", flag_log2ratio, ").\n\n")
     show_cols <- intersect(
       c("table", "step", "mz", "rt", "identity",
-        "mz_ppm", "rt_diff", "overlap_cor", "median_log2ratio"),
+        "mz_ppm", "rt_diff", "overlap_cor", "median_log2ratio", "median_log2ratio_centered"),
       colnames(flagged)
     )
     
@@ -285,6 +319,7 @@ if (!file.exists(diag_path))
 diag             <- readRDS(diag_path)
 all_diag         <- diag$all_diag
 all_counts       <- diag$all_counts
+all_funnel       <- diag$all_funnel
 all_l2r          <- diag$all_l2r
 all_input_counts <- diag$all_input_counts
 n_final_per_tbl  <- diag$n_final
@@ -316,7 +351,27 @@ sample_batch_map <- if (!is.null(diag$sample_batch_map) && length(diag$sample_ba
 feat_subsets <- make_feature_subsets(all_diag)
 l2r_subsets  <- make_l2r_subsets(all_l2r)
 
+# Merge thresholds (same config keys and defaults as merge_batches.qmd), used for
+# the reference lines in the plots
+thr_mz_ppm      <- cfg_threshold(cfg$thres_mz_ppm, 3)
+thr_rt_min      <- cfg_threshold(cfg$thres_rt_min, 0.1)
+thr_cor         <- cfg_threshold(cfg$thres_cor, 0.7)
+thr_log2ratio   <- cfg_threshold(cfg$thres_log2ratio, 0.3)
+shift_corrected <- !is.null(all_funnel) &&
+  (if (wf_is_blank(cfg$shift_correction)) TRUE else wf_as_flag(cfg$shift_correction))
+
+# Review levels for the flagged-features tables: stricter than the merge filters,
+# so they list accepted matches worth a second look
+flag_cor        <- cfg_threshold(cfg$flag_cor, 0.8)
+flag_log2ratio  <- cfg_threshold(cfg$flag_log2ratio, 0.1)
+if (is.na(flag_cor))       flag_cor       <- -Inf
+if (is.na(flag_log2ratio)) flag_log2ratio <- Inf
+
 cat("Config:                   ", params$config, "\n")
+cat("Merge thresholds:          m/z", thr_mz_ppm, "ppm, RT", thr_rt_min, "min, cor",
+    if (is.na(thr_cor)) "off" else thr_cor, ", log2ratio",
+    if (is.na(thr_log2ratio)) "off" else thr_log2ratio, "\n")
+cat("Flag levels:               cor <", flag_cor, ", |log2ratio| >", flag_log2ratio, "\n")
 cat("Overlap samples specified:", length(overlap_names), "\n")
 cat("Table types:              ", paste(unique(all_diag$table), collapse = ", "), "\n")
 cat("Samples mapped to batches:", length(sample_batch_map), "\n")
@@ -361,6 +416,51 @@ knitr::kable(
   #caption = "Per-step feature counts",
   col.names = c("Table", "Step", "Before merge", "Batch features", "After merge")
 )
+
+```
+
+### Batch shifts and matching funnel
+
+Systematic m/z and RT offset of each batch relative to b1, estimated from uniquely
+annotated features (`anchors`) and removed before matching. The remaining columns
+show how many reference features are left after each filter step.
+
+```{r batch_shifts}
+
+if (is.null(all_funnel) || nrow(all_funnel) == 0) {
+  cat("No shift/funnel information in the diagnostics (merge run with an older merge_batches).\n")
+} else {
+  fun_df <- all_funnel
+  rownames(fun_df) <- NULL
+  knitr::kable(
+    fun_df,
+    col.names = c("Table", "Step", "Shift (ppm)", "Shift (min)", "Anchors",
+                  "Reference features", "Batch features", "m/z + RT match",
+                  "Identity OK", "Correlation OK", "log2 ratio OK", "Merged")
+  )
+}
+
+```
+
+```{r batch_shift_plot, fig.height=3.5}
+
+if (!is.null(all_funnel) && nrow(all_funnel) > 0) {
+  # ISTD tables reuse the shifts of their main table, so only main tables are shown
+  sh <- all_funnel[!grepl("istd", all_funnel$table), c("table", "step", "shift_ppm", "shift_rt")]
+  if (nrow(sh) == 0) sh <- all_funnel[, c("table", "step", "shift_ppm", "shift_rt")]
+  sh <- rbind(data.frame(table = unique(sh$table), step = "b1", shift_ppm = 0, shift_rt = 0), sh)
+  sh$batch <- sub(".*→", "", sh$step)
+  sh$batch <- factor(sh$batch, levels = unique(sh$batch[order(as.integer(sub("^b", "", sh$batch)))]))
+  p_shift <- ggplot(sh, aes(x = batch, y = shift_ppm,
+                            text = paste0(table, " ", batch, ": ", round(shift_ppm, 2), " ppm, ",
+                                          round(shift_rt * 60, 1), " s"))) +
+    geom_hline(yintercept = 0, color = "grey50") +
+    geom_col(fill = "steelblue") +
+    facet_wrap(~table) +
+    theme_minimal(base_size = 11) +
+    labs(x = NULL, y = "m/z shift vs b1 (ppm)")
+  ggplotly(p_shift, tooltip = "text")
+}
 
 ```
 
