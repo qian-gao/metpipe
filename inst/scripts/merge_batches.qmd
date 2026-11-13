@@ -214,12 +214,17 @@ estimate_batch_shift <- function(ref, df, min_anchors = 20L, rt_win = 0.3) {
   a  <- a[keep, , drop = FALSE]
   b  <- b[keep, , drop = FALSE]
   n  <- nrow(a)
-  if (n < min_anchors) return(list(ppm = 0, rt = 0, n = n, applied = FALSE))
+  # Per-anchor offsets (kept for diagnostics; the shift is their median)
+  anchors <- data.frame(identity = a$identity, mz = a$mz, rt = a$rt,
+                        d_ppm = (b$mz - a$mz) / a$mz * 1e6, d_rt = b$rt - a$rt,
+                        stringsAsFactors = FALSE)
+  if (n < min_anchors) return(list(ppm = 0, rt = 0, n = n, applied = FALSE, anchors = anchors))
   list(
-    ppm     = stats::median((b$mz - a$mz) / a$mz * 1e6),
-    rt      = stats::median(b$rt - a$rt),
+    ppm     = stats::median(anchors$d_ppm),
+    rt      = stats::median(anchors$d_rt),
     n       = n,
-    applied = TRUE
+    applied = TRUE,
+    anchors = anchors
   )
 }
 
@@ -441,6 +446,7 @@ merge_table_list <- function(tables, label,
   count_list  <- vector("list", length(tables) - 1)
   l2r_list    <- vector("list", length(tables) - 1)
   funnel_list <- vector("list", length(tables) - 1)
+  anchor_list <- vector("list", length(tables) - 1)
   shift_list  <- c(list(list(ppm = 0, rt = 0, n = NA_integer_, applied = FALSE)),
                    vector("list", length(tables) - 1))
 
@@ -451,10 +457,15 @@ merge_table_list <- function(tables, label,
     n_before <- nrow(current)
     step_lbl <- paste0("b", k - 1, "→b", k)
 
+    reused <- shift_correction && !is.null(shifts) && isTRUE(shifts[[k]]$applied)
     shift <- if (!shift_correction) list(ppm = 0, rt = 0, n = NA_integer_, applied = FALSE)
-             else if (!is.null(shifts) && isTRUE(shifts[[k]]$applied)) shifts[[k]]
+             else if (reused) shifts[[k]]
              else estimate_batch_shift(tables[[1]], tables[[k]])
     shift_list[[k]] <- shift
+    # Anchors only for shifts estimated on this table (reused ones belong to the main table)
+    if (!reused && !is.null(shift$anchors) && nrow(shift$anchors) > 0)
+      anchor_list[[k - 1]] <- cbind(table = label, step = step_lbl, shift$anchors,
+                                    stringsAsFactors = FALSE)
 
     prefer_keys <- if (is.null(overlap_col_assignment)) character(0)
                    else names(overlap_col_assignment)[overlap_col_assignment == k]
@@ -505,6 +516,7 @@ merge_table_list <- function(tables, label,
     counts       = do.call(rbind, count_list),
     funnel       = do.call(rbind, funnel_list),
     shifts       = shift_list,
+    anchors      = do.call(rbind, Filter(Negate(is.null), anchor_list)),
     l2r_long     = {
       non_null <- Filter(function(x) !is.null(x) && nrow(x) > 0, l2r_list)
       if (length(non_null) > 0) do.call(rbind, non_null) else NULL
@@ -784,6 +796,8 @@ if (length(diag_data) > 0) {
   all_l2r_list    <- Filter(function(x) !is.null(x) && nrow(x) > 0,
                             lapply(diag_data, `[[`, "l2r_long"))
   all_ic_list     <- Filter(Negate(is.null), lapply(diag_data, `[[`, "input_counts"))
+  all_anchor_list <- Filter(function(x) !is.null(x) && nrow(x) > 0,
+                            lapply(diag_data, `[[`, "anchors"))
 
   bind_fill <- function(lst) {
     if (length(lst) == 0) return(NULL)
@@ -797,7 +811,8 @@ if (length(diag_data) > 0) {
     all_funnel       = if (length(all_funnel_list) > 0) do.call(rbind, all_funnel_list) else NULL,
     all_l2r          = if (length(all_l2r_list)    > 0) do.call(rbind, all_l2r_list)    else NULL,
     all_input_counts = if (length(all_ic_list)     > 0) do.call(rbind, all_ic_list)     else NULL,
-    n_final          = vapply(diag_data, function(x) x$n_final, integer(1)),
+    all_anchors      = if (length(all_anchor_list) > 0) do.call(rbind, all_anchor_list) else NULL,
+    n_final         = vapply(diag_data, function(x) x$n_final, integer(1)),
     sample_batch_map = sample_batch_map
   )
   diag_path <- file.path(path_result, "data", "merge_diagnostics.rds")

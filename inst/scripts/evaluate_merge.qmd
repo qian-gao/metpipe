@@ -322,6 +322,7 @@ all_counts       <- diag$all_counts
 all_funnel       <- diag$all_funnel
 all_l2r          <- diag$all_l2r
 all_input_counts <- diag$all_input_counts
+all_anchors      <- diag$all_anchors
 n_final_per_tbl  <- diag$n_final
 
 if (is.null(all_diag) || nrow(all_diag) == 0)
@@ -443,35 +444,49 @@ if (is.null(all_funnel) || nrow(all_funnel) == 0) {
 
 ```{r batch_shift_plot, fig.height=3.5, results='asis'}
 
-if (!is.null(all_funnel) && nrow(all_funnel) > 0) {
-  # ISTD tables reuse the shifts of their main table, so only main tables are shown
-  sh <- all_funnel[!grepl("istd", all_funnel$table), c("table", "step", "shift_ppm", "shift_rt")]
-  if (nrow(sh) == 0) sh <- all_funnel[, c("table", "step", "shift_ppm", "shift_rt")]
-  sh <- rbind(data.frame(table = unique(sh$table), step = "b1", shift_ppm = 0, shift_rt = 0), sh)
-  sh$batch <- sub(".*→", "", sh$step)
-  sh$batch <- factor(sh$batch, levels = unique(sh$batch[order(as.integer(sub("^b", "", sh$batch)))]))
-  sh$shift_rt_s <- sh$shift_rt * 60
-  sh$hover <- paste0(sh$table, " ", sh$batch, ": ", round(sh$shift_ppm, 2), " ppm, ",
-                     round(sh$shift_rt_s, 1), " s")
+if (is.null(all_anchors) || nrow(all_anchors) == 0) {
+  cat("No per-anchor offsets in the diagnostics (merge run with an older merge_batches,",
+      "or shift correction disabled).\n")
+} else {
+  # One point per anchor feature: its m/z and RT offset vs b1. The applied shift
+  # (median over anchors) is drawn as a red bar per batch.
+  an <- all_anchors
+  an$batch <- sub(".*→", "", an$step)
+  batch_levels <- unique(an$batch[order(as.integer(sub("^b", "", an$batch)))])
+  an$batch  <- factor(an$batch, levels = batch_levels)
+  an$d_rt_s <- an$d_rt * 60
+  an$hover  <- paste0(an$identity, "<br>", an$batch, ": ", round(an$d_ppm, 2), " ppm, ",
+                      round(an$d_rt_s, 1), " s")
 
-  # One beeswarm per batch
-  shift_swarm <- function(d, yvar, ylab) {
-    p <- ggplot(d, aes(x = batch, y = .data[[yvar]], text = hover)) +
+  med <- all_funnel[, c("table", "step", "shift_ppm", "shift_rt")]
+  med$batch      <- factor(sub(".*→", "", med$step), levels = batch_levels)
+  med$shift_rt_s <- med$shift_rt * 60
+  med$x          <- as.numeric(med$batch)
+
+  shift_swarm <- function(d, m, yvar, shiftvar, unit, ylab) {
+    m$hover <- paste0(m$batch, " applied shift: ", round(m[[shiftvar]], 2), " ", unit)
+    p <- ggplot(d, aes(x = batch, y = .data[[yvar]])) +
       geom_hline(yintercept = 0, color = "grey50") +
-      ggbeeswarm::geom_beeswarm(size = 2.5, cex = 3, color = "steelblue") +
+      ggbeeswarm::geom_quasirandom(aes(text = hover), size = 1.2, alpha = 0.6,
+                                   color = "steelblue", width = 0.35) +
+      geom_segment(data = m, aes(x = x - 0.4, xend = x + 0.4,
+                                 y = .data[[shiftvar]], yend = .data[[shiftvar]], text = hover),
+                   inherit.aes = FALSE, color = "firebrick", linewidth = 1) +
+      scale_x_discrete(drop = FALSE) +
       theme_minimal(base_size = 11) +
       labs(x = NULL, y = ylab)
-    ggplotly(p, tooltip = "text", height = 300)
+    ggplotly(p, tooltip = "text", height = 320)
   }
 
-  # One tab per table (pos / neg)
+  # One tab per table (pos / neg); ISTD tables reuse the main table's shifts
   cat("::: {.panel-tabset}\n\n")
-  for (tbl in unique(sh$table)) {
-    d <- sh[sh$table == tbl, , drop = FALSE]
+  for (tbl in unique(an$table)) {
+    d <- an[an$table == tbl, , drop = FALSE]
+    m <- med[med$table == tbl & !is.na(med$batch), , drop = FALSE]
     cat("#### ", tbl, "\n\n", sep = "")
     print(htmltools::tagList(
-      shift_swarm(d, "shift_ppm",  "m/z shift vs b1 (ppm)"),
-      shift_swarm(d, "shift_rt_s", "RT shift vs b1 (s)")
+      shift_swarm(d, m, "d_ppm",  "shift_ppm",  "ppm", "Anchor m/z offset vs b1 (ppm)"),
+      shift_swarm(d, m, "d_rt_s", "shift_rt_s", "s",   "Anchor RT offset vs b1 (s)")
     ))
     cat("\n\n")
   }
