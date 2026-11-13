@@ -84,6 +84,12 @@ test_that("clean_peaktable records which step removed each feature", {
     expect_false(grepl("[", labs_p$title, fixed = TRUE), info = nm)
     expect_false(isTRUE(grepl("^Panels:", labs_p$subtitle)), info = nm)
   }
+  # Mean, RSD and RSD before/after plots have no subtitle or caption
+  for (nm in c("mean_1", "mean_2", "rsd_1", "rsd_before_after_1")) {
+    labs_p <- ggplot2::get_labs(plots[[nm]])
+    expect_null(labs_p$subtitle, info = nm)
+    expect_null(labs_p$caption, info = nm)
+  }
 
   # Mean and RSD steps are violins with jittered features
   geoms <- function(p) vapply(p$layers, function(l) class(l$geom)[1], character(1))

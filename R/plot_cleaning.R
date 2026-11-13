@@ -99,7 +99,7 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
   }
   groups <- c("All", feature_types)
   col_groups <- stats::setNames(
-    c("#5F6B77", "#3B75AF", "#E39B2D", rep("#9A9A9A", max(0, length(groups) - 3)))[seq_along(groups)],
+    c("#5F6B77", "#4682B4", "#B47846", rep("#9A9A9A", max(0, length(groups) - 3)))[seq_along(groups)],
     groups
   )
 
@@ -258,14 +258,12 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
       if (s$kind == "mean" && !is.na(r$rhs_num)) {
         # Mean of one type against a constant: k*mean op t  ->  mean op t/k
         v <- d[[lhs_col]]
-        n_nonpos <- sum(!is.finite(v) | v <= 0)
         thr <- r$rhs_num / r$k
         out[[s$id]] <- violin_plot(
           d, value = ifelse(is.finite(v) & v > 0, log10(v), NA),
           ylab = paste0("log10 mean intensity in ", r$lhs),
           title = paste0("Mean intensity filter (keep ", r$text, ")"),
           threshold = if (thr > 0) log10(thr) else NA_real_,
-          caption = if (n_nonpos > 0) paste0(n_nonpos, " features with zero/missing mean not shown") else NULL,
           text = hover(d, paste0("mean ", r$lhs), v)
         )
         tooltip[[s$id]] <- "text"
@@ -287,8 +285,6 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
         fin <- ratio[is.finite(ratio)]
         hi <- if (length(fin)) max(fin, log10(r$k)) + 0.5 else log10(r$k) + 1
         lo <- if (length(fin)) min(fin, log10(r$k)) - 0.5 else log10(r$k) - 1
-        n_no_a <- sum(!a_ok & b_ok)
-        n_no_b <- sum(!b_ok)
         ratio[!a_ok & b_ok] <- hi  # not detected in A (e.g. absent from blanks)
         ratio[!b_ok] <- lo         # no signal in B
         text <- paste0(d$Identity,
@@ -298,17 +294,11 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
                        "<br>mean ", r$rhs, ": ", signif(b, 3),
                        "<br>", if (is.null(d$Feature_type)) "" else paste0(d$Feature_type, ", "),
                        d$step_status)
-        notes <- c(
-          if (n_no_a > 0) paste0(n_no_a, " features not detected in ", r$lhs, " shown at the top"),
-          if (n_no_b > 0) paste0(n_no_b, " features without ", r$rhs, " signal shown at the bottom")
-        )
         out[[s$id]] <- violin_plot(
           d, value = ratio,
           ylab = paste0("log10(mean ", r$rhs, " / mean ", r$lhs, ")"),
           title = paste0("Mean intensity filter (keep ", r$text, ")"),
           threshold = log10(r$k),
-          subtitle = paste0("dotted line: ", r$rhs, " = ", r$k, " x ", r$lhs),
-          caption = if (length(notes)) paste(notes, collapse = "; ") else NULL,
           text = text
         )
         tooltip[[s$id]] <- "text"
@@ -323,8 +313,6 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
           ylab = paste0("RSD in ", r$lhs),
           title = paste0("RSD filter (keep ", r$text, ")"),
           threshold = thr,
-          caption = if (cl$n > 0) paste0(cl$n, " features with RSD > ", signif(cl$upper, 3),
-                                         " shown at the upper edge") else NULL,
           text = hover(d, paste0("RSD in ", r$lhs), v)
         )
         tooltip[[s$id]] <- "text"
@@ -406,8 +394,7 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
       scale_fill_manual(values = col_before_after, name = NULL, drop = FALSE) +
       scale_colour_manual(values = col_before_after, name = NULL, drop = FALSE) +
       labs(x = paste0("RSD in ", r$lhs), y = "Density",
-           title = paste0("RSD in ", r$lhs, " before and after cleaning"),
-           caption = if (cl$n > 0) paste0("RSD values > ", signif(cl$upper, 3), " squished to the upper edge") else NULL) +
+           title = paste0("RSD in ", r$lhs, " before and after cleaning")) +
       theme_bw()
     if (is.finite(thr)) p <- p + geom_vline(xintercept = thr, linetype = "dotted", linewidth = 0.8)
     out[[id]] <- p
