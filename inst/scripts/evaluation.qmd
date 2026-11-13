@@ -848,9 +848,24 @@ for (i in seq_along(batches)) {
     p, type = "box", name = batches[i], orientation = "v",
     x = as.character(d$Run.order), q1 = d$q1, median = d$median, q3 = d$q3,
     lowerfence = d$lowerfence, upperfence = d$upperfence,
-    text = d$Sample, hoverinfo = "x+y+text+name",
+    hoverinfo = "skip", legendgroup = batches[i],
     marker = list(color = batch.cols[i]), line = list(color = batch.cols[i], width = 1),
     fillcolor = "rgba(255,255,255,0)"
+  )
+  # Precomputed boxes cannot carry per-box hover text, so an invisible point
+  # at each sample's median carries the sample name and box statistics.
+  p <- add_trace(
+    p, type = "scatter", mode = "markers", name = batches[i],
+    legendgroup = batches[i], showlegend = FALSE,
+    x = as.character(d$Run.order), y = d$median,
+    marker = list(color = batch.cols[i], opacity = 0, size = 8),
+    text = paste0(d$Sample,
+                  "<br>Batch: ", batches[i],
+                  "<br>Run.order: ", d$Run.order,
+                  "<br>Median: ", signif(d$median, 3),
+                  "<br>Q1 - Q3: ", signif(d$q1, 3), " - ", signif(d$q3, 3),
+                  "<br>Whiskers: ", signif(d$lowerfence, 3), " - ", signif(d$upperfence, 3)),
+    hoverinfo = "text"
   )
 }
 
@@ -858,7 +873,9 @@ p %>%
   layout(
     xaxis = list(title = "Run.order", type = "linear", showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
     yaxis = list(title = "Scaled intensity", showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
-    legend = list(title = list(text = "Sample.batch"))
+    legend = list(title = list(text = "Sample.batch")),
+    # Hover anywhere above/below a sample's box to see its details
+    hovermode = "x"
   )
 
 ```
