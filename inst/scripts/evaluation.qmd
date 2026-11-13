@@ -814,34 +814,49 @@ ggplotly(p) %>%
 ### Sample mean across batches
 ```{r, fig.height = 5, fig.width = 8, eval = run.merged}
 
-Sample.mean <- 
-  apply(data_all[, -c(1:ncol(sample.info))], 1, function(x) mean(x, na.rm = TRUE))
+# Features scaled across samples; one box per sample over all its features.
+scaled <-
+  apply(as.matrix(data_all[, -c(1:ncol(sample.info))]), 2, function(x) as.numeric(scale(x)))
 
-# data.plot <- 
-#   cbind(data_all, Sample.mean) %>% 
-#   mutate(ID = row_number(),
-#          Sample.mean = scale(Sample.mean),
-#          Batch = ifelse(Sample.type %in% params$po.sample.to.use, "QC", Batch))
+# Box statistics are computed here and passed to plotly as precomputed boxes,
+# so the report stores 5 numbers per sample instead of every scaled value
+# (samples x features), which made this figure tens of MB.
+box_stats <- function(v) {
+  v <- v[is.finite(v)]
+  if (length(v) == 0) return(rep(NA_real_, 5))
+  q <- stats::quantile(v, c(0.25, 0.5, 0.75), names = FALSE)
+  iqr <- q[3] - q[1]
+  c(lowerfence = min(v[v >= q[1] - 1.5 * iqr]),
+    q1 = q[1], median = q[2], q3 = q[3],
+    upperfence = max(v[v <= q[3] + 1.5 * iqr]))
+}
+stats.box <- as.data.frame(t(apply(scaled, 1, box_stats)))
+colnames(stats.box) <- c("lowerfence", "q1", "median", "q3", "upperfence")
+data.plot <- cbind(sample.info[, c("Sample", "Sample.batch", "Run.order")], stats.box)
+data.plot$Sample.batch <- factor(data.plot$Sample.batch)
+data.plot <- data.plot[!is.na(data.plot$median), , drop = FALSE]
 
-scaled <- 
-  apply(data_all[, -c(1:ncol(sample.info))], 2, function(x) scale(x)) %>% 
-  as.data.frame()
+batches <- levels(droplevels(data.plot$Sample.batch))
+batch.cols <- rep(ggsci::pal_npg()(10), length.out = length(batches))
 
-data.plot <- 
-  sample.info %>% 
-  cbind(., scaled) %>% 
-  pivot_longer(-c(1:(ncol(sample.info) + 1)), names_to = "met", values_to = "value")
+p <- plot_ly()
+for (i in seq_along(batches)) {
+  d <- data.plot[data.plot$Sample.batch == batches[i], , drop = FALSE]
+  p <- add_trace(
+    p, type = "box", name = batches[i],
+    x = d$Run.order, q1 = d$q1, median = d$median, q3 = d$q3,
+    lowerfence = d$lowerfence, upperfence = d$upperfence,
+    text = d$Sample, hoverinfo = "x+y+text+name",
+    marker = list(color = batch.cols[i]), line = list(color = batch.cols[i], width = 1),
+    fillcolor = "rgba(255,255,255,0)"
+  )
+}
 
-p <- 
-  ggplot(data.plot, aes(x = Run.order, y = value, color = Sample.batch, text = Sample)) +
-    geom_boxplot() +
-    theme_bw()  +
-    ggsci::scale_color_npg()
-
-ggplotly(p) %>%
+p %>%
   layout(
-    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
-    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+    xaxis = list(title = "Run.order", showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(title = "Scaled intensity", showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    legend = list(title = list(text = "Sample.batch"))
   )
 
 ```
