@@ -4,11 +4,24 @@
 \alias{missing_eval}
 \title{missing_eval}
 \usage{
-missing_eval(data_cleaned = NULL)
+missing_eval(data_cleaned = NULL, sample.type = NULL, feature.type = NULL)
 }
 \arguments{
-\item{data_cleaned}{}
+\item{data_cleaned}{Feature x sample intensity data frame (features in rows,
+rownames used as feature IDs).}
+
+\item{sample.type}{Optional vector of sample types. Either unnamed and in the
+column order of `data_cleaned`, or named by sample. When given, the
+per-sample plot is coloured by sample type.}
+
+\item{feature.type}{Optional vector of feature annotations (e.g. Known /
+Unknown), in the row order of `data_cleaned`. When given, the per-feature
+plot is coloured by it.}
+}
+\value{
+A list of ggplot objects `p1`, `p2`, `p3`.
 }
 \description{
-missing_eval
+Plot missing-value distributions: an overall heatmap, missingness per
+sample and missingness per feature.
 }

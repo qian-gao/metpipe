@@ -121,8 +121,17 @@ run.feature.summary <- !is.null(datalist$feature.info) && is.data.frame(datalist
 data_cleaned <- datalist$pos$peaks_cleaned
 rownames(data_cleaned) <- datalist$pos$features_cleaned$Identity
 
-figs <- 
-  missing_eval(data_cleaned = data_cleaned)
+sample.type.pos <- NULL
+if (has_cols(datalist$pos$meta_cleaned, c("Sample", "Sample.type"))) {
+  sample.type.pos <- setNames(as.character(datalist$pos$meta_cleaned$Sample.type),
+                              datalist$pos$meta_cleaned$Sample)
+  if (!all(colnames(data_cleaned) %in% names(sample.type.pos))) sample.type.pos <- NULL
+}
+
+figs <-
+  missing_eval(data_cleaned = data_cleaned,
+               sample.type = sample.type.pos,
+               feature.type = datalist$pos$features_cleaned$Feature_type)
 ```
 
 #### Overall
@@ -449,8 +458,17 @@ $~$
 data_cleaned <- datalist$neg$peaks_cleaned
 rownames(data_cleaned) <- datalist$neg$features_cleaned$Identity
 
-figs <- 
-  missing_eval(data_cleaned = data_cleaned)
+sample.type.neg <- NULL
+if (has_cols(datalist$neg$meta_cleaned, c("Sample", "Sample.type"))) {
+  sample.type.neg <- setNames(as.character(datalist$neg$meta_cleaned$Sample.type),
+                              datalist$neg$meta_cleaned$Sample)
+  if (!all(colnames(data_cleaned) %in% names(sample.type.neg))) sample.type.neg <- NULL
+}
+
+figs <-
+  missing_eval(data_cleaned = data_cleaned,
+               sample.type = sample.type.neg,
+               feature.type = datalist$neg$features_cleaned$Feature_type)
 ```
 
 #### Overall
