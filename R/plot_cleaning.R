@@ -105,8 +105,16 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
   hist_plot <- function(d, value, xlab, title, threshold = NULL, caption = NULL) {
     d$value <- value
     d <- d[is.finite(d$value), , drop = FALSE]
+    # Discrete-valued metrics (e.g. correlations over few dilution levels,
+    # missing % over few samples): one bar per value instead of gappy bins
+    u <- sort(unique(round(d$value, 10)))
+    hist_layer <- if (length(u) > 1 && length(u) <= bins) {
+      geom_histogram(binwidth = min(diff(u)), center = u[1], position = "stack", colour = NA)
+    } else {
+      geom_histogram(bins = bins, position = "stack", colour = NA)
+    }
     p <- ggplot(d, aes(x = value, fill = step_status)) +
-      geom_histogram(bins = bins, position = "stack", colour = NA) +
+      hist_layer +
       scale_fill_manual(values = col_status, name = NULL, drop = FALSE) +
       labs(x = xlab, y = "Number of features", title = paste0(prefix, title),
            subtitle = step_subtitle(d), caption = caption) +
@@ -137,6 +145,7 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
     ggplot(funnel, aes(x = step, y = remaining, text = text)) +
     geom_col(fill = col_status[["Passed"]]) +
     geom_text(aes(label = remaining), vjust = -0.3, size = 3.5) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.08))) +
     labs(x = NULL, y = "Features remaining",
          title = paste0(prefix, "Features remaining after each cleaning step"),
          subtitle = "Internal standards are filtered separately and not counted") +
