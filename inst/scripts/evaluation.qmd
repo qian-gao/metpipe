@@ -843,7 +843,7 @@ p <- plot_ly()
 for (i in seq_along(batches)) {
   d <- data.plot[data.plot$Sample.batch == batches[i], , drop = FALSE]
   p <- add_trace(
-    p, type = "box", name = batches[i],
+    p, type = "box", name = batches[i], orientation = "v",
     x = d$Run.order, q1 = d$q1, median = d$median, q3 = d$q3,
     lowerfence = d$lowerfence, upperfence = d$upperfence,
     text = d$Sample, hoverinfo = "x+y+text+name",
