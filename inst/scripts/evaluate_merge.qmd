@@ -422,8 +422,7 @@ knitr::kable(
 ### Batch shifts and matching funnel
 
 Systematic m/z and RT offset of each batch relative to b1, estimated from uniquely
-annotated features (`anchors`) and removed before matching. The remaining columns
-show how many reference features are left after each filter step.
+annotated features (anchors) and removed before matching.
 
 ```{r batch_shifts}
 
@@ -442,7 +441,7 @@ if (is.null(all_funnel) || nrow(all_funnel) == 0) {
 
 ```
 
-```{r batch_shift_plot, fig.height=3.5}
+```{r batch_shift_plot, fig.height=3.5, results='asis'}
 
 if (!is.null(all_funnel) && nrow(all_funnel) > 0) {
   # ISTD tables reuse the shifts of their main table, so only main tables are shown
@@ -451,15 +450,32 @@ if (!is.null(all_funnel) && nrow(all_funnel) > 0) {
   sh <- rbind(data.frame(table = unique(sh$table), step = "b1", shift_ppm = 0, shift_rt = 0), sh)
   sh$batch <- sub(".*→", "", sh$step)
   sh$batch <- factor(sh$batch, levels = unique(sh$batch[order(as.integer(sub("^b", "", sh$batch)))]))
-  p_shift <- ggplot(sh, aes(x = batch, y = shift_ppm,
-                            text = paste0(table, " ", batch, ": ", round(shift_ppm, 2), " ppm, ",
-                                          round(shift_rt * 60, 1), " s"))) +
-    geom_hline(yintercept = 0, color = "grey50") +
-    geom_col(fill = "steelblue") +
-    facet_wrap(~table) +
-    theme_minimal(base_size = 11) +
-    labs(x = NULL, y = "m/z shift vs b1 (ppm)")
-  ggplotly(p_shift, tooltip = "text")
+  sh$shift_rt_s <- sh$shift_rt * 60
+  sh$hover <- paste0(sh$table, " ", sh$batch, ": ", round(sh$shift_ppm, 2), " ppm, ",
+                     round(sh$shift_rt_s, 1), " s")
+
+  # One beeswarm per batch
+  shift_swarm <- function(d, yvar, ylab) {
+    p <- ggplot(d, aes(x = batch, y = .data[[yvar]], text = hover)) +
+      geom_hline(yintercept = 0, color = "grey50") +
+      ggbeeswarm::geom_beeswarm(size = 2.5, cex = 3, color = "steelblue") +
+      theme_minimal(base_size = 11) +
+      labs(x = NULL, y = ylab)
+    ggplotly(p, tooltip = "text", height = 300)
+  }
+
+  # One tab per table (pos / neg)
+  cat("::: {.panel-tabset}\n\n")
+  for (tbl in unique(sh$table)) {
+    d <- sh[sh$table == tbl, , drop = FALSE]
+    cat("#### ", tbl, "\n\n", sep = "")
+    print(htmltools::tagList(
+      shift_swarm(d, "shift_ppm",  "m/z shift vs b1 (ppm)"),
+      shift_swarm(d, "shift_rt_s", "RT shift vs b1 (s)")
+    ))
+    cat("\n\n")
+  }
+  cat(":::\n")
 }
 
 ```
