@@ -843,8 +843,10 @@ p <- plot_ly()
 for (i in seq_along(batches)) {
   d <- data.plot[data.plot$Sample.batch == batches[i], , drop = FALSE]
   p <- add_trace(
+    # x as character: plotly's R build forces orientation "h" on box traces
+    # with a numeric x and no y; the linear x axis keeps run order numeric.
     p, type = "box", name = batches[i], orientation = "v",
-    x = d$Run.order, q1 = d$q1, median = d$median, q3 = d$q3,
+    x = as.character(d$Run.order), q1 = d$q1, median = d$median, q3 = d$q3,
     lowerfence = d$lowerfence, upperfence = d$upperfence,
     text = d$Sample, hoverinfo = "x+y+text+name",
     marker = list(color = batch.cols[i]), line = list(color = batch.cols[i], width = 1),
@@ -854,7 +856,7 @@ for (i in seq_along(batches)) {
 
 p %>%
   layout(
-    xaxis = list(title = "Run.order", showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis = list(title = "Run.order", type = "linear", showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
     yaxis = list(title = "Scaled intensity", showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
     legend = list(title = list(text = "Sample.batch"))
   )
