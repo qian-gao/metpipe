@@ -13,7 +13,9 @@
 #' @param outliers.sample Optional sample names removed before filtering.
 #' @param po.sample.to.use Sample type used to select duplicate internal standards.
 #'
-#' @return Updated mode-level datalist with cleaned peaks/features/meta.
+#' @return Updated mode-level datalist with cleaned peaks/features/meta, plus
+#'   `clean_trace`: per-feature filter metrics and the step that removed each
+#'   non-IS feature (see [filter_peaks()] and [plot_cleaning_steps()]).
 #' @examples
 #' \dontrun{
 #' cleaned <- clean_peaktable(datalist)
@@ -109,9 +111,35 @@ clean_peaktable <-
                          threshold = filter_by_missing_feature_pct  #Percentage
       )
     
+    # Record missingness (same definition as filter_by_missing) in the trace
+    clean.trace <- mzrt.filtered$trace
+    if (!is.null(clean.trace)) {
+      x.miss <- subset(peaks.filtered, select = -c(rt, mz, Identity))[, sample.index, drop = FALSE]
+      miss.pct <- if (ncol(x.miss) > 0) {
+        rowSums(is.na(x.miss) | x.miss == 0, na.rm = TRUE) / ncol(x.miss) * 100
+      } else {
+        rep(NA_real_, nrow(x.miss))
+      }
+      tr <- clean.trace$features
+      tr$missing.pct <- NA_real_
+      pos <- match(peaks.filtered$Identity, tr$Identity)
+      tr$missing.pct[pos] <- miss.pct
+      dropped <- peaks.filtered$Identity[!feature_filter$index]
+      sel <- tr$Identity %in% dropped & is.na(tr$removed_at)
+      tr$removed_at[sel] <- "missing"
+      tr$status <- ifelse(is.na(tr$removed_at), "Kept", "Removed")
+      clean.trace$features <- tr
+      clean.trace$steps[[length(clean.trace$steps) + 1]] <-
+        list( id = "missing", kind = "missing",
+              label = paste0("Missing < ", filter_by_missing_feature_pct, "% in ",
+                             paste(filter_by_missing_sample_type, collapse = ", ")),
+              rule = list( threshold = filter_by_missing_feature_pct,
+                           sample.type = filter_by_missing_sample_type ) )
+    }
+
     peaks.filtered <- peaks.filtered[feature_filter$index, -c(1:3)]
     peaks.filtered[, sample.index] <- feature_filter$x
-    
+
     features.filtered <- 
       features.filtered[feature_filter$index, , drop = FALSE]
     
@@ -174,7 +202,8 @@ clean_peaktable <-
     datalist$features_cleaned <- features
     datalist$meta <- meta
     datalist$meta_cleaned <- meta
-    
+    datalist$clean_trace <- clean.trace
+
     return(datalist)
 }
 

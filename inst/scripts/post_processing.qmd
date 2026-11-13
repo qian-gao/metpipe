@@ -158,6 +158,28 @@ datalist <-
   )
 ```
 
+### Cleaning overview
+
+Filters run in order (mean → RSD → dilution → RT → missing values). Each plot shows
+the features that reached that step, split into those that passed and those it
+removed. The dotted line marks the threshold from the config.
+
+::: {.panel-tabset}
+
+#### Positive mode
+```{r cleaning plots pos}
+#| eval: !expr run.pos
+cleaning_plotly(plot_cleaning_steps(datalist$pos, mode = "pos"))
+```
+
+#### Negative mode
+```{r cleaning plots neg}
+#| eval: !expr run.neg
+cleaning_plotly(plot_cleaning_steps(datalist$neg, mode = "neg"))
+```
+
+:::
+
 ## Normalization
 ```{r}
 

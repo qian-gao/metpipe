@@ -17,21 +17,35 @@ clean_peaktable(
 )
 }
 \arguments{
-\item{dat}{A data set object}
+\item{datalist}{Mode-level list containing `peaks`, `features`, and `meta`.}
 
-\item{id}{Scope (e.g., country codes or individual IDs)}
+\item{mean.filter}{Optional mean-intensity filter rule(s).}
 
-\item{time}{Time (e.g., time periods are given by years, months, ...)}
+\item{rsd.filter}{Optional RSD filter rule(s).}
+
+\item{dilution.filter}{Optional dilution-series filter configuration passed to [filter_peaks()].}
+
+\item{rt.range}{Optional retention-time range.}
+
+\item{filter_by_missing_feature_pct}{Missing-value threshold in percent.}
+
+\item{filter_by_missing_sample_type}{Sample type used in missingness filtering.}
+
+\item{outliers.sample}{Optional sample names removed before filtering.}
+
+\item{po.sample.to.use}{Sample type used to select duplicate internal standards.}
 }
 \value{
-A data frame object that contains a summary of a sample that
-    can later be converted to a TeX output using \code{overview_print}
+Updated mode-level datalist with cleaned peaks/features/meta, plus
+  `clean_trace`: per-feature filter metrics and the step that removed each
+  non-IS feature (see [filter_peaks()] and [plot_cleaning_steps()]).
 }
 \description{
-Provides an overview table for the time and scope conditions of
-    a data set
+Clean one mode-level peak table by removing outliers, filtering
+features by quality metrics and missingness, and handling internal standards.
 }
 \examples{
-data(toydata)
-output_table <- overview_tab(dat = toydata, id = ccode, time = year)
+\dontrun{
+cleaned <- clean_peaktable(datalist)
+}
 }

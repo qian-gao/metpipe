@@ -23,6 +23,10 @@
 #'   Features are kept when their correlation with dilution levels is >= `min.cor`.
 #'
 #' @return A list containing filtered peak table(s), feature summaries, and indices.
+#'   For peak-table input it also contains `trace`, a list with `features` (one
+#'   row per input feature: rt, mz, `mean.<type>`, `rsd.<type>`, `dilution.cor`,
+#'   and `removed_at`, the id of the step that removed it, or NA) and `steps`
+#'   (the applied filter steps in order, each with `id`, `kind`, `label`, `rule`).
 #' @examples
 #'
 #' @export
@@ -79,6 +83,36 @@ filter_peaks <-
     mzrt <- c(mzrt, rsd)
     index.list <- list()
 
+    # Per-feature trace of metrics and the step that removed each feature.
+    # Only recorded for peak-table input (feature identities are known there).
+    trace <- NULL
+    trace.steps <- list()
+    if (is.null(XCMSnExp)) {
+      trace.mean <- as.data.frame(rsd$type.mean)[, -1, drop = FALSE]
+      colnames(trace.mean) <- paste0("mean.", colnames(trace.mean))
+      trace.rsd <- as.data.frame(rsd$type.rsd)[, -1, drop = FALSE]
+      colnames(trace.rsd) <- paste0("rsd.", colnames(trace.rsd))
+      trace <-
+        data.frame( Identity = peaktable$Identity,
+                    rt = peaktable$rt,
+                    mz = peaktable$mz,
+                    trace.mean,
+                    trace.rsd,
+                    dilution.cor = NA_real_,
+                    removed_at = NA_character_,
+                    stringsAsFactors = FALSE )
+    }
+
+    record_step <- function(trace, trace.steps, index, id, kind, label, rule) {
+      if (is.null(trace)) return(list(trace = trace, steps = trace.steps))
+      dropped <- mzrt$peaktable$Identity[!index]
+      sel <- trace$Identity %in% dropped & is.na(trace$removed_at)
+      trace$removed_at[sel] <- id
+      trace.steps[[length(trace.steps) + 1]] <-
+        list(id = id, kind = kind, label = label, rule = rule)
+      list(trace = trace, steps = trace.steps)
+    }
+
     # Filter based on BL and RSD
     # if (!is.null(mean.filter)){
     #
@@ -130,6 +164,13 @@ filter_peaks <-
         index[is.na(index)] <- FALSE
         index.list$mean.filter[[i]] <- c(index)
 
+        rec <- record_step( trace, trace.steps, index,
+                            id = paste0("mean_", i), kind = "mean",
+                            label = paste0("Mean: ", m.thres[1], "*", m.thres[2], " ", m.thres[3], " ", m.thres[4]),
+                            rule = m.thres )
+        trace <- rec$trace
+        trace.steps <- rec$steps
+
         mzrt <-
           mzrt_filter( mzrt = mzrt,
                        index = index)
@@ -171,6 +212,13 @@ filter_peaks <-
 
         index[is.na(index)] <- FALSE
         index.list$rsd.filter[[i]] <- c(index)
+
+        rec <- record_step( trace, trace.steps, index,
+                            id = paste0("rsd_", i), kind = "rsd",
+                            label = paste0("RSD: ", m.thres[1], "*", m.thres[2], " ", m.thres[3], " ", m.thres[4]),
+                            rule = m.thres )
+        trace <- rec$trace
+        trace.steps <- rec$steps
 
         mzrt <-
           mzrt_filter( mzrt = mzrt,
@@ -243,6 +291,19 @@ filter_peaks <-
 
       index.list$dilution.filter <- index
 
+      if (!is.null(trace)) {
+        trace$dilution.cor[match(mzrt$peaktable$Identity, trace$Identity)] <- as.numeric(cor.values)
+      }
+      rec <- record_step( trace, trace.steps, index,
+                          id = "dilution", kind = "dilution",
+                          label = paste0("Dilution: ", method, " cor >= ", min.cor),
+                          rule = list( dilution.types = dilution.types,
+                                       levels = levels,
+                                       min.cor = min.cor,
+                                       method = method ) )
+      trace <- rec$trace
+      trace.steps <- rec$steps
+
       mzrt <-
         mzrt_filter( mzrt = mzrt,
                      index = index)
@@ -281,6 +342,13 @@ filter_peaks <-
 
       index.list$index.rt.range <- index
 
+      rec <- record_step( trace, trace.steps, index,
+                          id = "rt", kind = "rt",
+                          label = paste0("RT: ", rt.range[1], " - ", rt.range[2], " min"),
+                          rule = as.numeric(rt.range) )
+      trace <- rec$trace
+      trace.steps <- rec$steps
+
       mzrt <-
         mzrt_filter( mzrt = mzrt,
                      index = index)
@@ -305,6 +373,9 @@ filter_peaks <-
       data.frame(tm, trsd[, -1], tsd[, -1])
 
     mzrt$summary <- summary
+    if (!is.null(trace)) {
+      mzrt$trace <- list(features = trace, steps = trace.steps)
+    }
 
     return(mzrt)
 

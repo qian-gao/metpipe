@@ -24,6 +24,12 @@ should be mandatory}
 
 \item{rt.range}{Retention time range for keeping features}
 
+\item{dilution.filter}{Optional dilution-series filter configuration list with
+elements: `dilution.types` (character vector), `levels` (numeric vector of the
+same length), optional `min.cor` (default 0.7), and optional `method`
+(`"pearson"`, `"spearman"`, or `"kendall"`; default `"spearman"`).
+Features are kept when their correlation with dilution levels is >= `min.cor`.}
+
 \item{bl.thres}{Threshold for keeping features based on their values in one
 type of sample compared to blanks. e.g. c( 3, "BL", "<", "PO")}
 
@@ -36,18 +42,14 @@ e.g. c( "PO", ">", 1000)}
 \item{mean.thres}{Threshold for keeping features based on their mean values in
 certain types. e.g. list( c( "PO100", ">", 1, "PO25"),
                           c( "PO25", ">", 1, "PO12.5") )}
-
-\item{dilution.filter}{Optional dilution-series filter configuration list with
-elements: \code{dilution.types} (character vector), \code{levels} (numeric vector of the
-same length), optional \code{min.cor} (default 0.7), and optional \code{method}
-(\code{"pearson"}, \code{"spearman"}, or \code{"kendall"}; default \code{"spearman"}).
-Features are kept when their correlation with dilution levels is >= \code{min.cor}.
-For backward compatibility, \code{sample.types} is also accepted.}
 }
 \value{
-A data frame object that contains filtered peaktable and summary statistics
+A list containing filtered peak table(s), feature summaries, and indices.
+  For peak-table input it also contains `trace`, a list with `features` (one
+  row per input feature: rt, mz, `mean.<type>`, `rsd.<type>`, `dilution.cor`,
+  and `removed_at`, the id of the step that removed it, or NA) and `steps`
+  (the applied filter steps in order, each with `id`, `kind`, `label`, `rule`).
 }
 \description{
-Provides an overview table for the time and scope conditions of
-    a data set
+Filter metabolomics features by mean intensity, RSD, and RT range.
 }
