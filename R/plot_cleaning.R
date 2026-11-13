@@ -191,7 +191,7 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
     p <- ggplot(d, aes(x = panel, y = value, text = text)) +
       geom_violin(data = d[n_panel >= 2, , drop = FALSE], aes(x = panel, y = value),
                   inherit.aes = FALSE,
-                  fill = "grey92", colour = "grey55", scale = "width", width = 0.8) +
+                  fill = NA, colour = "grey55", scale = "width", width = 0.8) +
       geom_jitter(aes(colour = step_status),
                   position = position_jitter(width = 0.25, height = 0, seed = 1),
                   size = 0.7, alpha = 0.5) +
