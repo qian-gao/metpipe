@@ -107,11 +107,21 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
     d <- d[is.finite(d$value), , drop = FALSE]
     # Discrete-valued metrics (e.g. correlations over few dilution levels,
     # missing % over few samples): one bar per value instead of gappy bins
+    # Bin over the data and the threshold together, so a threshold far from
+    # the data does not shrink the bars to hairlines
+    rng <- if (nrow(d) > 0) range(c(d$value, threshold[is.finite(threshold)])) else c(0, 0)
     u <- sort(unique(round(d$value, 10)))
-    hist_layer <- if (length(u) > 1 && length(u) <= bins) {
+    discrete <- length(u) > 1 && length(u) <= bins &&
+      min(diff(u)) >= diff(rng) / bins
+    hist_layer <- if (discrete) {
       geom_histogram(binwidth = min(diff(u)), center = u[1], position = "stack", colour = NA)
     } else {
-      geom_histogram(bins = bins, position = "stack", colour = NA)
+      if (diff(rng) > 0) {
+        geom_histogram(binwidth = diff(rng) / bins, boundary = rng[1],
+                       position = "stack", colour = NA)
+      } else {
+        geom_histogram(bins = bins, position = "stack", colour = NA)
+      }
     }
     p <- ggplot(d, aes(x = value, fill = step_status)) +
       hist_layer +

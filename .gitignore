@@ -16,3 +16,6 @@ metpipe_intro.qmd
 /.quarto/
 **/*.quarto_ipynb
 *.zip
+
+# Local test runs on real data (large, not for version control)
+/tests/temp/
