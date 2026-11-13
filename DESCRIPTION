@@ -27,6 +27,7 @@ Imports:
     openxlsx,
     plotly,
     plyr,
+    ranger,
     readxl,
     rmarkdown,
     reshape2,

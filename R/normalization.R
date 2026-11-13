@@ -314,6 +314,23 @@ normalization <-
       peaks_norm$limma <- result.normalization$x
       normalizer.list$limma <- result.normalization$normalizer
     }
+
+    if ("serrf" %in% norm.method){
+
+      result.normalization <-
+        normalize_various_methods(
+          x = data,
+          batch = batch,
+          method = "serrf",
+          type = sample.info$Sample.type,
+          use.type = po.sample.to.use,
+          data.rsd.orig = data.rsd.orig,
+          feature.info = feature.info
+        )
+
+      peaks_norm$serrf <- result.normalization$x
+      normalizer.list$serrf <- result.normalization$normalizer
+    }
     
     if ("sum" %in% norm.method){
       

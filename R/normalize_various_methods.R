@@ -46,7 +46,7 @@ normalize_various_methods <-
 
   ) {
 
-    allowed_methods <- c("unit", "sum", "median", "pqn", "nomis", "loess", "qspline", "combat", "low_cv", "bestis", "limma")
+    allowed_methods <- c("unit", "sum", "median", "pqn", "nomis", "loess", "qspline", "combat", "low_cv", "bestis", "limma", "serrf")
     if (is.null(method) || length(method) != 1 || !method %in% allowed_methods) {
       stop("`method` must be one of: ", paste(allowed_methods, collapse = ", "))
     }
@@ -83,6 +83,10 @@ normalize_various_methods <-
 
     if (method == "pqn" && !is.null(use.type) && is.null(type)) {
       stop("`type` must be provided when `use.type` is set for method='pqn'")
+    }
+
+    if (method == "serrf" && (is.null(type) || is.null(use.type))) {
+      stop("`type` and `use.type` are required for method='serrf'")
     }
 
     if (!is.null(type) && length(type) != nrow(x)) {
@@ -379,6 +383,11 @@ normalize_various_methods <-
 
       rownames(x_norm) <- x_rownames
       colnames(x_norm) <- x_colnames
+
+    } else if (method == 'serrf') {
+
+      x_norm <- normalize_serrf(x = x, type = type, use.type = use.type, batch = batch)
+
     }
 
     x_norm <- sanitize_norm_matrix(x_norm, x_rownames, x_colnames)

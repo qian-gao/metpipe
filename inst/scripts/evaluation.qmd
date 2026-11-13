@@ -82,6 +82,7 @@ show.pqn <- is_norm_selected("pqn")
 show.loess <- is_norm_selected("loess")
 show.combat <- is_norm_selected("combat")
 show.limma <- is_norm_selected("limma")
+show.serrf <- is_norm_selected("serrf")
 
 ```
 
@@ -380,6 +381,25 @@ cat("##### limma\n")
 
 a <- ggplotly(pca.plot$limma, session="knitr")
 b <- ggplotly(pca.plot.type$limma, session="knitr")
+
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
+
+```
+
+```{r pca-title-serrf-pos, results='asis', eval = run.norm.pos && show.serrf && !is.null(pca.plot$serrf)}
+cat("##### serrf\n")
+```
+
+```{r PCA-Normalized_by_serrf pos, fig.height = 5, fig.width = 8, eval = run.norm.pos && show.serrf && !is.null(pca.plot$serrf)}
+
+a <- ggplotly(pca.plot$serrf, session="knitr")
+b <- ggplotly(pca.plot.type$serrf, session="knitr")
 
 subplot(a, b) %>%
   layout(
@@ -696,6 +716,25 @@ subplot(a, b) %>%
     yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
   )
 
+
+```
+
+```{r pca-title-serrf-neg, results='asis', eval = run.norm.neg && show.serrf && !is.null(pca.plot$serrf)}
+cat("##### serrf\n")
+```
+
+```{r PCA-Normalized_by_serrf neg, fig.height = 5, fig.width = 8, eval = run.norm.neg && show.serrf && !is.null(pca.plot$serrf)}
+
+a <- ggplotly(pca.plot$serrf, session="knitr")
+b <- ggplotly(pca.plot.type$serrf, session="knitr")
+
+subplot(a, b) %>%
+  layout(
+    xaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    xaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all"),
+    yaxis2 = list(showline = TRUE, linewidth = 1, linecolor = '#999999', mirror = "all")
+  )
 
 ```
 :::
