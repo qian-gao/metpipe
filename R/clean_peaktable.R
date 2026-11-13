@@ -128,6 +128,7 @@ clean_peaktable <-
       sel <- tr$Identity %in% dropped & is.na(tr$removed_at)
       tr$removed_at[sel] <- "missing"
       tr$status <- ifelse(is.na(tr$removed_at), "Kept", "Removed")
+      tr$Feature_type <- features.all$Feature_type[match(tr$Identity, features.all$Identity)]
       clean.trace$features <- tr
       clean.trace$steps[[length(clean.trace$steps) + 1]] <-
         list( id = "missing", kind = "missing",

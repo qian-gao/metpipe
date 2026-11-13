@@ -74,7 +74,7 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
            "<br>m/z: ", round(d$mz, 4),
            "<br>RT: ", round(d$rt, 2),
            "<br>", value_label, ": ", signif(value, 3),
-           "<br>", d$step_status)
+           "<br>", if (is.null(d$Feature_type)) "" else paste0(d$Feature_type, ", "), d$step_status)
   }
 
   # Features that reached step i, with status relative to that step
@@ -87,9 +87,52 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
     d
   }
 
-  step_subtitle <- function(d) {
-    paste0(sum(d$step_status == "Removed"), " of ", nrow(d),
-           " features removed at this step")
+  # Feature groups shown side by side: All, then Known/Unknown (and any other
+  # non-IS Feature_type present). Older traces without Feature_type: All only.
+  feature_types <- if ("Feature_type" %in% colnames(tr)) {
+    ft <- unique(tr$Feature_type[!is.na(tr$Feature_type)])
+    c(intersect(c("Known", "Unknown"), ft), sort(setdiff(ft, c("Known", "Unknown"))))
+  } else {
+    character(0)
+  }
+  groups <- c("All", feature_types)
+  col_groups <- stats::setNames(
+    c("#5F6B77", "#3B75AF", "#E39B2D", rep("#9A9A9A", max(0, length(groups) - 3)))[seq_along(groups)],
+    groups
+  )
+  group_subtitle <- if (length(feature_types) > 0) {
+    paste0("Panels: all features and by annotation (", paste(feature_types, collapse = " / "), ")")
+  } else {
+    NULL
+  }
+
+  # Stack the data once per group (All + each Feature_type)
+  expand_groups <- function(d) {
+    out <- d
+    out$group <- "All"
+    if (length(feature_types) > 0) {
+      sub <- d[!is.na(d$Feature_type), , drop = FALSE]
+      sub$group <- sub$Feature_type
+      out <- rbind(out, sub)
+    }
+    out$group <- factor(out$group, levels = groups)
+    out
+  }
+
+  # Facet labels carrying per-group "removed of entered" counts
+  add_step_panels <- function(d) {
+    d <- expand_groups(d)
+    n <- tapply(rep(1, nrow(d)), d$group, sum)
+    rem <- tapply(d$step_status == "Removed", d$group, sum)
+    n[is.na(n)] <- 0
+    rem[is.na(rem)] <- 0
+    lab <- paste0(groups, ": ", rem[groups], " of ", n[groups], " removed")
+    d$panel <- factor(lab[match(as.character(d$group), groups)], levels = lab)
+    d
+  }
+
+  facet_groups <- function(scales = "fixed") {
+    facet_wrap(~panel, nrow = 1, scales = scales)
   }
 
   # Squish extreme values into the upper edge so the threshold stays readable
@@ -123,11 +166,13 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
         geom_histogram(bins = bins, position = "stack", colour = NA)
       }
     }
+    d <- add_step_panels(d)
     p <- ggplot(d, aes(x = value, fill = step_status)) +
       hist_layer +
+      facet_groups(scales = "free_y") +
       scale_fill_manual(values = col_status, name = NULL, drop = FALSE) +
       labs(x = xlab, y = "Number of features", title = paste0(prefix, title),
-           subtitle = step_subtitle(d), caption = caption) +
+           subtitle = group_subtitle, caption = caption) +
       theme_bw()
     for (t in threshold) {
       if (is.finite(t)) p <- p + geom_vline(xintercept = t, linetype = "dotted", linewidth = 0.8)
@@ -139,22 +184,31 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
   tooltip <- list()
 
   ## Funnel -------------------------------------------------------------------
-  funnel <- data.frame(
-    step = c("Detected", step_labels),
-    remaining = c(nrow(tr), vapply(seq_along(steps), function(i) {
-      sum(is.na(removed_idx) | removed_idx > i)
-    }, numeric(1))),
-    removed = c(0, vapply(seq_along(steps), function(i) sum(removed_idx == i, na.rm = TRUE),
-                          numeric(1))),
-    stringsAsFactors = FALSE
-  )
-  funnel$step <- factor(funnel$step, levels = funnel$step)
-  funnel$text <- paste0(funnel$step, "<br>Remaining: ", funnel$remaining,
+  funnel <- do.call(rbind, lapply(groups, function(g) {
+    in_g <- if (g == "All") rep(TRUE, nrow(tr)) else tr$Feature_type %in% g
+    ri <- removed_idx[in_g]
+    data.frame(
+      step = c("Detected", step_labels),
+      group = g,
+      remaining = c(sum(in_g), vapply(seq_along(steps), function(i) {
+        sum(is.na(ri) | ri > i)
+      }, numeric(1))),
+      removed = c(0, vapply(seq_along(steps), function(i) sum(ri == i, na.rm = TRUE),
+                            numeric(1))),
+      stringsAsFactors = FALSE
+    )
+  }))
+  funnel$step <- factor(funnel$step, levels = c("Detected", step_labels))
+  funnel$group <- factor(funnel$group, levels = groups)
+  funnel$text <- paste0(funnel$step, " (", funnel$group, ")",
+                        "<br>Remaining: ", funnel$remaining,
                         "<br>Removed at this step: ", funnel$removed)
+  dodge <- position_dodge(width = 0.85)
   out$funnel <-
-    ggplot(funnel, aes(x = step, y = remaining, text = text)) +
-    geom_col(fill = col_status[["Passed"]]) +
-    geom_text(aes(label = remaining), vjust = -0.3, size = 3.5) +
+    ggplot(funnel, aes(x = step, y = remaining, fill = group, text = text)) +
+    geom_col(position = dodge, width = 0.8) +
+    geom_text(aes(label = remaining), position = dodge, vjust = -0.3, size = 3) +
+    scale_fill_manual(values = col_groups, name = NULL) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.08))) +
     labs(x = NULL, y = "Features remaining",
          title = paste0(prefix, "Features remaining after each cleaning step"),
@@ -209,16 +263,19 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
                          "<br>RT: ", round(d$rt, 2),
                          "<br>mean ", r$lhs, ": ", signif(a, 3),
                          "<br>mean ", r$rhs, ": ", signif(b, 3),
-                         "<br>", d$step_status)
+                         "<br>", d$Feature_type, ", ", d$step_status)
+        d <- add_step_panels(d)
         out[[s$id]] <-
           ggplot(d, aes(x = x, y = y, colour = step_status, text = text)) +
           geom_point(alpha = 0.5, size = 1.2) +
           geom_abline(intercept = log10(r$k), slope = 1, linetype = "dotted", linewidth = 0.8) +
+          facet_groups() +
           scale_colour_manual(values = col_status, name = NULL, drop = FALSE) +
           labs(x = paste0("log10 mean intensity in ", r$lhs),
                y = paste0("log10 mean intensity in ", r$rhs),
                title = paste0(prefix, "Mean intensity filter (keep ", r$text, ")"),
-               subtitle = paste0(step_subtitle(d), "; dotted line: ", r$rhs, " = ", r$k, " x ", r$lhs),
+               subtitle = paste(c(group_subtitle, paste0("dotted line: ", r$rhs, " = ", r$k, " x ", r$lhs)),
+                                collapse = "; "),
                caption = if (n_floor > 0) paste0(n_floor, " features with zero/missing mean plotted at the axis floor") else NULL) +
           theme_bw()
         tooltip[[s$id]] <- "text"
@@ -253,14 +310,16 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
 
     } else if (s$kind == "rt") {
       d$text <- hover(d, "RT", d$rt)
+      d <- add_step_panels(d)
       out$rt <-
         ggplot(d, aes(x = rt, y = mz, colour = step_status, text = text)) +
         geom_point(alpha = 0.5, size = 1.2) +
         geom_vline(xintercept = s$rule, linetype = "dotted", linewidth = 0.8) +
+        facet_groups() +
         scale_colour_manual(values = col_status, name = NULL, drop = FALSE) +
         labs(x = "Retention time (min)", y = "m/z",
              title = paste0(prefix, "Retention time filter (keep ", s$rule[1], " - ", s$rule[2], " min)"),
-             subtitle = step_subtitle(d)) +
+             subtitle = group_subtitle) +
         theme_bw()
       tooltip$rt <- "text"
 
@@ -284,27 +343,39 @@ plot_cleaning_steps <- function(mode_data, mode = NULL, bins = 60) {
     if (!col %in% colnames(tr)) next
     thr <- if (!is.na(r$rhs_num)) r$rhs_num / r$k else NA_real_
 
-    before <- tr[[col]]
-    after <- tr[[col]][is.na(tr$removed_at)]
-    cl <- clip_upper(before, thr)
-    d <- data.frame(
-      rsd = c(pmin(before, cl$upper), pmin(after, cl$upper)),
-      set = factor(rep(c("Before cleaning", "After cleaning"), c(length(before), length(after))),
-                   levels = c("Before cleaning", "After cleaning"))
-    )
+    cl <- clip_upper(tr[[col]], thr)
+    base <- tr
+    base$rsd <- pmin(tr[[col]], cl$upper)
+    before <- base
+    before$set <- "Before cleaning"
+    after <- base[is.na(base$removed_at), , drop = FALSE]
+    after$set <- if (nrow(after) > 0) "After cleaning" else character(0)
+    d <- expand_groups(rbind(before, after))
+    d$set <- factor(d$set, levels = c("Before cleaning", "After cleaning"))
     d <- d[is.finite(d$rsd), , drop = FALSE]
-    med <- tapply(d$rsd, d$set, stats::median)
-    nn <- table(d$set)
+
+    # Panel labels with n and median per group, before -> after
+    lab <- vapply(groups, function(g) {
+      b <- d$rsd[d$group == g & d$set == "Before cleaning"]
+      a <- d$rsd[d$group == g & d$set == "After cleaning"]
+      med <- function(x) if (length(x)) signif(stats::median(x), 3) else NA
+      paste0(g, ": n ", length(b), " -> ", length(a),
+             ", median ", med(b), " -> ", med(a))
+    }, character(1))
+    d$panel <- factor(lab[match(as.character(d$group), groups)], levels = lab)
+    # A density needs at least two points per curve
+    n_curve <- stats::ave(rep(1, nrow(d)), d$panel, d$set, FUN = sum)
+    d <- d[n_curve >= 2, , drop = FALSE]
 
     id <- paste0("rsd_before_after_", j)
     p <- ggplot(d, aes(x = rsd, fill = set, colour = set)) +
       geom_density(alpha = 0.35) +
-      scale_fill_manual(values = col_before_after, name = NULL) +
-      scale_colour_manual(values = col_before_after, name = NULL) +
+      facet_groups() +
+      scale_fill_manual(values = col_before_after, name = NULL, drop = FALSE) +
+      scale_colour_manual(values = col_before_after, name = NULL, drop = FALSE) +
       labs(x = paste0("RSD in ", r$lhs), y = "Density",
            title = paste0(prefix, "RSD in ", r$lhs, " before and after cleaning"),
-           subtitle = paste0("Before: n = ", nn[[1]], ", median ", signif(med[[1]], 3),
-                             "; after: n = ", nn[[2]], ", median ", signif(med[[2]], 3)),
+           subtitle = group_subtitle,
            caption = if (cl$n > 0) paste0("RSD values > ", signif(cl$upper, 3), " squished to the upper edge") else NULL) +
       theme_bw()
     if (is.finite(thr)) p <- p + geom_vline(xintercept = thr, linetype = "dotted", linewidth = 0.8)

@@ -1,4 +1,5 @@
-make_mode_data <- function(values, sample.type, rt, mz = seq(100, by = 50, length.out = nrow(values))) {
+make_mode_data <- function(values, sample.type, rt, mz = seq(100, by = 50, length.out = nrow(values)),
+                           feature_type = "Known") {
   ids <- rownames(values)
   samples <- paste0("S", seq_along(sample.type))
   peaks <- as.data.frame(values)
@@ -8,7 +9,7 @@ make_mode_data <- function(values, sample.type, rt, mz = seq(100, by = 50, lengt
     peaks = peaks,
     features = data.frame(
       rt = rt, mz = mz, Identity = ids,
-      Feature_type = "Known", Feature_ID = paste0("FT", seq_along(ids)),
+      Feature_type = feature_type, Feature_ID = paste0("FT", seq_along(ids)),
       stringsAsFactors = FALSE
     ),
     meta = data.frame(Sample = samples, Sample.type = sample.type, stringsAsFactors = FALSE)
@@ -27,7 +28,8 @@ test_that("clean_peaktable records which step removed each feature", {
     miss  = c(10, 10, 10, 1000, 1050, 950, 1000, 1000, 1000, NA, NA, NA, NA),
     good2 = good
   )
-  md <- make_mode_data(v, st, rt = c(5, 5, 5, 5, 35, 5, 5))
+  types <- c("Known", "Unknown", "Known", "Unknown", "Known", "Unknown", "Unknown")
+  md <- make_mode_data(v, st, rt = c(5, 5, 5, 5, 35, 5, 5), feature_type = types)
 
   # YAML-style character rules
   out <- suppressWarnings(capture.output(res <- clean_peaktable(
@@ -55,6 +57,21 @@ test_that("clean_peaktable records which step removed each feature", {
   expect_named(plots, c("funnel", "mean_1", "mean_2", "rsd_1", "rt", "missing",
                         "rsd_before_after_1"))
   expect_true(all(vapply(plots, ggplot2::is_ggplot, logical(1))))
+
+  # Known / Unknown / All are shown in every figure
+  expect_equal(tr$Feature_type, types)
+  funnel <- plots$funnel$data
+  expect_setequal(as.character(funnel$group), c("All", "Known", "Unknown"))
+  kept <- funnel[funnel$step == levels(funnel$step)[nlevels(funnel$step)], ]
+  expect_equal(setNames(kept$remaining, kept$group), c(All = 2, Known = 1, Unknown = 1))
+  for (nm in setdiff(names(plots), "funnel")) {
+    panels <- levels(droplevels(plots[[nm]]$data$panel))
+    expect_length(panels, 3)
+    expect_match(panels, "^(All|Known|Unknown)")
+  }
+  # RSD step: the high-RSD feature is Unknown
+  expect_true(any(grepl("^Unknown: 1 of", levels(plots$rsd_1$data$panel))))
+  expect_true(any(grepl("^Known: 0 of", levels(plots$rsd_1$data$panel))))
 
   widgets <- cleaning_plotly(plots)
   expect_length(widgets, length(plots))
