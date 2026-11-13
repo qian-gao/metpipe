@@ -22,6 +22,14 @@ should be mandatory}
 
 \item{sample.type}{A vector indicating sample types}
 
+\item{mean.filter}{Mean-intensity rule(s), each `c(k, type, op, threshold)` or
+`c(k, typeA, op, typeB)`, e.g. `list(c(2, "BL", "<", "PO"), c(1, "Sample", ">", 500))`.
+In a type-vs-type rule a missing mean for `typeA` (feature never detected
+in that type, e.g. absent from all blanks) counts as 0, so the feature is
+kept when `typeB` has signal.}
+
+\item{rsd.filter}{RSD rule(s) in the same format as `mean.filter`.}
+
 \item{rt.range}{Retention time range for keeping features}
 
 \item{dilution.filter}{Optional dilution-series filter configuration list with

@@ -12,6 +12,12 @@
 #'    e.g. c( "PO", "<", 40)
 #' @param mean.po.thres Threshold for keeping features based on their mean in pools.
 #'    e.g. c( "PO", ">", 1000)
+#' @param mean.filter Mean-intensity rule(s), each `c(k, type, op, threshold)` or
+#'   `c(k, typeA, op, typeB)`, e.g. `list(c(2, "BL", "<", "PO"), c(1, "Sample", ">", 500))`.
+#'   In a type-vs-type rule a missing mean for `typeA` (feature never detected
+#'   in that type, e.g. absent from all blanks) counts as 0, so the feature is
+#'   kept when `typeB` has signal.
+#' @param rsd.filter RSD rule(s) in the same format as `mean.filter`.
 #' @param rt.range Retention time range for keeping features
 #' @param mean.thres Threshold for keeping features based on their mean values in
 #'    certain types. e.g. list( c( "PO100", ">", 1, "PO25"),
@@ -145,7 +151,7 @@ filter_peaks <-
           m.thres <- mean.filter[[i]]
         }
 
-        if (!is.na(as.numeric(m.thres[4]))){
+        if (!is.na(suppressWarnings(as.numeric(m.thres[4])))){
           index <-
             apply( mzrt$type.mean,
                    MAR = 1,
@@ -153,12 +159,23 @@ filter_peaks <-
                        eval( parse( text = paste0( m.thres[1], "*", x[m.thres[2]], m.thres[3], m.thres[4]) ))
                    })
           } else {
-            index <-
-              apply( mzrt$type.mean,
-                     MAR = 1,
-                     function(x){
-                       eval( parse( text = paste0( m.thres[1], "*", x[m.thres[2]], m.thres[3], x[m.thres[4]]) ))
-                     })
+            # Type-vs-type rule, k*mean(A) op mean(B), e.g. 2*BL < PO.
+            # A missing mean for A (feature never detected in A, e.g. absent
+            # from all blanks) counts as 0, so the feature passes when B has
+            # signal. A missing mean for B still fails the rule.
+            missing.types <- setdiff(c(m.thres[2], m.thres[4]), colnames(mzrt$type.mean))
+            if (length(missing.types) > 0) {
+              stop("mean.filter rule '", paste(m.thres, collapse = " "),
+                   "' refers to sample type(s) not found in the data: ",
+                   paste(missing.types, collapse = ", "))
+            }
+            if (!m.thres[3] %in% c("<", ">", "<=", ">=")) {
+              stop("mean.filter operator must be one of <, >, <=, >=; got '", m.thres[3], "'")
+            }
+            lhs <- as.numeric(mzrt$type.mean[[m.thres[2]]])
+            rhs <- as.numeric(mzrt$type.mean[[m.thres[4]]])
+            lhs[is.na(lhs)] <- 0
+            index <- match.fun(m.thres[3])(as.numeric(m.thres[1]) * lhs, rhs)
           }
 
         index[is.na(index)] <- FALSE
