@@ -10,7 +10,8 @@ plot_cleaning_steps(mode_data, mode = NULL, bins = 60)
 \item{mode_data}{A cleaned mode-level datalist (e.g. `datalist$pos`)
 containing `clean_trace`, or the `clean_trace` list itself.}
 
-\item{mode}{Optional label (e.g. `"pos"`) prefixed to plot titles.}
+\item{mode}{Unused; kept so existing calls keep working. Plot titles do not
+include the mode (the report shows it in the tab).}
 
 \item{bins}{Number of histogram bins.}
 }
@@ -28,7 +29,9 @@ Build ggplot figures that show what each cleaning filter did to
   `dilution.filter`, `rt.range` and `filter_by_missing_*` were configured.
 
   Each per-step figure shows only the features that reached that step
-  (filters run in order), coloured by whether the step removed them. The
+  (filters run in order), coloured by whether the step removed them, for
+  all features and per `Feature_type` (Known / Unknown). Mean, RSD and
+  dilution steps are violin plots with jittered features; the
   threshold is drawn as a dotted line.
 }
 \examples{

@@ -78,6 +78,30 @@ test_that("clean_peaktable records which step removed each feature", {
   expect_true(any(grepl("^Unknown: 1 of", levels(plots$rsd_1$data$panel))))
   expect_true(any(grepl("^Known: 0 of", levels(plots$rsd_1$data$panel))))
 
+  # Titles without [mode] and no group subtitle
+  for (nm in names(plots)) {
+    labs_p <- ggplot2::get_labs(plots[[nm]])
+    expect_false(grepl("[", labs_p$title, fixed = TRUE), info = nm)
+    expect_false(isTRUE(grepl("^Panels:", labs_p$subtitle)), info = nm)
+  }
+
+  # Mean and RSD steps are violins with jittered features
+  geoms <- function(p) vapply(p$layers, function(l) class(l$geom)[1], character(1))
+  for (nm in c("mean_1", "mean_2", "rsd_1")) {
+    expect_true(all(c("GeomViolin", "GeomPoint") %in% geoms(plots[[nm]])), info = nm)
+  }
+  # 2*BL < PO: no blank signal -> top, Passed; no PO signal -> bottom, Removed
+  m1 <- plots$mean_1$data
+  m1 <- m1[m1$group == "All", ]
+  expect_equal(m1$value[m1$Identity == "noblank"], max(m1$value))
+  expect_equal(as.character(m1$step_status[m1$Identity == "noblank"]), "Passed")
+  expect_equal(m1$value[m1$Identity == "nopo"], min(m1$value))
+  expect_equal(as.character(m1$step_status[m1$Identity == "nopo"]), "Removed")
+
+  # RSD before/after panels: "type: n of N removed" over all cleaning steps
+  expect_equal(levels(plots$rsd_before_after_1$data$panel),
+               c("All: 6 of 9 removed", "Known: 3 of 5 removed", "Unknown: 3 of 4 removed"))
+
   widgets <- cleaning_plotly(plots)
   expect_length(widgets, length(plots))
 })
@@ -111,7 +135,8 @@ test_that("cleaning plots take sample types and thresholds from the rules", {
   plots <- plot_cleaning_steps(res$clean_trace)
   expect_named(plots, c("funnel", "mean_1", "rsd_1", "dilution", "missing",
                         "rsd_before_after_1"))
-  expect_match(ggplot2::get_labs(plots$rsd_1)$x, "RSD in QC")
+  expect_match(ggplot2::get_labs(plots$rsd_1)$y, "RSD in QC")
+  expect_true("GeomViolin" %in% vapply(plots$dilution$layers, function(l) class(l$geom)[1], ""))
   expect_match(ggplot2::get_labs(plots$mean_1)$y, "QC")
   expect_match(ggplot2::get_labs(plots$missing)$x, "Study")
 })
