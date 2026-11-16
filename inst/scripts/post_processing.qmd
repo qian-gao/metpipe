@@ -65,6 +65,8 @@ rt.range = config$rt.range
 filter_by_missing_feature_pct = config$filter_by_missing_feature_pct
 filter_by_missing_sample_type = config$filter_by_missing_sample_type
 outliers.sample = config$outliers.sample
+outliers.is.pos = config$outliers.is.pos
+outliers.is.neg = config$outliers.is.neg
 clean.po.sample.to.use = config$clean.po.sample.to.use
 impute.method.sample = config$impute.method.sample
 impute.method.is = config$impute.method.is
@@ -154,6 +156,10 @@ datalist <-
     
     # Outliers
     outliers.sample = outliers.sample,
+    
+    outliers.is.pos = outliers.is.pos,
+    outliers.is.neg = outliers.is.neg,
+    
     po.sample.to.use = clean.po.sample.to.use
   )
 ```

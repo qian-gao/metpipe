@@ -253,6 +253,8 @@ rt.range <- c(0, 30)
 filter_by_missing_feature_pct <- 50
 filter_by_missing_sample_type <- "Sample"
 outliers.sample <- c()
+outliers.is.pos <- c()
+outliers.is.neg <- c()
 clean.po.sample.to.use <- "PO"
 
 ```
@@ -338,6 +340,8 @@ config <- list(
   filter_by_missing_feature_pct = filter_by_missing_feature_pct,
   filter_by_missing_sample_type = filter_by_missing_sample_type,
   outliers.sample = outliers.sample,
+  outliers.is.pos = outliers.is.pos,
+  outliers.is.neg = outliers.is.neg,
   clean.po.sample.to.use = clean.po.sample.to.use,
   
   impute.method.sample = impute.method.sample,

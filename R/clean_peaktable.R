@@ -11,6 +11,7 @@
 #' @param filter_by_missing_feature_pct Missing-value threshold in percent.
 #' @param filter_by_missing_sample_type Sample type used in missingness filtering.
 #' @param outliers.sample Optional sample names removed before filtering.
+#' @param outliers.is Optional internal standards names removed before filtering. 
 #' @param po.sample.to.use Sample type used to select duplicate internal standards.
 #'
 #' @return Updated mode-level datalist with cleaned peaks/features/meta, plus
@@ -37,6 +38,7 @@ clean_peaktable <-
     
     # Outliers
     outliers.sample = NULL,
+    outliers.is = NULL,
     
     # Sample type to use to filter duplicate istd
     po.sample.to.use = NULL
@@ -56,11 +58,17 @@ clean_peaktable <-
     meta <- datalist$meta
     
     # Remove outliers
+    ## Sample
     index <- !meta$Sample %in% outliers.sample
     peaks.all <- peaks.all[, index]
     meta <- meta[index, ]
     cat("The following outliers have been removed:\n")
     cat(outliers.sample, "\n")
+    
+    ## IS
+    index <- features.all$identity %in% outliers.is
+    peaks.all <- peaks.all[index, ]
+    features.all <- features.all[index, ]
     
     data.all <- cbind(features.all[, c("rt", "mz", "Identity")], peaks.all)
     is.index <- features.all$Feature_type == "IS"

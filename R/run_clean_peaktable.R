@@ -13,6 +13,9 @@
 #' @param outliers.sample Optional sample names removed in both modes.
 #' @param outliers.sample.pos Optional positive-mode outlier sample names.
 #' @param outliers.sample.neg Optional negative-mode outlier sample names.
+#' @param outliers.is Optional sample names removed in both modes.
+#' @param outliers.is.pos Optional positive-mode outlier internal standards names.
+#' @param outliers.is.neg Optional negative-mode outlier internal standards names.
 #' @param po.sample.to.use Sample type used when filtering duplicate internal standards.
 #'
 #' @return Updated `metpipe_datalist` with cleaned `pos` and/or `neg` elements.
@@ -35,6 +38,10 @@ run_clean_peaktable <-
     outliers.sample.pos = NULL,
     outliers.sample.neg = NULL,
     
+    outliers.is = NULL,
+    outliers.is.pos = NULL,
+    outliers.is.neg = NULL,
+    
     # Sample type to use to filter duplicate istd
     po.sample.to.use = NULL
     ){
@@ -49,6 +56,7 @@ run_clean_peaktable <-
       pos_data <- get_mode(datalist, "pos")
       
       if (is.null(outliers.sample.pos)) outliers.sample.pos <- outliers.sample
+      if (is.null(outliers.is.pos)) outliers.is.pos <- outliers.is
       datalist$pos <- 
         clean_peaktable(
           datalist = pos_data,
@@ -59,6 +67,7 @@ run_clean_peaktable <-
           filter_by_missing_feature_pct = filter_by_missing_feature_pct,
           filter_by_missing_sample_type = filter_by_missing_sample_type,
           outliers.sample = outliers.sample.pos,
+          outliers.is = outliers.is.pos,
           po.sample.to.use = po.sample.to.use
         )
     }
@@ -68,6 +77,7 @@ run_clean_peaktable <-
       neg_data <- get_mode(datalist, "neg")
 
       if (is.null(outliers.sample.neg)) outliers.sample.neg <- outliers.sample
+      if (is.null(outliers.is.neg)) outliers.is.neg <- outliers.is
       datalist$neg <- 
         clean_peaktable(
           datalist = neg_data,
@@ -78,6 +88,7 @@ run_clean_peaktable <-
           filter_by_missing_feature_pct = filter_by_missing_feature_pct,
           filter_by_missing_sample_type = filter_by_missing_sample_type,
           outliers.sample = outliers.sample.neg,
+          outliers.is = outliers.is.neg,
           po.sample.to.use = po.sample.to.use
         )
     }
