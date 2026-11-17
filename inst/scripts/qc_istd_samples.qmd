@@ -24,6 +24,7 @@ params:
   samples: ""         # sample names (vector or comma-separated); empty = all samples
   features: ""        # feature names (vector or comma-separated); empty = all IS features
   sample_types: ""    # optional Sample.type filter (vector or comma-separated); empty = all
+  shewhart_ref: "PO"  # sample types used for Shewhart control limits; falls back to all selected samples
 ---
 
 ```{r setup environment, include = FALSE, warning = FALSE}
@@ -181,31 +182,82 @@ summarise_long <- function(df) {
     )
 }
 
-# One run-order bar plot and one by-sample-type box plot per feature
-plot_feature_intensity <- function(df) {
+# Per feature: a bar plot and a Shewhart control chart over the selected
+# samples. The x axis is the position among the selected samples (in run
+# order), so gaps from unselected runs are dropped; the real run order is
+# shown on hover. Control limits (mean, +/-2SD, +/-3SD) are computed from the
+# `ref_types` sample types (all selected samples if none of them are present).
+plot_feature_intensity <- function(df, ref_types = character(0)) {
   out <- htmltools::tagList()
+  df <- df %>%
+    mutate(Position = dense_rank(Run.order),
+           Hover = paste0("Sample: ", Sample,
+                          "<br>Sample type: ", Sample.type,
+                          "<br>Run order: ", Run.order))
+  # Fixed colour per sample type, shared by both plots
+  type.levels <- sort(unique(as.character(df$Sample.type)))
+  type.colors <- setNames(manual_colors[seq_along(type.levels)], type.levels)
+
   for (f in unique(df$Feature)) {
-    d <- df %>% filter(Feature == f)
+    d <- df %>% filter(Feature == f) %>% arrange(Position)
     if (all(is.na(d$Intensity))) next
 
     p.run <-
-      ggplot(d, aes(x = Run.order, y = Intensity, fill = Sample.type, text = Sample)) +
+      ggplot(d, aes(x = Position, y = Intensity, fill = Sample.type, text = Hover)) +
       geom_col() +
-      labs(x = "Run order", y = "Intensity", title = f) +
+      labs(x = "Selected samples (in run order)", y = "Intensity", title = f,
+           fill = "Sample type") +
       theme_bw() +
-      scale_fill_manual(values = manual_colors)
+      scale_fill_manual(values = type.colors)
 
-    p.type <-
-      ggplot(d, aes(x = Sample.type, y = Intensity, fill = Sample.type)) +
-      geom_boxplot(outlier.shape = NA, alpha = 0.6) +
-      geom_jitter(aes(text = Sample), width = 0.15, size = 1.5, alpha = 0.8) +
-      labs(x = "Sample type", y = "Intensity", title = f) +
-      theme_bw() +
-      theme(legend.position = "none") +
-      scale_fill_manual(values = manual_colors)
+    ref <- d$Intensity[d$Sample.type %in% ref_types]
+    ref.label <- paste(intersect(ref_types, d$Sample.type), collapse = ", ")
+    if (sum(!is.na(ref)) < 2) {
+      ref <- d$Intensity
+      ref.label <- "all selected samples"
+    }
+    m <- mean(ref, na.rm = TRUE)
+    s <- sd(ref, na.rm = TRUE)
+    limits <- data.frame(
+      y     = c(m, m + 2 * s, m - 2 * s, m + 3 * s, m - 3 * s),
+      group = c("Mean", "+/-2 SD", "+/-2 SD", "+/-3 SD", "+/-3 SD"),
+      color = c("#3C5488", "#F39B7F", "#F39B7F", "#E64B35", "#E64B35"),
+      dash  = c("solid", "dash", "dash", "dot", "dot")
+    )
+    x.range <- range(d$Position) + c(-0.5, 0.5)
 
-    out[[paste0(f, "_run")]]  <- as_widget(plotly_box(ggplotly(p.run)))
-    out[[paste0(f, "_type")]] <- as_widget(plotly_box(ggplotly(p.type, tooltip = c("text", "y"))))
+    # Built natively in plotly: ggplotly() mangles the combined legends
+    p.shew <-
+      plot_ly() %>%
+      add_lines(data = d, x = ~Position, y = ~Intensity,
+                line = list(color = "#BBBBBB", width = 1),
+                hoverinfo = "skip", showlegend = FALSE)
+    for (k in seq_len(nrow(limits))) {
+      p.shew <- p.shew %>%
+        add_lines(x = x.range, y = rep(limits$y[k], 2),
+                  name = limits$group[k], legendgroup = limits$group[k],
+                  showlegend = !duplicated(limits$group)[k],
+                  line = list(color = limits$color[k], dash = limits$dash[k], width = 1.2),
+                  hovertemplate = paste0(limits$group[k], ": %{y:.4g}<extra></extra>"))
+    }
+    for (ty in intersect(names(type.colors), unique(d$Sample.type))) {
+      p.shew <- p.shew %>%
+        add_markers(data = d[d$Sample.type == ty, ], x = ~Position, y = ~Intensity,
+                    name = ty, text = ~Hover,
+                    hovertemplate = "%{text}<br>Intensity: %{y}<extra></extra>",
+                    marker = list(size = 7, color = substr(type.colors[[ty]], 1, 7),
+                                  line = list(color = "#333333", width = 0.5)))
+    }
+    p.shew <- p.shew %>%
+      layout(
+        title = list(text = paste0(f, " - Shewhart chart (limits from ", ref.label, ")"),
+                     x = 0, font = list(size = 14)),
+        xaxis = list(title = "Selected samples (in run order)", zeroline = FALSE),
+        yaxis = list(title = "Intensity", zeroline = FALSE)
+      )
+
+    out[[paste0(f, "_run")]]  <- as_widget(plotly_box(ggplotly(p.run, tooltip = c("text", "y"))))
+    out[[paste0(f, "_shew")]] <- as_widget(plotly_box(p.shew))
   }
   out
 }
@@ -227,6 +279,7 @@ norm_method  <- as.character(params$norm_method)
 sel_samples  <- parse_param_list(params$samples)
 sel_features <- parse_param_list(params$features)
 sel_types    <- parse_param_list(params$sample_types)
+shew_ref     <- parse_param_list(params$shewhart_ref)
 
 datalist <- as_metpipe_datalist(readRDS(rds_datalist), validate = FALSE)
 
@@ -252,6 +305,7 @@ cat("Stage:    ", stage, if (stage == "norm") paste0("(", if (nzchar(norm_method
 cat("Samples:  ", if (length(sel_samples)) paste(sel_samples, collapse = ", ") else "all", "\n")
 cat("Features: ", if (length(sel_features)) paste(sel_features, collapse = ", ") else "all internal standards", "\n")
 cat("Sample types: ", if (length(sel_types)) paste(sel_types, collapse = ", ") else "all", "\n")
+cat("Shewhart limits from: ", if (length(shew_ref)) paste(shew_ref, collapse = ", ") else "all selected samples", "\n")
 
 found <- unique(c(if (run.pos) data.pos$Feature, if (run.neg) data.neg$Feature))
 if (length(sel_features) > 0) {
@@ -282,7 +336,7 @@ summarise_long(data.pos) %>%
 ### Intensity
 ```{r intensity pos, eval = run.pos, fig.height = 5}
 
-plot_feature_intensity(data.pos)
+plot_feature_intensity(data.pos, ref_types = shew_ref)
 
 ```
 :::
@@ -303,7 +357,7 @@ summarise_long(data.neg) %>%
 ### Intensity
 ```{r intensity neg, eval = run.neg, fig.height = 5}
 
-plot_feature_intensity(data.neg)
+plot_feature_intensity(data.neg, ref_types = shew_ref)
 
 ```
 :::
