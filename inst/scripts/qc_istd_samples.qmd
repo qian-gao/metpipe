@@ -31,7 +31,10 @@ params:
 library(plotly)
 library(ggplot2)
 library(knitr)
-library(kableExtra)
+has_kableExtra <- tryCatch({
+  suppressPackageStartupMessages(library(kableExtra))
+  TRUE
+}, error = function(e) FALSE)
 library(tidyr)
 library(dplyr)
 library(stringr)
@@ -80,11 +83,11 @@ plotly_box <- function(p) {
 extract_mode_long <- function(datalist, mode, stage, norm_method,
                               samples, features, sample_types) {
 
-  if (is.null(get_mode(datalist, mode, required = FALSE))) return(NULL)
-  payload <- get_stage(datalist, stage = stage, mode = mode, required = FALSE)
-  peaks <- payload$peaks
-  feat <- payload$features
-  meta <- payload$meta
+  x <- get_mode(datalist, mode, required = FALSE)
+  if (is.null(x)) return(NULL)
+  peaks <- switch(stage, raw = x$peaks, cleaned = x$peaks_cleaned, norm = x$peaks_norm)
+  feat  <- switch(stage, raw = x$features, x$features_cleaned)
+  meta  <- switch(stage, raw = x$meta, cleaned = x$meta_cleaned, norm = x$meta_norm)
 
   if (identical(stage, "norm") && is.list(peaks) && !is.data.frame(peaks)) {
     if (length(peaks) == 0) return(NULL)
@@ -97,14 +100,26 @@ extract_mode_long <- function(datalist, mode, stage, norm_method,
   }
   if (is.null(peaks) || is.null(feat) || is.null(meta)) return(NULL)
 
+  # ---- Orient peaks as features x samples and align feature table by name ----
+  # raw/cleaned peaks are features x samples (rownames = Feature_ID);
+  # normalized peaks are samples x features (colnames = Identity).
   peaks <- as.matrix(peaks)
-  if (nrow(peaks) != nrow(feat) && ncol(peaks) == nrow(feat)) peaks <- t(peaks)
-  if (nrow(peaks) != nrow(feat)) {
-    stop("Peaks and feature table dimensions do not match in ", mode, " mode (stage ", stage, ")")
+  feat <- as.data.frame(feat)
+  meta <- as.data.frame(meta)
+  if (sum(rownames(peaks) %in% meta$Sample) > sum(colnames(peaks) %in% meta$Sample)) {
+    peaks <- t(peaks)
+  }
+  key <- NULL
+  for (col in intersect(c("Feature_ID", "Identity"), names(feat))) {
+    if (!is.null(rownames(peaks)) && all(rownames(peaks) %in% feat[[col]])) { key <- col; break }
+  }
+  if (!is.null(key)) {
+    feat <- feat[match(rownames(peaks), feat[[key]]), , drop = FALSE]
+  } else if (nrow(peaks) != nrow(feat)) {
+    stop("Cannot align peaks with feature table in ", mode, " mode (stage ", stage, ")")
   }
 
   # ---- Feature selection: match on Identity, Identity_raw or Feature_ID ----
-  feat <- as.data.frame(feat)
   feat$.row <- seq_len(nrow(feat))
   if (length(features) == 0) {
     keep.f <- !is.na(feat$Feature_type) & feat$Feature_type == "IS"
@@ -118,7 +133,6 @@ extract_mode_long <- function(datalist, mode, stage, norm_method,
   if (nrow(feat) == 0) return(NULL)
 
   # ---- Sample selection: match on Sample or File.name ----
-  meta <- as.data.frame(meta)
   sample.cols <- colnames(peaks)
   meta <- meta[match(sample.cols, meta$Sample), , drop = FALSE]
   keep.s <- rep(TRUE, nrow(meta))
@@ -148,6 +162,10 @@ extract_mode_long <- function(datalist, mode, stage, norm_method,
   if (!"Sample.type" %in% names(out)) out$Sample.type <- "Sample"
   out$Mode <- mode
   out
+}
+
+show_table <- function(df) {
+  if (has_kableExtra) kableExtra::kable_paper(knitr::kable(df)) else knitr::kable(df, format = "html")
 }
 
 summarise_long <- function(df) {
@@ -219,7 +237,9 @@ run.pos <- !is.null(data.pos) && nrow(data.pos) > 0
 run.neg <- !is.null(data.neg) && nrow(data.neg) > 0
 
 if (!run.pos && !run.neg) {
-  stop("No matching features/samples found in either mode for the given selection.")
+  stop("No matching features/samples found in either mode for the given selection.",
+       if (stage == "norm" && length(sel_features) == 0)
+         " Internal standards are typically removed after normalization; pass `features` explicitly.")
 }
 
 ```
@@ -255,8 +275,7 @@ if (length(sel_samples) > 0) {
 
 summarise_long(data.pos) %>%
   mutate_if(is.numeric, function(x) round(x, 2)) %>%
-  kbl() %>%
-  kable_paper()
+  show_table()
 
 ```
 
@@ -277,8 +296,7 @@ plot_feature_intensity(data.pos)
 
 summarise_long(data.neg) %>%
   mutate_if(is.numeric, function(x) round(x, 2)) %>%
-  kbl() %>%
-  kable_paper()
+  show_table()
 
 ```
 
