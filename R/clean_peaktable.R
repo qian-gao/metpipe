@@ -66,9 +66,19 @@ clean_peaktable <-
     cat(outliers.sample, "\n")
     
     ## IS
-    index <- features.all$identity %in% outliers.is
-    peaks.all <- peaks.all[index, ]
-    features.all <- features.all[index, ]
+    is.outlier <- features.all$Feature_type %in% "IS" &
+      (features.all$Identity %in% outliers.is |
+       features.all$Identity_raw %in% outliers.is)
+    unmatched.is <- setdiff(outliers.is, c(features.all$Identity[is.outlier],
+                                           features.all$Identity_raw[is.outlier]))
+    if (length(unmatched.is) > 0) {
+      warning("Outlier internal standards not found: ",
+              paste(unmatched.is, collapse = ", "))
+    }
+    cat("The following internal standards have been removed as outliers:\n")
+    cat(features.all$Identity[is.outlier], sep = "\n")
+    peaks.all <- peaks.all[!is.outlier, , drop = FALSE]
+    features.all <- features.all[!is.outlier, , drop = FALSE]
     
     data.all <- cbind(features.all[, c("rt", "mz", "Identity")], peaks.all)
     is.index <- features.all$Feature_type == "IS"

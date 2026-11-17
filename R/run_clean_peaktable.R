@@ -13,7 +13,7 @@
 #' @param outliers.sample Optional sample names removed in both modes.
 #' @param outliers.sample.pos Optional positive-mode outlier sample names.
 #' @param outliers.sample.neg Optional negative-mode outlier sample names.
-#' @param outliers.is Optional sample names removed in both modes.
+#' @param outliers.is Optional internal standard names removed in both modes.
 #' @param outliers.is.pos Optional positive-mode outlier internal standards names.
 #' @param outliers.is.neg Optional negative-mode outlier internal standards names.
 #' @param po.sample.to.use Sample type used when filtering duplicate internal standards.
