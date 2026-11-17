@@ -227,11 +227,7 @@ plot_feature_intensity <- function(df, ref_types = character(0)) {
     x.range <- range(d$Position) + c(-0.5, 0.5)
 
     # Built natively in plotly: ggplotly() mangles the combined legends
-    p.shew <-
-      plot_ly() %>%
-      add_lines(data = d, x = ~Position, y = ~Intensity,
-                line = list(color = "#BBBBBB", width = 1),
-                hoverinfo = "skip", showlegend = FALSE)
+    p.shew <- plot_ly()
     for (k in seq_len(nrow(limits))) {
       p.shew <- p.shew %>%
         add_lines(x = x.range, y = rep(limits$y[k], 2),
