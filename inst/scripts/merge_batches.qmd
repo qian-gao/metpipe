@@ -709,7 +709,6 @@ use_parallel <- n_workers > 1L && length(tnames_to_run) > 1L
 
 if (use_parallel) {
   cl <- parallel::makeCluster(n_workers)
-  on.exit(parallel::stopCluster(cl), add = TRUE)
   parallel::clusterExport(cl,
     c("ppm_diff", "ccs_diff", "sample_key", "same_val", "estimate_batch_shift",
       "align_features", "clean_merged", "merge_table_list",
@@ -734,12 +733,14 @@ run_tables <- function(tnames, shifts_by_table = NULL) {
   setNames(out, tnames)
 }
 
-main_res <- run_tables(main_names)
-istd_shifts <- lapply(istd_names, function(n) {
-  r <- main_res[[sub("^istd_", "", n)]]
-  if (is.null(r)) NULL else r$res$shifts
-})
-all_res_list <- c(main_res, run_tables(istd_names, istd_shifts))[tnames_to_run]
+all_res_list <- tryCatch({
+  main_res <- run_tables(main_names)
+  istd_shifts <- lapply(istd_names, function(n) {
+    r <- main_res[[sub("^istd_", "", n)]]
+    if (is.null(r)) NULL else r$res$shifts
+  })
+  c(main_res, run_tables(istd_names, istd_shifts))[tnames_to_run]
+}, finally = if (use_parallel) parallel::stopCluster(cl))
 names(all_res_list) <- tnames_to_run
 
 results    <- list()
