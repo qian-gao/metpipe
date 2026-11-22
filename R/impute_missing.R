@@ -92,21 +92,28 @@ impute_missing <-
       grps <- unique(group.info)
       
       
-      x_imputed <- x
+      # Impute each group's low-missingness block with kNN and write it back
+      # in place, so x_imputed keeps every row and column of x. Features that
+      # are not imputed here are filled with HF below.
+      x_imputed <- as.matrix(x)
       for (i in grps){
-        row.index <- group.info == i
-        data.i <- x[row.index, , drop = FALSE]
-        nrow <- nrow(data.i)
-        
-        col.index <- apply(data.i, 2, function(x) {sum(is.na(x) | x <= 0) <= missing_thres * nrow})
-        
-        x_imputed <-
-          kNN(x_imputed[row.index, col.index, drop = FALSE],
-              variable = colnames(x_imputed[row.index, col.index, drop = FALSE]),
-              k = k, numFun = weightedMean, weightDist=TRUE, imp_var = FALSE)
-        
+        row.index <- which(group.info == i)
+        data.i <- x_imputed[row.index, , drop = FALSE]
+        is_miss <- is.na(data.i) | data.i <= 0
+        col.index <- which(colSums(is_miss) <= missing_thres * nrow(data.i))
+        if (length(col.index) == 0 || length(row.index) < 2) next
+
+        block <- data.i[, col.index, drop = FALSE]
+        block[is_miss[, col.index, drop = FALSE]] <- NA
+        block <- as.data.frame(block, stringsAsFactors = FALSE)
+        names(block) <- paste0("V", seq_len(ncol(block)))   # kNN needs syntactic names
+
+        imp <- kNN(block, variable = names(block),
+                   k = k, numFun = weightedMean, weightDist = TRUE, imp_var = FALSE)
+
+        x_imputed[row.index, col.index] <- as.matrix(imp)
       }
-      
+
       x_imputed <- apply(x_imputed, 2, fill_missing, fill_fun = min, scale = 0.5)
     }
     
