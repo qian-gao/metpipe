@@ -66,6 +66,9 @@ same_val <- function(a, b) {
   (is.na(a) & is.na(b)) | (!is.na(a) & !is.na(b) & a == b)
 }
 
+rowMedian <- function(x, na.rm = FALSE) {
+  apply(x, MARGIN = 1, FUN = median, na.rm = na.rm)
+}
 # Clean up peaktable by removing near-duplicate features
 # Identified features: grouped by identity string
 # Unknown features: grouped by mz, rt
@@ -75,8 +78,8 @@ remove_dup <- function(df, thres_mz_ppm = 3, thres_rt_min = 0.1) {
   if (n == 0L) return(df)
 
   int_cols <- get_sample_cols(df)
-  mean_int <- if (length(int_cols) > 0L)
-    rowMeans(as.matrix(df[, int_cols, drop = FALSE]), na.rm = TRUE)
+  median_int <- if (length(int_cols) > 0L)
+    rowMedian(as.matrix(df[, int_cols, drop = FALSE]), na.rm = TRUE)
   else
     rep(0, n)
 
@@ -88,7 +91,7 @@ remove_dup <- function(df, thres_mz_ppm = 3, thres_rt_min = 0.1) {
     idx_id  <- which(has_id)
     keep_id <- unlist(
       tapply(idx_id, df$identity[idx_id],
-             function(rows) rows[order(mean_int[rows], decreasing = TRUE)[seq_len(min(2L, length(rows)))]]),
+             function(rows) rows[order(median_int[rows], decreasing = TRUE)[seq_len(min(2L, length(rows)))]]),
       use.names = FALSE
     )
   }
@@ -127,7 +130,7 @@ remove_dup <- function(df, thres_mz_ppm = 3, thres_rt_min = 0.1) {
     groups[ord]  <- roots
     local_keep   <- unlist(
       tapply(seq_len(m), groups,
-             function(k) k[order(mean_int[idx_unk[k]], decreasing = TRUE)[seq_len(min(2L, length(k)))]]),
+             function(k) k[order(median_int[idx_unk[k]], decreasing = TRUE)[seq_len(min(2L, length(k)))]]),
       use.names = FALSE
     )
     keep_unk <- idx_unk[local_keep]
@@ -327,7 +330,7 @@ align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_
                                        use = "pairwise.complete.obs"))
       if (is.na(r)) 0 else r
     }, numeric(1))
-    pairs$mean_int <- rowMeans(cbind(L1, L2), na.rm = TRUE)
+    pairs$median_int <- rowMedian(cbind(L1, L2), na.rm = TRUE)
 
     if (!is.na(thres_cor)) pairs <- pairs[pairs$r_spear > thres_cor, , drop = FALSE]
     funnel["cor_ok"] <- n_feat(pairs)
@@ -337,7 +340,7 @@ align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_
     if (nrow(pairs) == 0) return(empty())
 
     if (best_match) {
-      pairs <- pairs[order(pairs$.i, -pairs$mean_int), , drop = FALSE]
+      pairs <- pairs[order(pairs$.i, -pairs$median_int), , drop = FALSE]
       pairs <- pairs[!duplicated(pairs$.i), , drop = FALSE]
     }
   } else {
@@ -450,7 +453,7 @@ merge_table_list <- function(tables, label,
   shift_list  <- c(list(list(ppm = 0, rt = 0, n = NA_integer_, applied = FALSE)),
                    vector("list", length(tables) - 1))
 
-  # Within-batch duplicate removal uses its own (typically tighter) tolerances
+  # Within-batch duplicate removal uses its own tolerances
   current <- remove_dup(tables[[1]], thres_mz_ppm = thres_dup_mz_ppm, thres_rt_min = thres_dup_rt_min)
 
   for (k in seq(2, length(tables))) {
@@ -700,7 +703,6 @@ merge_args <- list(thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min,
                    thres_dup_mz_ppm = thres_dup_mz_ppm, thres_dup_rt_min = thres_dup_rt_min)
 
 # Main tables first; ISTD tables reuse the batch shifts estimated on the main table
-# (ISTD tables have too few uniquely annotated features to estimate them)
 main_names <- intersect(c("pos", "neg"), tnames_to_run)
 istd_names <- intersect(c("istd_pos", "istd_neg"), tnames_to_run)
 
