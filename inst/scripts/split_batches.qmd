@@ -183,7 +183,7 @@ make_batch_config <- function(cfg, ov_names, specific_names, new_pr) {
 
   new_cfg <- cfg
   new_cfg$path_result             <- new_pr
-  new_cfg$path_temp               <- paste0(new_pr, "/temp")
+  new_cfg$path_temp               <- if (wf_is_blank(cfg$path_temp)) paste0(new_pr, "/temp") else file.path(cfg$path_temp, basename(new_pr))
   new_cfg$run.pos                 <- rp
   new_cfg$run.neg                 <- rn
   new_cfg$meta_pos                <- if (rp) df_to_yaml_cols(mp) else NULL
