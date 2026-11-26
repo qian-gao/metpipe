@@ -69,10 +69,47 @@ same_val <- function(a, b) {
 rowMedian <- function(x, na.rm = FALSE) {
   apply(x, MARGIN = 1, FUN = median, na.rm = na.rm)
 }
-# Clean up peaktable by removing near-duplicate features
-# Identified features: grouped by identity string
-# Unknown features: grouped by mz, rt
-# Within each group the rows with the top 2 highest mean intensity are kept
+# Group features into peaks: single-linkage clustering of rows whose m/z
+# (within thres_mz_ppm) and RT (within thres_rt_min) are close.
+# Returns one integer group id per row, in the input order.
+cluster_mz_rt <- function(mz, rt, thres_mz_ppm = 3, thres_rt_min = 0.1) {
+  m <- length(mz)
+  if (m <= 1L) return(seq_len(m))
+
+  ord  <- order(mz)
+  mz_s <- mz[ord]
+  rt_s <- rt[ord]
+
+  parent <- seq_len(m)
+  find_root <- function(x) {
+    while (parent[x] != x) { parent[x] <<- parent[parent[x]]; x <- parent[x] }
+    x
+  }
+  union_nodes <- function(x, y) {
+    rx <- find_root(x); ry <- find_root(y)
+    if (rx != ry) parent[ry] <<- rx
+  }
+
+  for (i in seq_len(m - 1L)) {
+    lo <- findInterval(mz_s[i] * (1 - thres_mz_ppm * 1e-6), mz_s) + 1L
+    hi <- findInterval(mz_s[i] * (1 + thres_mz_ppm * 1e-6), mz_s)
+    if (hi < max(lo, i + 1L)) next
+    js <- seq.int(max(lo, i + 1L), hi)
+    js <- js[abs(rt_s[js] - rt_s[i]) < thres_rt_min]
+    for (j in js) union_nodes(i, j)
+  }
+
+  groups      <- integer(m)
+  groups[ord] <- vapply(seq_len(m), find_root, integer(1L))
+  groups
+}
+
+# Clean up peaktable by removing near-duplicate features.
+# Rows are grouped into peaks by m/z + RT (cluster_mz_rt):
+#   - identified features: clustered separately within each identity, so a
+#     second peak with the same annotation (isomer, split peak) is its own group
+#   - unknown features: clustered together
+# Within each group the 2 rows with the highest median intensity are kept.
 remove_dup <- function(df, thres_mz_ppm = 3, thres_rt_min = 0.1) {
   n <- nrow(df)
   if (n == 0L) return(df)
@@ -83,60 +120,18 @@ remove_dup <- function(df, thres_mz_ppm = 3, thres_rt_min = 0.1) {
   else
     rep(0, n)
 
-  has_id <- !is.na(df$identity)
-
-  # Identified features: keep top 2
-  keep_id <- integer(0)
-  if (any(has_id)) {
-    idx_id  <- which(has_id)
-    keep_id <- unlist(
-      tapply(idx_id, df$identity[idx_id],
-             function(rows) rows[order(median_int[rows], decreasing = TRUE)[seq_len(min(2L, length(rows)))]]),
-      use.names = FALSE
-    )
+  # Group key: identity (or "unknown") + peak cluster within that set
+  set_key <- ifelse(is.na(df$identity), "\u0001unknown", paste0("id:", df$identity))
+  group   <- character(n)
+  for (idx in split(seq_len(n), set_key)) {
+    cl <- cluster_mz_rt(df$mz[idx], df$rt[idx], thres_mz_ppm, thres_rt_min)
+    group[idx] <- paste(set_key[idx], cl, sep = "#")
   }
 
-  # Unknown features: keep top 2
-  keep_unk <- integer(0)
-  if (any(!has_id)) {
-    idx_unk <- which(!has_id)
-    m       <- length(idx_unk)
+  top2 <- function(rows) rows[order(median_int[rows], decreasing = TRUE)[seq_len(min(2L, length(rows)))]]
+  keep <- unlist(lapply(split(seq_len(n), group), top2), use.names = FALSE)
 
-    ord  <- order(df$mz[idx_unk])
-    mz_s <- df$mz[idx_unk[ord]]
-    rt_s <- df$rt[idx_unk[ord]]
-
-    parent <- seq_len(m)
-    find_root <- function(x) {
-      while (parent[x] != x) { parent[x] <<- parent[parent[x]]; x <- parent[x] }
-      x
-    }
-    union_nodes <- function(x, y) {
-      rx <- find_root(x); ry <- find_root(y)
-      if (rx != ry) parent[ry] <<- rx
-    }
-
-    for (i in seq_len(m - 1L)) {
-      lo <- findInterval(mz_s[i] * (1 - thres_mz_ppm * 1e-6), mz_s) + 1L
-      hi <- findInterval(mz_s[i] * (1 + thres_mz_ppm * 1e-6), mz_s)
-      if (hi < max(lo, i + 1L)) next
-      js <- seq.int(max(lo, i + 1L), hi)
-      js <- js[abs(rt_s[js] - rt_s[i]) < thres_rt_min]
-      for (j in js) union_nodes(i, j)
-    }
-
-    roots        <- vapply(seq_len(m), find_root, integer(1L))
-    groups       <- integer(m)
-    groups[ord]  <- roots
-    local_keep   <- unlist(
-      tapply(seq_len(m), groups,
-             function(k) k[order(median_int[idx_unk[k]], decreasing = TRUE)[seq_len(min(2L, length(k)))]]),
-      use.names = FALSE
-    )
-    keep_unk <- idx_unk[local_keep]
-  }
-
-  df[sort(c(keep_id, keep_unk)), , drop = FALSE]
+  df[sort(keep), , drop = FALSE]
 }
 
 # Return intensity columns
