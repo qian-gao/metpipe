@@ -20,6 +20,7 @@ params:
   path_result: ""
   path_workflow: ""
   path_mzmine: ""
+  mzmine_user: ""
   path_temp: ""
   path_meta: ""
   qc_types: ""
@@ -61,6 +62,7 @@ path_raw = params$path_raw
 path_result = params$path_result
 path_workflow = params$path_workflow
 path_mzmine = params$path_mzmine
+mzmine_user = params$mzmine_user
 path_temp = params$path_temp
 path_meta = params$path_meta
 qc_types = params$qc_types
@@ -209,7 +211,13 @@ path_lib_istd_pos <- wf_join_path(path_workflow, method$path_lib_istd_pos)
 path_lib_istd_neg <- wf_join_path(path_workflow, method$path_lib_istd_neg)
 spectral_lib <- strsplit(method$path_spectral, "|", fixed = TRUE)[[1]]
 path_spectral_lib <- vapply(spectral_lib, function(s) wf_join_path(path_workflow, s), character(1))
-mzmine_user <- file.path(path_workflow, "parameters", "qiangao.mzuser")
+if (wf_is_blank(mzmine_user)) {
+  mzmine_user <- file.path(path_workflow, "parameters", "qiangao.mzuser")
+}
+mzmine_user <- normalizePath(mzmine_user, winslash = "/", mustWork = FALSE)
+if (software == "mzmine" && !file.exists(mzmine_user)) {
+  warning("Cannot find MZmine user credential file: ", mzmine_user)
+}
 mzmine_memory <- "-memory none"
 mzmine_threads <- "-threads 10"
 ```
