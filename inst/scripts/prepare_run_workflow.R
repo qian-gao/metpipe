@@ -45,7 +45,6 @@ start_from        <- get_arg("--start-from")
 run_module        <- get_arg("--run-module")
 # overlap_by_name   <- get_arg("--overlap-by-name")
 # overlap_sample_types <- get_arg("--overlap-sample-types")
-# batch_assignments <- get_arg("--batch-assignments")
 # n_batches         <- get_arg("--n-batches")
 
 default_workflow <- if (dir.exists("/wd")) "/wd" else getwd()
@@ -283,7 +282,6 @@ if (!wf_is_blank(run_key) && run_key != "prep_yaml") {
 }
 # if (!wf_is_blank(overlap_by_name))   run_args <- c(run_args, "--overlap-by-name",   shQuote(overlap_by_name))
 # if (!wf_is_blank(overlap_sample_types))   run_args <- c(run_args, "--overlap-sample-types",   shQuote(overlap_sample_types))
-# if (!wf_is_blank(batch_assignments)) run_args <- c(run_args, "--batch-assignments", shQuote(batch_assignments))
 # if (!wf_is_blank(n_batches))         run_args <- c(run_args, "--n-batches",         shQuote(n_batches))
 
 status_run <- system2("Rscript", args = run_args)
