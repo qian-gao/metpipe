@@ -711,14 +711,13 @@ use_parallel <- n_workers > 1L && length(tnames_to_run) > 1L
 
 if (use_parallel) {
   cl <- parallel::makeCluster(n_workers)
+  env <- environment()
+  fun_names <- Filter(function(n) is.function(get(n, envir = env)), ls(envir = env))
   parallel::clusterExport(cl,
-    c("ppm_diff", "ccs_diff", "sample_key", "same_val", "estimate_batch_shift",
-      "align_features", "clean_merged", "merge_table_list",
-      "table_specs", "batch_dirs", "remove_dup", "get_sample_cols",
-      "overlap_col_assignment", "process_one_table"),
-    envir = environment()
+    unique(c(fun_names, "table_specs", "batch_dirs", "overlap_col_assignment")),
+    envir = env
   )
-  parallel::clusterEvalQ(cl, library(openxlsx))
+  parallel::clusterEvalQ(cl, { library(openxlsx); library(dplyr) })
 }
 
 run_tables <- function(tnames, shifts_by_table = NULL) {
