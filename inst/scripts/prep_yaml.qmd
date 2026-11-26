@@ -22,7 +22,6 @@ params:
   path_mzmine: ""
   path_temp: ""
   path_meta: ""
-  author: ""
   qc_types: ""
   software: "mzmine"
   batch_size: ""
@@ -64,7 +63,6 @@ path_workflow = params$path_workflow
 path_mzmine = params$path_mzmine
 path_temp = params$path_temp
 path_meta = params$path_meta
-author = params$author
 qc_types = params$qc_types
 software = tolower(ifelse(wf_is_blank(params$software), "mzmine", params$software))
 batch_size = as.numeric(params$batch_size)
@@ -87,9 +85,6 @@ if (length(qc_types) == 1 && grepl(",", qc_types, fixed = TRUE)) {
   qc_types <- trimws(unlist(strsplit(qc_types, ",", fixed = TRUE)))
 }
 
-if (wf_is_blank(author)) {
-  author <- "CBMR Metabolomics Platform"
-}
 
 ```
 
@@ -365,7 +360,6 @@ config <- list(
   path_mzmine = path_mzmine,
   path_temp = path_temp,
   software = software,
-  author = author,
   method_name = method_name,
   run.pos = run.pos,
   run.neg = run.neg,  

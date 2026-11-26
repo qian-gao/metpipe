@@ -18,7 +18,6 @@ self-contained: true
 params:
   path_raw: ""
   path_result: ""
-  author: ""
   qc_types: ""
   batch_size: ""
 ---
