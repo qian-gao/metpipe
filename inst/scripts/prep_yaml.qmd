@@ -200,6 +200,39 @@ if (!run.pos && !run.neg) {
 
 ```
 
+```{r single mode samples}
+# Samples present in only one ionization mode (matched on meta$Sample,
+# the same key split_batches.qmd uses). Only relevant when both modes exist.
+show_single_mode <- run.pos && run.neg &&
+  !is.null(meta_pos) && !is.null(meta_neg)
+
+if (show_single_mode) {
+  pos_only_samples <- setdiff(meta_pos$Sample, meta_neg$Sample)
+  neg_only_samples <- setdiff(meta_neg$Sample, meta_pos$Sample)
+  pick_single_mode <- function(meta, samples, mode) {
+    cols <- intersect(c("Sample", "Sample.type", "File.name", "Run.order"), colnames(meta))
+    out <- meta[meta$Sample %in% samples, cols, drop = FALSE]
+    data.frame(Mode = rep(mode, nrow(out)), out, stringsAsFactors = FALSE)
+  }
+  single_mode <- bind_rows(
+    pick_single_mode(meta_pos, pos_only_samples, "pos only"),
+    pick_single_mode(meta_neg, neg_only_samples, "neg only")
+  )
+}
+```
+
+```{r single mode samples report, eval = show_single_mode, results = "asis"}
+cat("\n\n## Samples present in only one ionization mode\n\n")
+if (nrow(single_mode) == 0) {
+  cat("All samples are present in both pos and neg mode.\n\n")
+} else {
+  cat(length(pos_only_samples), " sample(s) only in pos, ",
+      length(neg_only_samples), " sample(s) only in neg.\n\n", sep = "")
+  print(knitr::kable(single_mode, row.names = FALSE))
+  cat("\n\n")
+}
+```
+
 ```{r mzmine input}
 
 mzmine_params <- wf_join_path(path_workflow, method$mzmine_params)
@@ -311,7 +344,7 @@ path_datatable <- paste0(path_result, "/datatable.xlsx")
 
 overlap_by_name <- ""
 overlap_sample_types <- "NIST,PO,PO1205,PO25,PO50,PO100,PO200,BL,CP,PO"
-n_batches <- 
+n_batches <- "" # number of batch folders (<result>_b1 ... _bN) to merge in merge_batches modules
 batch_assignments <- "" # list(c(1:10), c(11:20))
 thres_mz_ppm <- 3
 thres_rt_min <- 0.1
