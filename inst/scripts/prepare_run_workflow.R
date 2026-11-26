@@ -43,9 +43,6 @@ args <- commandArgs(trailingOnly = TRUE)
 path_raw          <- get_arg("--raw")
 start_from        <- get_arg("--start-from")
 run_module        <- get_arg("--run-module")
-# overlap_by_name   <- get_arg("--overlap-by-name")
-# overlap_sample_types <- get_arg("--overlap-sample-types")
-# n_batches         <- get_arg("--n-batches")
 
 default_workflow <- if (dir.exists("/wd")) "/wd" else getwd()
 default_result   <- if (!is.null(path_raw)) gsub("raw|mzML", "peaktable", path_raw) else NULL
@@ -280,9 +277,6 @@ if (!wf_is_blank(start_key) && start_key != "prep_yaml") {
 if (!wf_is_blank(run_key) && run_key != "prep_yaml") {
   run_args <- c(run_args, "--run-module", shQuote(run_key))
 }
-# if (!wf_is_blank(overlap_by_name))   run_args <- c(run_args, "--overlap-by-name",   shQuote(overlap_by_name))
-# if (!wf_is_blank(overlap_sample_types))   run_args <- c(run_args, "--overlap-sample-types",   shQuote(overlap_sample_types))
-# if (!wf_is_blank(n_batches))         run_args <- c(run_args, "--n-batches",         shQuote(n_batches))
 
 status_run <- system2("Rscript", args = run_args)
 
