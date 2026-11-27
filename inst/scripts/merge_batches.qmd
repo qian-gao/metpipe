@@ -228,17 +228,23 @@ estimate_batch_shift <- function(ref, df, min_anchors = 20L, rt_win = 0.3) {
 
 # Align features from two peaktables
 # shift_ppm / shift_rt: systematic offset of df2 relative to df1, removed before matching
-# best_match = TRUE: keeps the best-scoring match per df1 feature
-# thres_cor / thres_log2ratio: NA disables the filter
+# best_match = TRUE: keeps the best match per df1 feature (closest batch-wide
+#   median intensity, then closest m/z + RT)
+# thres_cor / thres_log2ratio / thres_batch_median: NA disables the filter
+# thres_batch_median: max |difference| (log2) between the batch-wide median
+#   intensities of the two features
 # prefer_df2_keys: sample keys whose columns are taken from df2 when both tables have them
+# sample_keys: sample keys (Sample-type) used for the batch-wide median; empty = all samples
 align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_match = TRUE,
-                           thres_cor = 0.7, thres_log2ratio = 0.3,
+                           thres_cor = 0.7, thres_log2ratio = 0.3, thres_batch_median = 3,
                            shift_ppm = 0, shift_rt = 0,
                            prefer_df2_keys = character(0),
+                           sample_keys = character(0),
                            step_label = "") {
 
   funnel <- c(ref_features = nrow(df1), batch_features = nrow(df2),
-              mz_rt_match = 0L, id_ok = 0L, cor_ok = 0L, log2ratio_ok = 0L, merged = 0L)
+              mz_rt_match = 0L, id_ok = 0L, cor_ok = 0L, log2ratio_ok = 0L,
+              batch_median_ok = 0L, merged = 0L)
   empty  <- function() list(merged = NULL, diag = NULL, l2r_long = NULL, funnel = funnel)
   n_feat <- function(p) length(unique(p$.i))
 
@@ -333,20 +339,43 @@ align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_
       pairs <- pairs[!is.na(pairs$score) & abs(pairs$score) < thres_log2ratio, , drop = FALSE]
     funnel["log2ratio_ok"] <- n_feat(pairs)
     if (nrow(pairs) == 0) return(empty())
-
-    if (best_match) {
-      pairs <- pairs[order(pairs$.i, -pairs$median_int), , drop = FALSE]
-      pairs <- pairs[!duplicated(pairs$.i), , drop = FALSE]
-    }
   } else {
     funnel["cor_ok"]       <- n_feat(pairs)
     funnel["log2ratio_ok"] <- n_feat(pairs)
-    if (best_match) {
-      # No shared samples: keep the closest candidate in m/z + RT
-      dist  <- pairs$mz_ppm / thres_mz_ppm + pairs$rt_diff / thres_rt_min
-      pairs <- pairs[order(pairs$.i, dist), , drop = FALSE]
-      pairs <- pairs[!duplicated(pairs$.i), , drop = FALSE]
+  }
+
+  # Batch-wide median intensity (log2, Sample-type columns) of each side.
+  # The overlap samples alone can mislead (e.g. gap-filling put the main peak
+  # into a minor neighbouring feature), so the medians over each batch's own
+  # samples are compared as well.
+  batch_median <- function(df, rows) {
+    cols <- get_sample_cols(df)
+    if (length(sample_keys) > 0) {
+      sel <- cols[sample_key(cols) %in% sample_keys]
+      if (length(sel) > 0) cols <- sel
     }
+    if (length(cols) == 0) return(rep(NA_real_, length(rows)))
+    rowMedian(log2(pmax(as.matrix(df[rows, cols, drop = FALSE]), 1)), na.rm = TRUE)
+  }
+  u_i  <- unique(pairs$.i); u_j <- unique(pairs$.j)
+  med1 <- setNames(batch_median(df1, u_i), u_i)
+  med2 <- setNames(batch_median(df2, u_j), u_j)
+  pairs$int_diff <- abs(med1[as.character(pairs$.i)] - med2[as.character(pairs$.j)])
+
+  # Filter: batch-wide medians must agree within thres_batch_median (log2);
+  # pairs whose medians cannot be computed are kept
+  if (!is.na(thres_batch_median))
+    pairs <- pairs[is.na(pairs$int_diff) | pairs$int_diff < thres_batch_median, , drop = FALSE]
+  funnel["batch_median_ok"] <- n_feat(pairs)
+  if (nrow(pairs) == 0) return(empty())
+
+  if (best_match) {
+    # Best candidate per df1 feature: closest batch-wide median, ties broken by
+    # m/z + RT distance
+    pairs$dist <- pairs$mz_ppm / thres_mz_ppm + pairs$rt_diff / thres_rt_min
+    ord_int    <- ifelse(is.na(pairs$int_diff), Inf, pairs$int_diff)
+    pairs <- pairs[order(pairs$.i, ord_int, pairs$dist), , drop = FALSE]
+    pairs <- pairs[!duplicated(pairs$.i), , drop = FALSE]
   }
 
   # Build merged table: feature metadata from df1, sample columns from both.
@@ -399,6 +428,7 @@ align_features <- function(df1, df2, thres_mz_ppm = 3, thres_rt_min = 0.1, best_
     overlap_cor      = ovlp_cor,
     median_log2ratio = med_l2r,
     median_log2ratio_centered = med_l2r_c,
+    batch_median_diff         = pairs$int_diff,
     stringsAsFactors = FALSE
   )
   if (ccs_flag) {
@@ -417,10 +447,11 @@ clean_merged <- function(df) {
 # Iteratively align a list of peaktables (all batches matched in b1 coordinates)
 merge_table_list <- function(tables, label,
                              thres_mz_ppm = 3, thres_rt_min = 0.1, best_match = TRUE,
-                             thres_cor = 0.7, thres_log2ratio = 0.3,
+                             thres_cor = 0.7, thres_log2ratio = 0.3, thres_batch_median = 3,
                              shift_correction = TRUE, overlap_col_assignment = NULL,
                              shifts = NULL,
-                             thres_dup_mz_ppm = thres_mz_ppm, thres_dup_rt_min = thres_rt_min) {
+                             thres_dup_mz_ppm = thres_mz_ppm, thres_dup_rt_min = thres_rt_min,
+                             sample_keys = character(0)) {
   tables <- Filter(Negate(is.null), tables)
   # Precomputed per-batch shifts (e.g. from the main table, for ISTD tables) are
   # only used when they line up with the available batches
@@ -473,8 +504,10 @@ merge_table_list <- function(tables, label,
                           thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min,
                           best_match = best_match,
                           thres_cor = thres_cor, thres_log2ratio = thres_log2ratio,
+                          thres_batch_median = thres_batch_median,
                           shift_ppm = shift$ppm, shift_rt = shift$rt,
                           prefer_df2_keys = prefer_keys,
+                          sample_keys = sample_keys,
                           step_label = step_lbl)
     if (is.null(res$merged) || nrow(res$merged) == 0)
       stop("Feature alignment returned 0 rows for ", label, " at batch ", k)
@@ -547,6 +580,7 @@ thres_mz_ppm     <- cfg_threshold(cfg$thres_mz_ppm, 3)
 thres_rt_min     <- cfg_threshold(cfg$thres_rt_min, 0.1)
 thres_cor        <- cfg_threshold(cfg$thres_cor, 0.7)
 thres_log2ratio  <- cfg_threshold(cfg$thres_log2ratio, 0.3)
+thres_batch_median <- cfg_threshold(cfg$thres_batch_median, 3)
 best_match       <- if (wf_is_blank(cfg$best_match)) TRUE else wf_as_flag(cfg$best_match)
 shift_correction <- if (wf_is_blank(cfg$shift_correction)) TRUE else wf_as_flag(cfg$shift_correction)
 
@@ -581,6 +615,8 @@ cat("thres_dup_rt_min:", thres_dup_rt_min, "(within-batch duplicate removal)\n")
 cat("thres_cor:       ", if (is.na(thres_cor)) "disabled" else thres_cor, "\n")
 cat("thres_log2ratio: ", if (is.na(thres_log2ratio)) "disabled" else thres_log2ratio,
     "(after per-sample centering)\n")
+cat("thres_batch_median:", if (is.na(thres_batch_median)) "disabled" else thres_batch_median,
+    "(log2, batch-wide median of Sample-type injections)\n")
 cat("best_match:      ", best_match, "\n")
 cat("shift_correction:", shift_correction, "\n")
 
@@ -630,8 +666,16 @@ sample_batch_map <- unlist(lapply(seq_along(sbm_samps), function(i) {
 sample_batch_map <- c(overlap_col_assignment, sample_batch_map)
 sample_batch_map <- sample_batch_map[!duplicated(names(sample_batch_map))]
 
+# Sample keys of Sample-type injections (used for batch-wide median intensities
+# in best_match; QCs/blanks are excluded because their share differs per batch)
+sample_type_keys <- unique(unlist(lapply(list(master_meta_pos, master_meta_neg), function(m) {
+  if (is.null(m) || !all(c("File.name", "Sample.type") %in% colnames(m))) return(character(0))
+  sub("\\.(d|mzML)$", "", make.names(m$File.name[m$Sample.type %in% "Sample"]))
+})))
+
 cat("Overlap samples assigned to batches:", length(overlap_assignment), "\n")
 cat("Total samples mapped to batches:    ", length(sample_batch_map), "\n")
+cat("Sample-type injections (best_match):", length(sample_type_keys), "\n")
 
 ```
 
@@ -649,7 +693,8 @@ table_specs <- list(
 tnames_to_run <- Filter(function(n) table_specs[[n]]$run, names(table_specs))
 
 process_one_table <- function(tname, thres_mz_ppm = 3, thres_rt_min = 0.1, best_match = TRUE,
-                              thres_cor = 0.7, thres_log2ratio = 0.3, shift_correction = TRUE,
+                              thres_cor = 0.7, thres_log2ratio = 0.3, thres_batch_median = 3,
+                              shift_correction = TRUE,
                               shifts = NULL,
                               thres_dup_mz_ppm = thres_mz_ppm, thres_dup_rt_min = thres_rt_min) {
   ts <- table_specs[[tname]]
@@ -673,10 +718,12 @@ process_one_table <- function(tname, thres_mz_ppm = 3, thres_rt_min = 0.1, best_
                           thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min,
                           best_match = best_match,
                           thres_cor = thres_cor, thres_log2ratio = thres_log2ratio,
+                          thres_batch_median = thres_batch_median,
                           shift_correction = shift_correction,
                           overlap_col_assignment = overlap_col_assignment,
                           shifts = shifts,
-                          thres_dup_mz_ppm = thres_dup_mz_ppm, thres_dup_rt_min = thres_dup_rt_min)
+                          thres_dup_mz_ppm = thres_dup_mz_ppm, thres_dup_rt_min = thres_dup_rt_min,
+                          sample_keys = sample_type_keys)
   if (is.null(res)) return(NULL)
 
   list(
@@ -694,7 +741,8 @@ process_one_table <- function(tname, thres_mz_ppm = 3, thres_rt_min = 0.1, best_
 
 merge_args <- list(thres_mz_ppm = thres_mz_ppm, thres_rt_min = thres_rt_min,
                    best_match = best_match, thres_cor = thres_cor,
-                   thres_log2ratio = thres_log2ratio, shift_correction = shift_correction,
+                   thres_log2ratio = thres_log2ratio, thres_batch_median = thres_batch_median,
+                   shift_correction = shift_correction,
                    thres_dup_mz_ppm = thres_dup_mz_ppm, thres_dup_rt_min = thres_dup_rt_min)
 
 # Main tables first; ISTD tables reuse the batch shifts estimated on the main table
@@ -709,7 +757,7 @@ if (use_parallel) {
   env <- environment()
   fun_names <- Filter(function(n) is.function(get(n, envir = env)), ls(envir = env))
   parallel::clusterExport(cl,
-    unique(c(fun_names, "table_specs", "batch_dirs", "overlap_col_assignment")),
+    unique(c(fun_names, "table_specs", "batch_dirs", "overlap_col_assignment", "sample_type_keys")),
     envir = env
   )
   parallel::clusterEvalQ(cl, { library(openxlsx); library(dplyr) })

@@ -352,6 +352,7 @@ thres_dup_mz_ppm <- 3
 thres_dup_rt_min <- 0.1
 thres_cor <- 0.7
 thres_log2ratio <- 0.3
+thres_batch_median <- 3 # max |log2 difference| of batch-wide median intensity between matched features ("none" disables)
 flag_cor <- 0.8
 flag_log2ratio <- 0.1
 
@@ -432,6 +433,7 @@ config <- list(
   thres_dup_rt_min = thres_dup_rt_min,
   thres_cor = thres_cor,
   thres_log2ratio = thres_log2ratio,
+  thres_batch_median = thres_batch_median,
   flag_cor = flag_cor,
   flag_log2ratio = flag_log2ratio
 )
