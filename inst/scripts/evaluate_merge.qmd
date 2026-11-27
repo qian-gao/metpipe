@@ -432,12 +432,16 @@ if (is.null(all_funnel) || nrow(all_funnel) == 0) {
 } else {
   fun_df <- all_funnel
   rownames(fun_df) <- NULL
-  knitr::kable(
-    fun_df,
-    col.names = c("Table", "Step", "Shift (ppm)", "Shift (min)", "Anchors",
-                  "Reference features", "Batch features", "m/z + RT match",
-                  "Identity OK", "Correlation OK", "log2 ratio OK", "Merged")
-  )
+  # Label by column name so diagnostics from older/newer merge_batches (with or
+  # without e.g. batch_median_ok) both render.
+  labels <- c(table = "Table", step = "Step", shift_ppm = "Shift (ppm)", shift_rt = "Shift (min)",
+              anchors = "Anchors", ref_features = "Reference features",
+              batch_features = "Batch features", mz_rt_match = "m/z + RT match",
+              id_ok = "Identity OK", cor_ok = "Correlation OK", log2ratio_ok = "log2 ratio OK",
+              batch_median_ok = "Batch median OK", merged = "Merged")
+  col_labels <- ifelse(colnames(fun_df) %in% names(labels),
+                       labels[colnames(fun_df)], colnames(fun_df))
+  knitr::kable(fun_df, col.names = col_labels)
 }
 
 ```
